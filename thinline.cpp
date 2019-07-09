@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -21,8 +21,10 @@
 */
 //----------------------------------------------------------------------
 //
-// Functions for stroking paths that have line width = 0 (a special-
-// case value that signifies line segments that mimic Bresenham lines)
+// thinline.cpp:
+//   Functions for stroking paths that have line width = 0. This is a
+//   special-case value that signifies line segments that mimic
+//   Bresenham lines.
 //
 //----------------------------------------------------------------------
 
@@ -68,7 +70,7 @@ namespace {
     //------------------------------------------------------------------
 
     const VERT16 offset[] = {
-        { 0, -HALF16 }, { HALF16, 0 }, { 0, HALF16 }, { -HALF16, 0 }, { 0, 0 }
+        { 0, -FIX_HALF }, { FIX_HALF, 0 }, { 0, FIX_HALF }, { -FIX_HALF, 0 }, { 0, 0 }
     };
 }
 

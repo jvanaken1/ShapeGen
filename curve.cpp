@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,11 +19,13 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Path manager member functions for generating Bezier spline curves
+// curve.cpp:
+//   Path manager member functions for generating Bezier spline
+//   curves -- both quadratic and cubic
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include <math.h>
 #include "shapepri.h"
@@ -46,7 +48,7 @@ bool PathMgr::IsFlatQuadratic(const VERT16 v[])
     return (epsilon/2 <= _flatness);
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a quadratic Bezier spline (a parabola) to
 // the current figure (aka subpath). The current point serves as the
@@ -58,7 +60,7 @@ bool PathMgr::IsFlatQuadratic(const VERT16 v[])
 // On entry, the current figure must not be empty (i.e., the current
 // point must be defined) or the function faults. 
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
 {
@@ -123,7 +125,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
     return true;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a series of connected quadratic Bezier
 // splines to the current figure (aka subpath). Array xy contains the
@@ -135,7 +137,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
 // elements are needed to specify each subsequent spline. The last point
 // in the final spline then becomes the new current point.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
 {
@@ -147,7 +149,6 @@ bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
         assert(xy != 0);
         return false;
     }
-
     for (int i = 0; i < npts; i += 2)
     {
         Bezier2(pxy[0], pxy[1]);
@@ -182,7 +183,7 @@ bool PathMgr::IsFlatCubic(const VERT16 v[])
     return (epsilon/4 <= _flatness);
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a cubic Bezier spline to the current figure
 // (aka subpath). The current point serves as the first point in the
@@ -194,7 +195,7 @@ bool PathMgr::IsFlatCubic(const VERT16 v[])
 // figure must not be empty (i.e., the current point must be defined) or
 // the function faults.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
 {
@@ -264,7 +265,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
     return true;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a series of connected cubic Bezier splines
 // to the current figure (aka subpath). Array xy contains the points in
@@ -276,7 +277,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
 // are needed to specify each subsequent spline. The last point in the
 // final spline then becomes the new current point.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::PolyBezier3(int npts, const SGPoint xy[])
 {
@@ -288,7 +289,6 @@ bool PathMgr::PolyBezier3(int npts, const SGPoint xy[])
         assert(xy != 0);
         return false;
     }
-
     for (int i = 0; i < npts; i += 3)
     {
         Bezier3(pxy[0], pxy[1], pxy[2]);
@@ -296,5 +296,4 @@ bool PathMgr::PolyBezier3(int npts, const SGPoint xy[])
     }
     return true;
 }
-
 

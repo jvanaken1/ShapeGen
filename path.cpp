@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -21,8 +21,10 @@
 */
 //---------------------------------------------------------------------
 //
-// Path manager member functions for setting path parameters, and for
-// constructing paths that can be converted to polygonal shapes
+// path.cpp:
+//   Path manager member functions for setting path parameters, and
+//   for constructing paths that can be converted to polygonal edge
+//   lists and filled by a renderer
 //
 //---------------------------------------------------------------------
 
@@ -33,7 +35,7 @@
 //
 // Private function: Creates a ShapeGen object and returns a pointer
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 {
@@ -108,7 +110,7 @@ void PathMgr::SetScrollPosition(int x, int y)
     _scroll.y = y;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Expands the size of the path memory in the event
 // of a path stack overflow. Allocates a larger stack and copies the
@@ -117,7 +119,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 // updated are _cpoint, _fpoint, _figure, and _figtmp. The path data
 // itself contains no pointers.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 void PathMgr::ExpandPath()
 {
@@ -127,7 +129,7 @@ void PathMgr::ExpandPath()
     _pathlength += _pathlength;
     _path = new VERT16[_pathlength];
     assert(_path);
-    memcpy(_path, oldpath, oldlen*sizeof(VERT16));
+    memcpy(_path, oldpath, oldlen*sizeof(_path[0]));
     if (_cpoint != 0)
     {
         offset = _cpoint - oldpath;
@@ -151,7 +153,7 @@ void PathMgr::ExpandPath()
     delete[] oldpath;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Specifies the minimum flatness (curve-to-chord
 // error tolerance) required of a curve segment before it can be
@@ -159,7 +161,7 @@ void PathMgr::ExpandPath()
 // Parameter tol specifies the required flatness and is restricted to
 // the range 1/16 to 16 pixels.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 float PathMgr::SetFlatness(float tol)
 {
@@ -171,7 +173,7 @@ float PathMgr::SetFlatness(float tol)
     return oldtol;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Specifies the fixed-point representation to use for
 // the x-y coordinates that the user supplies to ShapeGen interface
@@ -181,7 +183,7 @@ float PathMgr::SetFlatness(float tol)
 // 16.16 fixed-point values, corresponding to nbits = 16. Parameter
 // nbits must be in the range 0 to 16 or the function faults.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 int PathMgr::SetFixedBits(int nbits)
 {
@@ -196,13 +198,13 @@ int PathMgr::SetFixedBits(int nbits)
     return oldnbits;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Begins a new path at the start of the allocated
 // path memory. Sets up the first figure in this path, which is
 // initially empty.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::BeginPath()
 {
@@ -213,13 +215,13 @@ void PathMgr::BeginPath()
     _cpoint = 0;  // indicate figure is empty
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Finalizes the current figure, and then opens a
 // new, initially empty figure. If a figure contains just one point,
 // that point is discarded.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::FinalizeFigure(bool bclose)
 {
@@ -259,7 +261,7 @@ void PathMgr::FinalizeFigure(bool bclose)
     }
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Closes the current figure (aka subpath) by adding a
 // line segment to connect the current point to the first point in the
@@ -269,14 +271,14 @@ void PathMgr::FinalizeFigure(bool bclose)
 // If the current figure contains only a single point, the current
 // figure is replaced by a new, initially empty figure. 
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::CloseFigure()
 {   
     FinalizeFigure(true);
 }
 
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //
 // Public function: Ties up any loose ends in the current figure (aka
 // subpath) in the current path. The function then starts a new figure
@@ -288,22 +290,22 @@ void PathMgr::CloseFigure()
 // single point, the current figure is replaced with a new, initially
 // empty figure.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::EndFigure()
 {
     FinalizeFigure(false);
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Moves the current point to a new position. This
-// call ends the current figure (equivalent to an EndFigure call), and
-// automatically starts a new figure in the same path. This new figure
-// contains a single point, whose x-y coordinates are specified by
-// parameters x and y.
+// call terminates the current figure (equivalent to an EndFigure
+// call), and automatically starts a new figure in the same path. This
+// new figure contains a single point, whose x-y coordinates are
+// specified by parameters x and y.
 //
-//-----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 void PathMgr::Move(SGCoord x, SGCoord y)
 {
@@ -313,13 +315,13 @@ void PathMgr::Move(SGCoord x, SGCoord y)
     _cpoint->y = y << _fixshift;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a line segment from the current point to
 // the point specified by parameters x and y. If the current figure is
 // empty, the function faults.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::Line(SGCoord x, SGCoord y)
 {
@@ -334,18 +336,16 @@ bool PathMgr::Line(SGCoord x, SGCoord y)
     return true;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a series of connected line segments to the
 // current figure. Parameter xy is an array that contains the points in
 // the polyline. Parameter npts specifies the number of points in this
-// array. If the current figure is empty, the first point in the xy
-// array serves as the starting point for the polyline, and npts-1
-// line segments are appended to the path. If the current figure is not
-// empty, the current point serves as the starting point for the
-// polyline, and npts line segments are appended.
+// array. The current point serves as the starting point for the
+// polyline, and npts line segments specified in the xy array are
+// appended to the path.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::PolyLine(int npts, const SGPoint xy[])
 {
@@ -365,14 +365,14 @@ bool PathMgr::PolyLine(int npts, const SGPoint xy[])
     return true;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends a rectangle to the current path. First, the 
 // function terminates the current figure (equivalent to an EndFigure
 // call), if it is not empty. Then it adds the rectangle to the path
 // as a closed figure. Rotation direction = clockwise.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::Rectangle(const SGRect& rect)
 {    
@@ -390,13 +390,13 @@ void PathMgr::Rectangle(const SGRect& rect)
     CloseFigure();
 }
 
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //
 // Private function: Converts the points in the current path to a list
 // of polygonal edges. This function always closes the figure by adding
 // a line segment to connect the figure's start and end points. 
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::PathToEdges()
 {
@@ -434,11 +434,11 @@ bool PathMgr::PathToEdges()
     return true;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Fills the current path
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::FillPath(FILLRULE fillrule)
 {
@@ -492,7 +492,7 @@ bool PathMgr::SetMaskRegion(FILLRULE fillrule)
 //---------------------------------------------------------------------
 //
 // Public function: Resets the clipping region to its default setting,
-// which is the previously specified device clipping rectangle.
+// which is the current device clipping rectangle.
 //
 //---------------------------------------------------------------------
 

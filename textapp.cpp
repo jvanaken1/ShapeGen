@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,13 +19,18 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// A simple text-drawing application. The font is stroke-based and is
-// constructed using a combination of straight line segments and
-// elliptic arcs.
+// textapp.cpp:
+//   All of the text in the ShapeGen demo is drawn by this simple,
+//   ShapeGen-based graphical text application. This file mostly
+//   consists of font data for the printable ASCII characters. The
+//   font is stroke-based and is constructed using a combination of
+//   line segments, ellipses, elliptic arcs, and elliptic splines.
+//   The TextApp class member functions are implemented near the end 
+//   of this file. 
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include <string.h>
 #include <math.h>
@@ -66,7 +71,7 @@ const int _DRAWADOT_           = 0x9;
 const float leftbearing = 8.0;
 const float rightbearing = 8.0;
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // The xytbl array contains the points that define the shapes of all
 // the glyphs. The first two entries for each glyph specify the
@@ -81,7 +86,7 @@ const float rightbearing = 8.0;
 //   - x height is 42   
 //   - M width is 64
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 const XY xytbl[] = {
 
@@ -1852,11 +1857,12 @@ char *displaylist[] = {
 
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Initializes font data structures
+// Public functions: The TextApp constructor allocates and initializes
+// the font data structures 
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 TextApp::TextApp() : _width(0), _xspace(1.0)
 {
@@ -1897,11 +1903,11 @@ TextApp::~TextApp()
     delete[] _glyph;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Display list interpreter (draws a glyph)
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
 {
@@ -1965,23 +1971,20 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
     sg->StrokePath();
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Public function: Draws the glyphs for the specified text string.
-// Parameter sg is a pointer to a ShapeGen object. Parameter xfrm is the
-// 2x3 transform matrix to apply to the glyphs before they are
-// displayed. Parameter str is a string containing the characters that
-// are to be displayed. Elements xfrm[0][2] and xfrm[1][2] specify the
-// x and y coordinates at which to start drawing the string on the
-// display; the starting point is located at the intersection of the
-// left edge of the displayed string with the baseline. The other four
-// xfrm elements specify the affine transform (scaling, rotation,
-// etc.) to apply to the glyphs. Parameter str is the character string
-// to display. Parameter xspace specifies how much to expand or shrink
-// the default spacing between charaters. An xspace value greater than
-// one expands the spacing, and a value less than one shrinks it.
+// Public function: Draws the glyphs for the specified character
+// string (pointed to by parameter str). Parameter sg is a pointer to
+// a ShapeGen object. Parameter xfrm is the 2x3 transform matrix to
+// apply to the glyphs before they are displayed. Elements xfrm[0][2]
+// and xfrm[1][2] specify the x and y coordinates at which to start
+// drawing the string on the display; the starting point is located
+// at the intersection of the baseline with the left edge of the
+// displayed string. The other four xfrm elements specify the affine
+// transform (scaling, rotation, etc.) to apply to the glyphs.
+// Glyphs are drawn with the current stroke width.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
 {
@@ -2044,14 +2047,15 @@ void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
     sg->SetLineJoin(saveLineJoin);
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Draws the glyphs for the specified text string.
 // This version of the function draws only horizontal text, but
-// supports translation (to starting point xystart) and scaling (by the
-// scale parameter value).
+// supports translation (to starting point xystart) and scaling (by
+// the scale parameter value). Glyphs are drawn with the current
+// stroke width.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 void TextApp::DisplayText(ShapeGen *sg, SGPoint xystart, float scale, const char *str)
 {
@@ -2070,13 +2074,12 @@ void TextApp::DisplayText(ShapeGen *sg, SGPoint xystart, float scale, const char
 //
 // Public function: Calculates the x-y coordinates at the end of a
 // text string were the string to be displayed with the specified
-// transform and character spacing factor. Note: nothing is actually
-// drawn. Parameter xform is the 3x2 transform matrix. Parameter str is
-// the text string. Parameter xyout is the output pointer for the end
-// point coordinates. The end point lies at the intersection of the
-// right edge of the displayed string with the glyph baseline.
-// Parameter xspace is the optional character spacing factor, which has
-// a default value of 1.0.
+// transform and current text spacing factor. (Note that nothing is
+// actually drawn by this function.) Parameter xform is the 3x2
+// transform matrix. Parameter str is the text string. Parameter xyout
+// is the output pointer for the end-point coordinates. The end point
+// lies at the intersection of the transformed glyph baseline with the
+// right edge of the transformed string.
 //
 //---------------------------------------------------------------------
 
@@ -2097,7 +2100,7 @@ void TextApp::GetTextEndpoint(const float xfrm[][3], const char *str, XY *xyout)
 
         // If glyph is not implemented, use default symbol
         if (cc > 0x7f || p == 0)
-            p = _glyphtbl[1];
+            p = _glyphtbl[0x7f];
 
         // Point to the start of the xytbl entries for this glyph
         const XY *pxytbl = &xytbl[p->xyindex];
@@ -2114,7 +2117,9 @@ void TextApp::GetTextEndpoint(const float xfrm[][3], const char *str, XY *xyout)
 
 //---------------------------------------------------------------------
 //
-// Returns the width in pixels of a horizontal text string
+// Public function: Returns the width in pixels of a horizontal text
+// string drawn to the specified scale and with the current text-
+// spacing factor
 //
 //---------------------------------------------------------------------
 
@@ -2136,13 +2141,13 @@ float TextApp::GetTextWidth(float scale, const char *str)
 
 //---------------------------------------------------------------------
 //
-// Set the text spacing factor. Parameter xspace is the character-
-// spacing multiplier. To expand the spacing between characters, 
-// specify an xspace value greater than one. For example, an xspace
-// value of 1.2 specifies a 20 percent increase over the default
-// spacing. To decrease the spacing between characters, specify an
-// xspace value less than one. An xspace value of one restores the
-// default character spacing.
+// Public function: Sets the text-spacing factor. Parameter xspace is
+// the character-spacing multiplier. To expand the spacing between
+// characters, specify an xspace value greater than 1.0. For example,
+// an xspace value of 1.2 specifies a 20 percent increase over the
+// default spacing. To decrease the spacing between characters,
+// specify an xspace value less than one. An xspace value of 1.0
+// restores the default character spacing.
 //
 //---------------------------------------------------------------------
 

@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -21,8 +21,12 @@
 */
 //---------------------------------------------------------------------
 //
-// Polygonal edge manager: Converts paths into lists of
-// non-overlapping trapezoids are clipped and ready to be filled
+// edge.cpp:
+//   Polygonal edge manager: Converts paths into lists of polygonal
+//   edges. The output edge list is in normalized form, which means
+//   that each successive pair of edges describes the left and right
+//   edges of the same trapezoid. The trapezoids in this list are 
+//   non-overlapping, clipped, and ready to be filled by a renderer.
 //
 //---------------------------------------------------------------------
 
@@ -30,13 +34,13 @@
 #include <stdlib.h>
 
 namespace {
-    //----------------------------------------------------------------------
+    //---------------------------------------------------------------------
     //
     // A qsort comparison function used to sort a list of edges in order of
     // the y coordinates at their top (minimum-y) end. The items in this
     // list are sorted in order of their ascending ytop values.
     //
-    //-----------------------------------------------------------------------
+    //----------------------------------------------------------------------
     
     int ycomp(const void *key1, const void *key2)
     {
@@ -46,7 +50,7 @@ namespace {
         return (p->ytop - q->ytop);
     }
     
-    //----------------------------------------------------------------------
+    //---------------------------------------------------------------------
     //
     // A qsort comparison function used to sort a list of edges in order of
     // the x coordinates at their top (minimum-y) end. The items in this
@@ -55,7 +59,7 @@ namespace {
     // dxdy values. Two edges that have matching xtop and dxdy values are
     // sorted in order of their descending dy values.
     //
-    //-----------------------------------------------------------------------
+    //----------------------------------------------------------------------
     
     int xcomp(const void *key1, const void *key2)
     {
@@ -70,6 +74,35 @@ namespace {
             return (q->dy - p->dy);  // sort coincident edges
         }
         return (p->xtop - q->xtop);
+    }
+
+    //---------------------------------------------------------------------
+    //
+    // Uses the qsort function in stdlib.h to sort items in a singly linked
+    // EDGE list. Parameter plist points to the head of the list. Parameter
+    // length is the number of items in the list. Parameter comp is the
+    // comparison function. The sortlist function returns a pointer to the
+    // head of the new, sorted list.
+    //
+    //---------------------------------------------------------------------
+    
+    EDGE* sortlist(EDGE *plist, int length, int (*comp)(const void *, const void *))
+    {
+        int i, count = 0;
+        EDGE **ptr = new EDGE* [length];  // temporary storage for pointer array
+    
+        assert(ptr);
+        for (EDGE *p = plist; p; p = p->next)
+            ptr[count++] = p;
+    
+        qsort(ptr, count, sizeof(EDGE*), comp);   // stdlib.h function
+        for (i = 1; i < count; i++)
+            ptr[i-1]->next = ptr[i];  // update links in linked list
+    
+        ptr[i-1]->next = 0;
+        EDGE *tmp = ptr[0];
+        delete[] ptr;
+        return tmp;
     }
 }
 
@@ -123,12 +156,12 @@ void POOL::Reset()
     watermark = 0;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Shape feeder: Breaks a shape (stored as a normalized edge list) into
 // smaller pieces to feed to a renderer.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class Feeder : ShapeFeeder
 {
@@ -493,14 +526,14 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
     _inpool->Reset();
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Protected function: Fills all the trapezoids defined by the clipped
 // and normalized edges in _outlist. Returns true if _outlist is not
 // empty, so that one or more trapezoids are filled. If _outlist is
 // empty, the function does no fills and immediately returns false.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 bool EdgeMgr::FillEdgeList()
 {
@@ -518,7 +551,7 @@ bool EdgeMgr::FillEdgeList()
     return true;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Protected function: Saves the next pair of mated edges to the
 // normalized edge list pointed to by _outlist. Each pair of mated edges
@@ -526,7 +559,7 @@ bool EdgeMgr::FillEdgeList()
 // defines the left side of the trapezoid. Parameter edgeR is a pointer
 // to the edge defining the right side.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
 {
@@ -542,17 +575,18 @@ void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
     _outlist = p;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Protected function: Set the clip region to the specified device
-// clipping region. The x and y coordinates in parameter rect are
-// integer values and must be converted to 16.16 fixed point.
+// Protected function: Sets the clip region to the current device
+// clipping rectangle. The x and y coordinates in parameter rect are
+// integer values, and so must be converted to the internal 16.16
+// fixed-point format before the function calls AttachEdge.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
-void EdgeMgr::SetDeviceClipRectangle(SGRect *rect)
+void EdgeMgr::SetDeviceClipRectangle(const SGRect *rect)
 {
-    VERT16 v1, v2;  // top, bottom ends of vertical edge
+    VERT16 v1, v2;  // top and bottom ends of vertical edge
 
     if (rect == 0)
     {
@@ -579,7 +613,7 @@ void EdgeMgr::SetDeviceClipRectangle(SGRect *rect)
     _inpool->Reset();
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Protected function: Partition a complex polygonal shape (consisting
 // of perhaps multiple closed figures) into a list of non-overlapping
@@ -590,7 +624,7 @@ void EdgeMgr::SetDeviceClipRectangle(SGRect *rect)
 // ensuring that all figures are closed, which means that the number
 // of edges intersected by any scan line is always even, and never odd.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
 {
@@ -611,7 +645,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
 
     // Sort input list of edges in order of ascending ytop values
     length = _inpool->GetCount();
-    ylist = sortlist<EDGE>(_inlist, length, ycomp);
+    ylist = sortlist(_inlist, length, ycomp);
 
     // Partition polygon into a list of non-overlapping trapezoids. The
     // trapezoids are filled in major order from top (minimum y) to
@@ -637,7 +671,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
             h = min(h, abs(q->dy));
         } while ((p = q->next) != 0 && p->ytop == yscan);
         q->next = 0;
-        xlist = sortlist<EDGE>(ylist, length, xcomp);
+        xlist = sortlist(ylist, length, xcomp);
         ylist = p;
 
         // The x-sorted list represents a band of trapezoids of height h.
@@ -745,14 +779,14 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     _inpool->Reset();
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Protected function: Converts a directed line segment (taken from a
 // path) to a polygonal edge and adds the edge to the input edge list.
 // Parameters v1 and v2 specify the x-y coordinates of the line start
 // and end points, respectively.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
 {
@@ -762,8 +796,8 @@ void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
     int j, k, y;
 
     // If edge is horizontal, discard it
-    j = (v1->y + BIAS16) >> 16;
-    k = (v2->y + BIAS16) >> 16;
+    j = (v1->y + FIX_BIAS) >> 16;
+    k = (v2->y + FIX_BIAS) >> 16;
     if (k == j)
         return;
 
@@ -784,8 +818,8 @@ void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
     // Create new EDGE structure and insert at head of _inlist
     p = _inpool->Allocate();
     p->dxdy = fixdiv(vbot.x - vtop.x, vbot.y - vtop.y, 16);
-    xgap = fixmpy(p->dxdy, (y << 16) + HALF16 - vtop.y, 16);
-    p->xtop = vtop.x + xgap + BIAS16;
+    xgap = fixmpy(p->dxdy, (y << 16) + FIX_HALF - vtop.y, 16);
+    p->xtop = vtop.x + xgap + FIX_BIAS;
     p->dy = k - j;
     p->ytop = y;
     p->next = _inlist;

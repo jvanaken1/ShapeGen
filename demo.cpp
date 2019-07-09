@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,22 +19,106 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Demo code: Demonstrate how to use the 2-D Polygonal Shape Generator
+// demo.cpp:
+//   This file contains the code for the ShapeGen demo and for the
+//   code examples presented in the ShapeGen User's Guide.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include <math.h>
 #include <assert.h>
 #include "demo.h"
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
+//
+// These utility functions are handy for resizing shapes and moving
+// them around in the window
+//
+//---------------------------------------------------------------------
+
+// Converts the integer coordinates in a rectangle to 16.16 fixed point
+inline SGRect* IntToFixed(SGRect *box)
+{
+    box->x <<= 16;
+    box->y <<= 16;
+    box->w <<= 16;
+    box->h <<= 16;
+    return box;
+}
+
+// Converts an array of integer x-y coordinates to 16.16 fixed point
+inline SGPoint* IntToFixed(int npts, SGPoint xy[])
+{
+    for (int i = 0; i < npts; ++i)
+    {
+        xy[i].x = xy[i].x << 16;
+        xy[i].y = xy[i].y << 16;
+    }
+    return xy;
+}
+
+// Calculates the x-y coordinates at the center of a bounding box
+inline SGPoint* GetBboxCenter(SGPoint *xy, const SGRect *bbox)
+{
+    xy->x = bbox->x + (bbox->w + 1)/2;
+    xy->y = bbox->y + (bbox->h + 1)/2;
+    return xy;
+}
+
+// Calculates the minimum bounding box for an array of points
+SGRect* GetBbox(SGRect *bbox, int npts, const SGPoint xy[])
+{
+    SGCoord xmin = (1<<31)-1, ymin = (1<<31)-1, xmax = -1<<31, ymax = -1<<31;
+
+    for (int i = 0; i < npts; ++i)
+    {
+        xmin = min(xy[i].x, xmin);
+        ymin = min(xy[i].y, ymin);
+        xmax = max(xy[i].x, xmax);
+        ymax = max(xy[i].y, ymax);
+    }
+    bbox->x = xmin;
+    bbox->y = ymin;
+    bbox->w = xmax - xmin;
+    bbox->h = ymax - ymin;
+    return bbox;
+}
+
+// Scales and translates points in the source bounding box, bbsrc,
+// to exactly fit the destination bounding box, bbdst. The function
+// calculates the transformation from bbsrc to bbdst, applies this
+// transform to the points in the xysrc array, and writes the
+// transformed points to the xydst array. Parameter npts is the
+// length of the xysrc and xydst arrays. All source and destination
+// coordinates are assumed to be in 16.16 fixed-point format.
+void FitBbox(const SGRect *bbdst, int npts, SGPoint xydst[], 
+             SGRect *bbsrc, const SGPoint xysrc[])
+{
+    SGPoint cin, cout;
+    float xscale, yscale;
+
+    // Calculate center coordinates of source/dest bounding boxes
+    GetBboxCenter(&cin, bbsrc);
+    GetBboxCenter(&cout, bbdst);
+
+    // Scale the source points and translate them to the dest bbox
+    xscale = float(bbdst->w)/bbsrc->w;
+    yscale = float(bbdst->h)/bbsrc->h;
+    for (int i = 0; i < npts; ++i)
+    {
+        xydst[i].x = xscale*(xysrc[i].x - cin.x) + cout.x;
+        xydst[i].y = yscale*(xysrc[i].y - cin.y) + cout.y;
+    }
+}
+
+//---------------------------------------------------------------------
 //
 // Layered stroke effects: A cheap trick for anti-aliasing stroked and
 // filled shapes against a solid background color
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 // Blend two pixel values
 COLOR BlendPixels(FIX16 alpha, COLOR pix1, COLOR pix2)
@@ -120,91 +204,9 @@ void DrawTextAA(ShapeGen *sg, SimpleRenderer *renderer, TextApp *txt,
 
 //---------------------------------------------------------------------
 //
-// These utility functions are handy for resizing shapes and moving
-// them around in the window
-//
-//---------------------------------------------------------------------
-
-// Converts the integer coordinates in a rectangle to 16.16 fixed point
-inline SGRect* IntToFixed(SGRect *box)
-{
-    box->x <<= 16;
-    box->y <<= 16;
-    box->w <<= 16;
-    box->h <<= 16;
-    return box;
-}
-
-// Converts an array of integer x-y coordinates to 16.16 fixed point
-inline SGPoint* IntToFixed(int npts, SGPoint xy[])
-{
-    for (int i = 0; i < npts; ++i)
-    {
-        xy[i].x = xy[i].x << 16;
-        xy[i].y = xy[i].y << 16;
-    }
-    return xy;
-}
-
-// Calculates the x-y coordinates at the center of a bounding box
-inline SGPoint* GetBboxCenter(SGPoint *xy, const SGRect *bbox)
-{
-    xy->x = bbox->x + (bbox->w + 1)/2;
-    xy->y = bbox->y + (bbox->h + 1)/2;
-    return xy;
-}
-
-// Calculates the minimum bounding box for an array of points
-SGRect* GetBbox(SGRect *bbox, int npts, const SGPoint xy[])
-{
-    SGCoord xmin = (1<<31)-1, ymin = (1<<31)-1, xmax = -1<<31, ymax = -1<<31;
-
-    for (int i = 0; i < npts; ++i)
-    {
-        xmin = min(xy[i].x, xmin);
-        ymin = min(xy[i].y, ymin);
-        xmax = max(xy[i].x, xmax);
-        ymax = max(xy[i].y, ymax);
-    }
-    bbox->x = xmin;
-    bbox->y = ymin;
-    bbox->w = xmax - xmin;
-    bbox->h = ymax - ymin;
-    return bbox;
-}
-
-// Scales and translates points in the source bounding box, bbsrc,
-// to exactly fit the destination bounding box, bbdst. The function
-// calculates the transformation from bbsrc to bbdst, applies this
-// transform to the points in the xysrc array, and writes the
-// transformed points to the xydst array. Parameter npts is the
-// length of the xysrc and xydst arrays. All source and destination
-// coordinates are assumed to be in 16.16 fixed-point format.
-void FitBbox(const SGRect *bbdst, int npts, SGPoint xydst[], 
-             SGRect *bbsrc, const SGPoint xysrc[])
-{
-    SGPoint cin, cout;
-    float xscale, yscale;
-
-    // Calculate center coordinates of source/dest bounding boxes
-    GetBboxCenter(&cin, bbsrc);
-    GetBboxCenter(&cout, bbdst);
-
-    // Scale the source points and translate them to the dest bbox
-    xscale = float(bbdst->w)/bbsrc->w;
-    yscale = float(bbdst->h)/bbsrc->h;
-    for (int i = 0; i < npts; ++i)
-    {
-        xydst[i].x = xscale*(xysrc[i].x - cin.x) + cout.x;
-        xydst[i].y = yscale*(xysrc[i].y - cin.y) + cout.y;
-    }
-}
-
-//----------------------------------------------------------------------
-//
 // Zero-terminated arrays of dashed-line patterns
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 char dashedLineDot[]           = { 3, 0 };
 char dashedLineShortDash[]     = { 6, 0 };
@@ -222,43 +224,38 @@ char *dasharray[] = {
     dashedLineDashDoubleDot,
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Demo functions and code examples
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
+// Demo page 1: ShapeGen logo
 void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     float xfrm[2][3] = {
-        { 2.0,   0,  175.0},
-        { -0.8, 2.5, 685.0},
+        { 2.0,  0, 175.0 }, { -0.8, 2.5, 685.0 }
     };
     COLOR crBkgd = RGBVAL(222,222,255);
     COLOR color[] = {
-        RGBVAL(222, 100, 50), 
-        RGBVAL(185, 100, 222), 
-        RGBVAL(90, 206, 45),
-        RGBVAL(220, 20, 60), 
-        RGBVAL(0, 206, 209),
+        RGBVAL(222,100, 50), RGBVAL(185,100,222), 
+        RGBVAL( 90,206, 45), RGBVAL(220, 20, 60), 
+        RGBVAL(  0,206,209)
     };
     SGPoint arrow[] = {
-        {  0+1170, 30+889 }, 
-        { 30+1170, 30+889 }, 
-        { 30+1170, 40+889 }, 
-        { 63+1170, 20+889 }, 
-        { 30+1170,  0+889 }, 
-        { 30+1170, 10+889 }, 
-        {  0+1170, 10+889 },
+        {  0+1170, 30+889 }, { 30+1170, 30+889 }, 
+        { 30+1170, 40+889 }, { 63+1170, 20+889 }, 
+        { 30+1170,  0+889 }, { 30+1170, 10+889 }, 
+        {  0+1170, 10+889 } 
     };
     SGPoint xystart;
     SGPoint corner = { 40, 40 };
-    SGPoint elips[] = { { 640, 440 }, { 640+550, 435 }, { 640, 435+110 }, };
+    SGPoint elips[] = { { 640, 440 }, { 640+550, 435 }, { 640, 435+110 } };
     float len = 110;
     float angle = +PI/8.1;
-    char *str = "???";
+    char *str = 0;
     float scale = 1.0;
     float width;
     int i;
@@ -267,10 +264,10 @@ void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
-    rend->SetColor(crBkgd);  // RGBVAL(222,222,255);
+    rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineWidth(8.0);
-    rend->SetColor(color[0]);  // RGBVAL(222, 100, 50)
+    rend->SetColor(color[0]);
     sg->StrokePath();
 
     // Draw background pattern: rotated ellipses
@@ -325,26 +322,24 @@ void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
     sg->PolyLine(ARRAY_LEN(arrow)-1, &arrow[1]);
     sg->FillPath(FILLRULE_EVENODD);
 
-    // Draw "ShapeGen" text using slanted text and shadowing
+    // Draw letters "ShapeGen" with slanted text and shadowing
     str = "ShapeGen";
     sg->SetFlatness(FLATNESS_DEFAULT);
     sg->SetLineWidth(32.0);
     rend->SetColor(RGBVAL(99,99,99));
     txt.SetTextSpacing(1.2);
     txt.DisplayText(&(*sg), xfrm, str);
-
     xfrm[0][2] -= 8.0;
     xfrm[1][2] -= 8.0;
-
     sg->SetLineWidth(32.0);
     rend->SetColor(color[3]);
     txt.DisplayText(&(*sg), xfrm, str);
-
     sg->SetLineWidth(24.0);
     rend->SetColor(color[0]);
     txt.DisplayText(&(*sg), xfrm, str);
 }
 
+// Demo page 2: Path drawing modes
 void demo02(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -457,6 +452,7 @@ void demo02(SimpleRenderer *rend, const SGRect& clip)
     sg->StrokePath();
 }
 
+// Demo page 3: Clip to arbitrary shapes
 void demo03(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -531,7 +527,7 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     sg->Rectangle(rect[1]);
     sg->FillPath(FILLRULE_EVENODD);
 
-    // Map star shape to clipping region on left
+    // Define bounding boxes on left and right
     SGRect bbsrc;
     SGRect bbdst[] = {
         { 100<<16, 280<<16, 480<<16, 440<<16 }, 
@@ -539,7 +535,7 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     };
     SGPoint xy[len];
 
-    // Mask off star-shaped region on right side of window
+    // Mask off star-shaped region on right side
     GetBbox(&bbsrc, len, star);
     FitBbox(&bbdst[1], len, xy, &bbsrc, star);
     sg->BeginPath();
@@ -548,7 +544,7 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     sg->CloseFigure();
     sg->SetMaskRegion(FILLRULE_WINDING);
 
-    // Set to clip to star-shaped region on left
+    // Set up star-shaped clipping region on left
     FitBbox(&bbdst[0], len, xy, &bbsrc, star);
     sg->BeginPath();
     sg->Rectangle(rect[1]);
@@ -559,7 +555,7 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
 
     // Paint solid blue color inside new clipping region
     IntToFixed(&frame);
-    rend->SetColor(RGBVAL(0,100, 200));
+    rend->SetColor(RGBVAL(0,100,200));
     sg->BeginPath();
     sg->Rectangle(frame);
     sg->FillPath(FILLRULE_EVENODD);
@@ -596,16 +592,17 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
+// Demo page 4: Stroked line caps and joints
 void demo04(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
-    COLOR crBkgd  = RGBVAL(255, 248, 240);
-    COLOR crFrame = RGBVAL(230,140,70);
-    COLOR crFill = RGBVAL(255, 175, 100);
-    COLOR crText = RGBVAL(40, 70, 110);
+    COLOR crBkgd  = RGBVAL(255,248,240);
+    COLOR crFrame = RGBVAL(230,140, 70);
+    COLOR crFill  = RGBVAL(255,175,100);
+    COLOR crText  = RGBVAL( 40, 70,110);
 
     // Fill background and draw frame around window
     SGPoint corner = { 40, 40 };
@@ -666,7 +663,7 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
     DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
                crBkgd, crText);
 
-    // Draw stroked lines with different caps and joins
+    // Draw stroked lines with different cap and joint styles
     SGPoint point[3] = { 
         { 40, 181 }, { 163, 44 }, { 228, 181 },
     };
@@ -693,11 +690,9 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
             sg->Line(p1.x, p1.y);
             sg->Line(p2.x, p2.y);
             sg->StrokePath();
-
             rend->SetColor(0);
             sg->SetLineWidth(0);
             sg->StrokePath();
-
             SGPoint diam[2];
             sg->BeginPath();
             diam[0] = diam[1] = p0;
@@ -713,14 +708,15 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
+// Demo page 5: Layered stroke effects
 void demo05(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd  = RGBVAL(205,195,185);
-    COLOR crFill  = RGBVAL(70,206,209);
-    COLOR crFrame = RGBVAL(100,80,90);
-    COLOR crText  = RGBVAL( 40,  70, 110);
+    COLOR crFill  = RGBVAL( 70,206,209);
+    COLOR crFrame = RGBVAL(100, 80, 90);
+    COLOR crText  = RGBVAL( 40, 70,110);
 
     // Fill background and draw frame around window
     SGPoint corner = { 40, 40 };
@@ -774,15 +770,15 @@ void demo05(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
+// Demo page 6: Miter limit
 void demo06(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd = RGBVAL(222,222,255);
     COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL(40,70,110); 
-    int i;
-
+    COLOR crText = RGBVAL( 40, 70,110); 
+    
     // Fill background and draw frame around window
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
@@ -811,8 +807,8 @@ void demo06(SimpleRenderer *rend, const SGRect& clip)
         { 4, 160 }, { 0, 240 }, { -4, 160 },
     };
     COLOR color[] = {
-        RGBVAL(30, 144, 255), RGBVAL(221, 160, 221), RGBVAL(255, 69, 0), 
-        RGBVAL(147, 112, 219), RGBVAL(50, 205, 50), RGBVAL(250, 235, 215), 
+        RGBVAL( 30,144,255), RGBVAL(221,160,221), RGBVAL(255, 69,  0), 
+        RGBVAL(147,112,219), RGBVAL( 50,205, 50), RGBVAL(250,235,215), 
     };
     float mlim[] = { 1.0, 7.0, 13.0, 19.0 };
     SGPoint circle[3] = { { 720, 480 } };
@@ -865,7 +861,6 @@ void demo06(SimpleRenderer *rend, const SGRect& clip)
     sg->BeginPath();
     for (int i = 0; i < 4; ++i)
     {
-        
         for (int j = 0; j < 8; ++j)
         {
             float cosa = cos(2*i*PI/32.0 + 2*j*PI/8.0);
@@ -899,13 +894,14 @@ void demo06(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
+// Demo page 7: Dashed line patterns
 void demo07(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238, 130, 200);
-    COLOR crText = RGBVAL(40, 70, 110); 
+    COLOR crFill = RGBVAL(238,130,200);
+    COLOR crText = RGBVAL( 40, 70,110); 
     int i;
 
     // Fill background and draw frame around window
@@ -916,7 +912,7 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(90, 160, 50)); 
+    rend->SetColor(RGBVAL(90,160,50)); 
     sg->StrokePath();
 
     // Draw title text
@@ -933,21 +929,15 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     // Draw windmill shape
     SGPoint blade[][7] = {
         {
-            { 160-100, 120+95 },
-            { 250-100,  30+95 },
-            { 320-100, 100+95 },
-            { 320-100, 240+95 },
-            { 320-100, 380+95 },
-            { 370-100, 450+95 },
+            { 160-100, 120+95 }, { 250-100,  30+95 },
+            { 320-100, 100+95 }, { 320-100, 240+95 },
+            { 320-100, 380+95 }, { 370-100, 450+95 },
             { 480-100, 360+95 },
         },                  
         {                   
-            { 440-100,  80+95 },
-            { 530-100, 170+95 },
-            { 460-100, 240+95 },
-            { 320-100, 240+95 },
-            { 180-100, 240+95 },
-            { 110-100, 310+95 },
+            { 440-100,  80+95 }, { 530-100, 170+95 },
+            { 460-100, 240+95 }, { 320-100, 240+95 },
+            { 180-100, 240+95 }, { 110-100, 310+95 },
             { 200-100, 400+95 },
         },
     };
@@ -959,14 +949,14 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     sg->CloseFigure();
     sg->Move(blade[1][0].x, blade[1][0].y);
     sg->PolyBezier3(ARRAY_LEN(blade[1])-1, &blade[1][1]);
-    rend->SetColor(RGBVAL(144, 238, 144));
+    rend->SetColor(RGBVAL(144,238,144));
     sg->CloseFigure();
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(RGBVAL(0, 100, 0));
+    rend->SetColor(RGBVAL(0,100,0));
     sg->SetLineWidth(8.0);
     sg->SetLineDash(dashedLineShortDash, 0, 4.0);
     sg->StrokePath();
-    rend->SetColor(RGBVAL(100, 180, 50));
+    rend->SetColor(RGBVAL(100,180,50));
     sg->SetLineEnd(LINEEND_FLAT);
     sg->StrokePath();
 
@@ -991,9 +981,9 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     sg->Move(stretch[0].x, stretch[0].y);
     sg->PolyBezier3(ARRAY_LEN(stretch)-1, &stretch[1]);
     sg->CloseFigure();
-    rend->SetColor(RGBVAL(144, 238, 144));
+    rend->SetColor(RGBVAL(144,238,144));
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(RGBVAL(0, 100, 0));
+    rend->SetColor(RGBVAL(0,100,0));
     sg->SetLineWidth(4.0);
     sg->SetLineDash(dashedLineDot, 0, 3.0);
     sg->StrokePath();
@@ -1001,22 +991,14 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     // Draw clubs suit symbol
     char dashedLineBeaded[] = { 1, 12, 0 };
     SGPoint clubs[] = {
-        { 220+290, 400+145 },    // P0
-        { 260+290, 400+145 },    // P1
-        { 300+290, 320+145 },    // P2
-        { 300+290, 260+145 },    // P3
-        { 100+290, 460+145 },    // P4
-        { 100+290,  20+145 },    // P5
-        { 300+290, 220+145 },    // P6
-        { 100+290,  20+145 },    // P7
-        { 540+290,  20+145 },    // P8 
-        { 340+290, 220+145 },    // P9 
-        { 540+290,  20+145 },    // P10
-        { 540+290, 460+145 },    // P11
-        { 340+290, 260+145 },    // P12
-        { 340+290, 320+145 },    // P13
-        { 380+290, 400+145 },    // P14
-        { 420+290, 400+145 },    // P15
+        { 220+290, 400+145 },  { 260+290, 400+145 },
+        { 300+290, 320+145 },  { 300+290, 260+145 },
+        { 100+290, 460+145 },  { 100+290,  20+145 },
+        { 300+290, 220+145 },  { 100+290,  20+145 },
+        { 540+290,  20+145 },  { 340+290, 220+145 }, 
+        { 540+290,  20+145 },  { 540+290, 460+145 },
+        { 340+290, 260+145 },  { 340+290, 320+145 },
+        { 380+290, 400+145 },  { 420+290, 400+145 },
     };
     sg->SetLineEnd(LINEEND_ROUND);
     sg->SetLineJoin(LINEJOIN_BEVEL);
@@ -1076,22 +1058,23 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyEllipticSpline(64, &xy[1]);
-    rend->SetColor(RGBVAL(0, 100, 0));
+    rend->SetColor(RGBVAL(0,100,0));
     sg->SetLineWidth(16.0);
     sg->SetLineDash(dashedLineDashDoubleDot, 0, 4.0);
     sg->StrokePath();
-    rend->SetColor(RGBVAL(80, 200, 70));
+    rend->SetColor(RGBVAL(80,200,70));
     sg->SetLineWidth(10.0);
     sg->StrokePath();
 }
 
+// Demo page 8: Thin stroked lines
 void demo08(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd = RGBVAL(242,236,255);
     COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBVAL( 40, 70,110);
 
     // Fill background and draw frame around window
     SGPoint corner = { 40, 40 };
@@ -1155,7 +1138,7 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
         point[i].x = 340 - 280*sin(t);
         point[i].y = 460 - 280*cos(t);
     }
-    rend->SetColor(RGBVAL(0, 0, 80));
+    rend->SetColor(RGBVAL(0,0,80));
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
     sg->PolyLine(ARRAY_LEN(point)-1, &point[1]);
@@ -1192,13 +1175,14 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     sg->StrokePath();
 }
 
+// Demo page 9: Bezier curves
 void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238, 130, 200);
-    COLOR crText = RGBVAL(40, 70, 110); 
+    COLOR crFill = RGBVAL(238,130,200);
+    COLOR crText = RGBVAL( 40, 70,110); 
     int i;
 
     // Fill background and draw frame around window
@@ -1225,46 +1209,16 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
 
     // Define Bezier control polygon for "S" glyph
     SGPoint glyph[] = {
-        {   0, 165 },  //  0
-        {  52, 100 },  //  1
-        { 123,  67 },  //  2
-        { 175,  67 },  //  3
-        { 248,  67 },  //  4
-        { 288, 115 },  //  5
-        { 288, 152 },  //  6
-        { 288, 290 },  //  7
-        {   0, 305 },  //  8
-        {   0, 490 },  //  9
-
-        {   0, 598 },  // 10
-        {  80, 667 },  // 11
-        { 201, 667 },  // 12
-        { 253, 667 },  // 13
-        { 305, 656 },  // 14
-        { 351, 620 },  // 15
-        { 351, 584 },  // 16
-        { 351, 548 },  // 17
-        { 351, 512 },  // 18
-        { 297, 567 },  // 19
-
-        { 240, 582 },  // 20
-        { 193, 582 },  // 21
-        { 135, 582 },  // 22
-        {  88, 551 },  // 23
-        {  88, 501 },  // 24
-        {  88, 372 },  // 25
-        { 377, 375 },  // 26
-        { 377, 161 },  // 27
-        { 377,  56 },  // 28
-        { 296, -20 },  // 29
-
-        { 190, -20 },  // 30
-        { 116, -20 },  // 31
-        {  59,   0 },  // 32
-        {   0,  42 },  // 33
-        {   0,  83 },  // 34
-        {   0, 124 },  // 35
-        {   0, 165 },  // 36
+        {   0, 165 }, {  52, 100 }, { 123,  67 }, { 175,  67 }, 
+        { 248,  67 }, { 288, 115 }, { 288, 152 }, { 288, 290 }, 
+        {   0, 305 }, {   0, 490 }, {   0, 598 }, {  80, 667 }, 
+        { 201, 667 }, { 253, 667 }, { 305, 656 }, { 351, 620 }, 
+        { 351, 584 }, { 351, 548 }, { 351, 512 }, { 297, 567 },
+        { 240, 582 }, { 193, 582 }, { 135, 582 }, {  88, 551 }, 
+        {  88, 501 }, {  88, 372 }, { 377, 375 }, { 377, 161 }, 
+        { 377,  56 }, { 296, -20 }, { 190, -20 }, { 116, -20 }, 
+        {  59,   0 }, {   0,  42 }, {   0,  83 }, {   0, 124 }, 
+        {   0, 165 }, 
     };
     SGRect bbsrc, bbdst = { 768<<16, 875<<16, 384<<16, -660<<16 };
     float width = 54.0;
@@ -1285,17 +1239,17 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     sg->CloseFigure();
     sg->StrokePath();
 
-    // Add details to largest "S" glyph
+    // Add details to "S" glyph
     sg->SetLineWidth(width - 6);
-    rend->SetColor(RGBVAL(211, 233, 211));
+    rend->SetColor(RGBVAL(211,233,211));
     sg->StrokePath();
 
     sg->SetLineWidth(0);
-    rend->SetColor(RGBVAL(200, 0, 0));
+    rend->SetColor(RGBVAL(200,0,0));
     sg->StrokePath();
 
     // Outline control polygon
-    rend->SetColor(RGBVAL(85, 107, 47));
+    rend->SetColor(RGBVAL(85,107,47));
     sg->SetLineWidth(2.0);
     sg->BeginPath();
     sg->Move(glyph[0].x, glyph[0].y);
@@ -1336,8 +1290,8 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
             &bboxsrc, &clubs[0]);
 
     // Draw club suit symbol
-    crFill = RGBVAL(100, 200, 47);
-    sg->SetLineDash(0, 0, 0);
+    crFill = RGBVAL(100,200,47);
+    sg->SetLineDash(0,0,0);
     sg->SetLineEnd(LINEEND_SQUARE);
     sg->SetLineJoin(LINEJOIN_BEVEL);
     sg->SetFixedBits(16);
@@ -1355,7 +1309,7 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
     sg->PolyLine(ARRAY_LEN(point)-1, &point[1]);
-    rend->SetColor(RGBVAL(255, 0, 0));
+    rend->SetColor(RGBVAL(255,0,0));
     sg->SetLineWidth(0);
     sg->StrokePath();
 
@@ -1370,17 +1324,18 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
         rect.h = 4 << 16;
         sg->Rectangle(rect);
     }
-    rend->SetColor(RGBVAL(200, 0, 0));
+    rend->SetColor(RGBVAL(200,0,0));
     sg->StrokePath();
 }
 
-void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
+// Demo page 10: Ellipses and elliptic splines
+void demo10(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd = RGBVAL(220,220,220);
-    COLOR crFill = RGBVAL(238, 130, 200);
-    COLOR crText = RGBVAL(40, 70, 110);
+    COLOR crFill = RGBVAL(238,130,200);
+    COLOR crText = RGBVAL( 40, 70,110);
 
     // Fill background and draw frame around window
     SGPoint corner = { 40, 40 };
@@ -1405,11 +1360,7 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
                crBkgd, crText);
 
     // glyph '@'
-    struct COORD
-    {
-        float x; float y;
-    };
-    COORD glyph[] = {
+    XY glyph[] = {
         {  1.5,  1.0 },  //  0 bounding box min
         { 39.2, 40.0 },  //  1 bounding box max
         { 19.4, 20.5 },  //  2
@@ -1459,11 +1410,9 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
         scale += 1.2*scale;
         width += width + 3;
     }
-
     sg->SetLineWidth(width/2 - 6);
     rend->SetColor(RGBVAL(200, 210, 220));
     sg->StrokePath();
-
     sg->SetLineWidth(0);
     rend->SetColor(RGBVAL(200, 0, 0));
     sg->StrokePath();
@@ -1479,7 +1428,7 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
     sg->PolyLine(12, &xy[6]);
     sg->StrokePath();
 
-    SGPoint pt[] = { { 2<<16, 0}, { 0, 2<<16},};
+    SGPoint pt[] = { { 2<<16, 0 }, { 0, 2<<16 } };
 
     // Highlight vertexes of control polygon
     sg->BeginPath();
@@ -1501,7 +1450,7 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
     sg->SetFixedBits(0);
     sg->BeginPath();
     sg->Ellipse(p0, p1, p2);
-    rend->SetColor(RGBVAL(0, 80, 120));
+    rend->SetColor(RGBVAL(0,80,120));
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineEnd(LINEEND_ROUND);
     for (int i = 0; i < 3; ++i)
@@ -1515,11 +1464,10 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
         p1 = p2 = p0;
         p1.x -= 160*sina;
         p1.y += 160*cosa;
-        p2.x += 40*cosa;
-        p2.y += 40*sina;
+        p2.x +=  40*cosa;
+        p2.y +=  40*sina;
         sg->Ellipse(p0, p1, p2);
         sg->StrokePath();
-
         sg->BeginPath();
         sg->EllipticArc(p0, p1, p2, astart, PI/16);
         astart += PI;
@@ -1529,6 +1477,7 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // glyph '@'
     }
 }
 
+// Demo page 11: Elliptic arcs
 void demo11(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -1536,8 +1485,8 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
     COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238, 130, 200);
-    COLOR crText = RGBVAL(40, 70, 110);
+    COLOR crFill = RGBVAL(238,130,200);
+    COLOR crText = RGBVAL( 40, 70,110);
 
     // Fill background and draw frame around window
     SGPoint corner = { 40, 40 };
@@ -1547,7 +1496,7 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(222, 100, 50)); 
+    rend->SetColor(RGBVAL(222,100,50)); 
     sg->StrokePath();
 
     // Draw title text
@@ -1562,20 +1511,17 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 
     // Draw pie chart
-    float percent[] = 
-    {
-        5.1, 12.5, 14.8, 
-        5.2, 11.6, 8.7, 
-        14.7, 19.2, 8.2,
+    float percent[] = {
+        5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 14.7, 19.2, 8.2
     };
     COLOR crSlice[] = 
     {
-        RGBVAL( 65, 105, 225),  RGBVAL(255, 99, 71),   RGBVAL(218, 165, 32),     
-        RGBVAL( 60, 179, 113),  RGBVAL(199, 21, 133),  RGBVAL( 72, 209, 204),
-        RGBVAL(255, 105, 180),  RGBVAL( 50, 205, 50),  RGBVAL(128,   0,   0),
+        RGBVAL( 65,105,225), RGBVAL(255, 99, 71), RGBVAL(218,165, 32),     
+        RGBVAL( 60,179,113), RGBVAL(199, 21,133), RGBVAL( 72,209,204),
+        RGBVAL(255,105,180), RGBVAL( 50,205, 50), RGBVAL(128,  0,  0),
     };
     COLOR crRim[ARRAY_LEN(crSlice)];
-    COLOR crEdge = RGBVAL(51, 51, 51);
+    COLOR crEdge = RGBVAL(51,51,51);
     const int high = 95;
     const int wide = 420;
     const int deep = 196;
@@ -1675,14 +1621,15 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
+// Demo page 12: Code examples
 void demo12(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     COLOR crBkgd  = RGBVAL(230,230,255);
-    COLOR crFrame = RGBVAL(65,105,225);
+    COLOR crFrame = RGBVAL( 65,105,225);
     COLOR crDash  = RGBVAL(140,190,255);
-    COLOR crText  = RGBVAL(65,105,225);
+    COLOR crText  = RGBVAL( 65,105,225);
     COLOR crWhite = RGBVAL(255,255,255);
     float linewidth = 10.0;
     char dash[] = { 1, 4, 0 };
@@ -1757,6 +1704,7 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
+// Code example from UG topic "Creating a ShapeGen object"
 void MySub(ShapeGen *sg, SGRect& rect)
 {
     sg->BeginPath();
@@ -1791,6 +1739,7 @@ void MyTest(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
+// 1st code example from UG topic "Ellipses and elliptic arcs"
 void EggRoll(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -1866,6 +1815,7 @@ void EggRoll(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
+// 2nd code example from UG topic "Ellipses and elliptic arcs"
 void PieToss(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -1953,7 +1903,7 @@ void PieToss(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::Bezier2 example
+// Code example from ShapeGen::Bezier2 reference topic
 void example01(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -1991,7 +1941,7 @@ void example01(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::Bezier3 example
+// Code example from ShapeGen::Bezier3 reference topic
 void example02(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2031,7 +1981,7 @@ void example02(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::Ellipse example
+// Code example from ShapeGen::Ellipse reference topic
 void example03(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2083,7 +2033,7 @@ void example03(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::EllipticArc example
+// Code example from ShapeGen::EllipticArc reference topic
 void example04(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2136,7 +2086,7 @@ void example04(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::EllipticSpline example
+// Code example from ShapeGen::EllipticSpline reference topic
 void example05(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2174,7 +2124,7 @@ void example05(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::GetBoundingBox example
+// Code example from ShapeGen::GetBoundingBox reference topic
 void example06(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2251,7 +2201,7 @@ void example06(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::PolyBezier2 example
+// Code example from ShapeGen::PolyBezier2 reference topic
 void example07(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2299,7 +2249,7 @@ void example07(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::PolyBezier3 example
+// Code example from ShapeGen::PolyBezier3 reference topic
 void example08(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2353,7 +2303,7 @@ void example08(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::PolyEllipticSpline example
+// Code example from ShapeGen::PolyEllipticSpline reference topic
 void example09(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2401,7 +2351,7 @@ void example09(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::Rectangle example
+// Code example from ShapeGen::Rectangle reference topic
 void example10(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2411,7 +2361,7 @@ void example10(SimpleRenderer *rend, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(rect);
 
-    // Make second rectangle smaller than the first
+    // Make the second rectangle smaller than the first
     rect.x += 15;
     rect.y += 15;
     rect.w -= 95;
@@ -2444,7 +2394,7 @@ void example10(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::RoundedRectangle example
+// Code example from ShapeGen::RoundedRectangle reference topic
 void example11(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2454,7 +2404,7 @@ void example11(SimpleRenderer *rend, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(rect, round);
 
-    // Make second rectangle smaller than the first
+    // Make the second rectangle smaller than the first
     rect.x += 15;
     rect.y += 15;
     rect.w -= 95;
@@ -2487,7 +2437,7 @@ void example11(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::SetClipRegion example
+// Code example from ShapeGen::SetClipRegion reference topic
 void example12(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2544,7 +2494,7 @@ void example12(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::SetLineDash example
+// Code example from ShapeGen::SetLineDash reference topic
 void example13(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2590,7 +2540,7 @@ void example13(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::SetLineEnd example
+// Code example from ShapeGen::SetLineEnd reference topic
 void example14(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2628,7 +2578,7 @@ void example14(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::SetLineJoin example
+// Code example from ShapeGen::SetLineJoin reference topic
 void example15(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2667,7 +2617,7 @@ void example15(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::SetMaskRegion example
+// Code example from ShapeGen::SetMaskRegion reference topic
 void example16(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2723,7 +2673,7 @@ void example16(SimpleRenderer *rend, const SGRect& clip)
                crBkgd, crText);
 }
 
-// ShapeGen::SetMiterLimit example
+// Code example from ShapeGen::SetMiterLimit reference topic
 void example17(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -2764,11 +2714,14 @@ void example17(SimpleRenderer *rend, const SGRect& clip)
 }
 
 void (*testfunc[])(SimpleRenderer *rend, const SGRect& cliprect) =
-{     
+{
+    // Demo pages
     demo01, demo02, demo03,  
     demo04, demo05, demo06,
     demo07, demo08, demo09, 
     demo10, demo11, demo12,
+
+    // Code examples   
     MyTest, EggRoll, PieToss,
     example01, example02, example03,
     example04, example05, example06,
@@ -2778,11 +2731,11 @@ void (*testfunc[])(SimpleRenderer *rend, const SGRect& cliprect) =
     example16, example17,
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Main program calls the runtest function to run the tests
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 bool runtest(int testnum, SimpleRenderer *rend, const SGRect& cliprect)
 {

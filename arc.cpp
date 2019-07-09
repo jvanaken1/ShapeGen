@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,11 +19,13 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Path manager member functions for constructing ellipses and arcs
+// arc.cpp:
+//   Path manager member functions for constructing ellipses, elliptic
+//   arcs, elliptic splines, and rounded rectangles
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include <stdlib.h>
 #include <math.h>
@@ -86,22 +88,21 @@ namespace {
     }
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Generates a series of points approximating the
 // specified elliptic arc. Parameter v0 specifies the x-y coordinates
 // at the center of the ellipse. Parameters v1, v2, and v3 are points
 // on the ellipse, and are specified as center-relative coordinates--
-// that is, as displacements from v0. Parameter v1 is the arc starting
-// point, and is also an end point of the first conjugate radius of the
-// ellipse. Parameter v2 is an end point of the second conjugate radius
-// of the ellipse, and parameter v3 is the arc ending point. Parameter
-// asweep is the angle swept out by the arc; it specifies radians of
-// elliptic arc and is in 16.16 fixed-point format. If parameter asweep
-// is positive, the arc sweeps in the direction from v1 to v2. This code
-// is based on the quarter-ellipse algorithm from Graphics Gems III.
+// that is, as displacements from v0. Parameters v1 and v3 are the
+// start and end points of the arc. Parameters v1 and v2 are the end
+// points of a pair of conjugate diameters of the ellipse. Parameter
+// asweep is the angle swept out by the arc. If parameter asweep is
+// positive, the arc sweeps in the direction from v1 to v2; otherwise,
+// it sweeps in the opposite direction. This code is based on the
+// quarter-ellipse algorithm from Graphics Gems III.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v3, FIX16 asweep)
 {
@@ -163,7 +164,7 @@ void PathMgr::FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v
     *_cpoint = v3;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Adds a rotated ellipse to the current path. The
 // ellipse is specified by the three points v0, v1, and v3. Parameter v0
@@ -176,34 +177,30 @@ void PathMgr::FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v
 // starts a new, empty figure in the same path (so that, on return, the
 // current point is undefined).
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 {
     VERT16 v[3];
     
     EndFigure();
-    
+    _cpoint = _fpoint;
+    _cpoint->x = v1.x << _fixshift;
+    _cpoint->y = v1.y << _fixshift;
     v[0].x = v0.x << _fixshift;
     v[0].y = v0.y << _fixshift;
     v[1].x = (v1.x - v0.x) << _fixshift;
     v[1].y = (v1.y - v0.y) << _fixshift;
     v[2].x = (v2.x - v0.x) << _fixshift;
     v[2].y = (v2.y - v0.y) << _fixshift;
-
-    _cpoint = _fpoint;
-    _cpoint->x = v[0].x + v[1].x;  // move to arc starting point
-    _cpoint->y = v[0].y + v[1].y;
-
-    FlattenArc(v[0], v[1], v[2], v[1], 2*PI16);  // flatten ellipse
-
+    FlattenArc(v[0], v[1], v[2], v[1], 2*FIX_PI);  // flatten ellipse
     CloseFigure();
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Appends an elliptic arc to the current path. 
-// Point v0 is the center of the ellipse, and v1 and v2 and the end
+// Point v0 is the center of the ellipse, and v1 and v2 are the end
 // points of a pair of conjugate diameters of the ellipse. Parameter
 // aStart is the starting angle of the arc, and parameter aSweep is the
 // angle swept out by the arc. Both angles are specified in radians of
@@ -217,7 +214,7 @@ void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 // return from this function, the current point is set to the end point
 // of the arc. 
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, float aStart, float aSweep)
 {  
@@ -230,8 +227,13 @@ void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v
     FIX16 asweep = 65536.0*aSweep;
     VERT16 va, vb, v[4];
 
+    // Convert center coordinates to 16.16 fixed-point format
     v[0].x = v0.x << _fixshift;
     v[0].y = v0.y << _fixshift;
+
+    // Rotate conjugate diameter end points v1 and v2 around the
+    // perimeter of the ellipse by aStart radians so that the
+    // first end point coincides with the arc starting point.
     va.x = v1.x - v0.x;
     va.y = v1.y - v0.y;
     vb.x = v2.x - v0.x;
@@ -244,21 +246,25 @@ void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v
     v[1].y = y1*shift;
     v[2].x = x2*shift;
     v[2].y = y2*shift;
+
+    // Calculate the arc end point by rotating aSweep radians around
+    // the ellipse starting from the arc starting point at (x1,y1).
     v[3].x = (x1*cosb + x2*sinb)*shift;
     v[3].y = (y1*cosb + y2*sinb)*shift;
 
+    // Set the current point to the arc starting point, and call the
+    // FlattenArc function to add the points in the arc to the path.
     if (_cpoint == 0)
         _cpoint = _fpoint;
     else
         PathCheck(++_cpoint);
 
-    _cpoint->x = v[0].x + v[1].x;  // move to arc starting point
+    _cpoint->x = v[0].x + v[1].x;
     _cpoint->y = v[0].y + v[1].y;
-
-    FlattenArc(v[0], v[1], v[2], v[3], asweep);  // flatten elliptic arc
+    FlattenArc(v[0], v[1], v[2], v[3], asweep);
 }
 
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //
 // Public function: Appends an elliptic spline to the current figure
 // in the current path. The spline is a quarter of an ellipse; that is,
@@ -267,7 +273,7 @@ void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v
 // current point), the end point (parameter v2), and the control point
 // (v1). On return from this function, the new current point is v2.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
 {
@@ -295,11 +301,11 @@ bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
     v[1].y -= v[0].y;
     v[2].x -= v[0].x;
     v[2].y -= v[0].y;
-    FlattenArc(v[0], v[1], v[2], v[2], PI16/2);   // flatten spline
+    FlattenArc(v[0], v[1], v[2], v[2], FIX_PI/2);   // flatten spline
     return true;
 }
 
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //
 // Public function: Appends a series of elliptic splines to the current 
 // figure in the current path. The current point is taken as the
@@ -311,7 +317,7 @@ bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
 // number of points in array xy. On return from this function, the last
 // point in array xy is the new current point.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::PolyEllipticSpline(int npts, const SGPoint xy[])
 {
@@ -323,7 +329,6 @@ bool PathMgr::PolyEllipticSpline(int npts, const SGPoint xy[])
         assert(xy != 0);
         return false;
     }
-
     for (int i = 0; i < npts; i += 2)
     {
         EllipticSpline(pxy[0], pxy[1]);
@@ -332,7 +337,7 @@ bool PathMgr::PolyEllipticSpline(int npts, const SGPoint xy[])
     return true;
 }
 
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //
 // Public function: Adds a rectangle with rounded corners to the
 // current path. Corners are rounded with circular or elliptic arcs.
@@ -344,7 +349,7 @@ bool PathMgr::PolyEllipticSpline(int npts, const SGPoint xy[])
 // function starts a new, empty figure in the same path (so that the
 // current point is undefined). Rotation direction = clockwise.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::RoundedRectangle(const SGRect& rect, const SGPoint& round)
 {
@@ -374,7 +379,7 @@ void PathMgr::RoundedRectangle(const SGRect& rect, const SGPoint& round)
     _cpoint = _fpoint;
     _cpoint->x = xmin;
     _cpoint->y = ymin + yround;
-    FlattenArc(v[0], v[1], v[2], v[2], PI16/2);
+    FlattenArc(v[0], v[1], v[2], v[2], FIX_PI/2);
 
     // Use symmetry to copy top-left corner to other 3 corners
     int count = _cpoint - _fpoint + 1;

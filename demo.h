@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,12 +19,13 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Header file tests.h: Included by application code that tests and/or
-// demos the ShapeGen programming interface
+// demo.h:
+//   Header file for demo code. This header is included by the
+//   ShapeGen demo code, and by the code examples in demo.cpp. 
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include "shapegen.h"
 
@@ -36,7 +37,7 @@ const int DEMO_HEIGHT =  960;
 
 // Macro definitions 
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-#define RGBVAL(r,g,b)  ((r&255)|((g&255)<<8)|((b&255)<<16))
+#define RGBVAL(r,g,b)  (((r)&255)|(((g)&255)<<8)|(((b)&255)<<16))
 #ifdef min
 #undef min
 #endif
@@ -50,11 +51,11 @@ const int DEMO_HEIGHT =  960;
 #endif 
 #define sign(x)   ((x)<0?-1:1)	     // sign (plus or minus) of value
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Pixels and RGB values
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 typedef unsigned int COLOR;
 
@@ -66,11 +67,11 @@ inline void GetRgbValues(const COLOR color, int *r, int *g, int *b)
     *b = (color >> 16) & 0xff;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // A simple renderer derived from the Renderer base class
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class SimpleRenderer : public Renderer
 {
@@ -78,22 +79,22 @@ public:
     virtual void SetColor(COLOR pix) = 0;
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Runs graphics test function specified by index testnum. Parameter
-// rend is a SimpleRenderer object pointer, cliprect specifies the
-// device clipping rectangle, and scrollpos specifies the horizontal
-// and vertical scrolling displacements for the window (or is null).
+// Runs the graphics test function specified by index testnum.
+// Parameter rend is a SimpleRenderer object pointer (see interface
+// definition in demo.h), and parameter cliprect specifies the device
+// clipping rectangle.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 extern bool runtest(int testnum, SimpleRenderer *rend, const SGRect& cliprect);
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // A simple graphical text application implemented in textapp.cpp
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 struct XY
 {

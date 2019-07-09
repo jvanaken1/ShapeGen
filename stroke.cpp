@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,22 +19,23 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// Path manager member functions for constructing stroked paths
+// stroke.cpp:
+//   Path manager member functions for constructing stroked paths
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include <math.h>
 #include "shapepri.h"
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Sets the stroked line width. Parameter width
 // specifies the line width in pixels. The default line width is
-// LINEWIDTH_DEFAULT (2.0).
+// 4.0 pixels.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 float PathMgr::SetLineWidth(float width)
 {
@@ -45,7 +46,7 @@ float PathMgr::SetLineWidth(float width)
     return oldwidth;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Sets the line end (aka cap) style for stroked
 // lines. Parameter capstyle is restricted to the values LINEEND_FLAT
@@ -53,7 +54,7 @@ float PathMgr::SetLineWidth(float width)
 // to an illegal value, the function faults. The default line end style
 // is LINEEND_FLAT.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 LINEEND PathMgr::SetLineEnd(LINEEND capstyle)
 {
@@ -68,12 +69,13 @@ LINEEND PathMgr::SetLineEnd(LINEEND capstyle)
         break;
     default:
         assert(0);
+        _lineend = LINEEND_DEFAULT;
         break;
     }
     return oldcap;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Sets the join style for stroked lines. Parameter
 // joinstyle is restricted to the values LINEJOIN_BEVEL (0),
@@ -81,7 +83,7 @@ LINEEND PathMgr::SetLineEnd(LINEEND capstyle)
 // an illegal value, the function faults. The default value is
 // LINEJOIN_BEVEL.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 {
@@ -96,12 +98,13 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
         break;
     default:
         assert(0);
+        _linejoin = LINEJOIN_DEFAULT;
         break;
     }
     return oldjoin;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Sets the miter limit. Parameter mlim specifies the
 // length at which the sharp point of a mitered corner should be 
@@ -112,7 +115,7 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 // mlim = 1.0 cuts off miters at any angle to produce beveled
 // joins. The default miter limit value is 10.0.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 float PathMgr::SetMiterLimit(float mlim)
 {
@@ -168,7 +171,7 @@ void PathMgr::SetLineDash(char *dash, int offset, float mult)
     _dashoffset = 65536.0*mult*offset;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Initializes the dashed-line pattern at the start
 // of a new figure. Advances to the starting position in the pattern
@@ -177,7 +180,7 @@ void PathMgr::SetLineDash(char *dash, int offset, float mult)
 // (remaining length in current _dasharray element), and _dashon (true
 // if current _dasharray element is a dash, and false if it's a gap).
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::InitLineDash()
 {
@@ -203,7 +206,7 @@ bool PathMgr::InitLineDash()
     return _dashon;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Calculates the length and direction of a directed
 // line segment given its starting and ending points, vs and ve.
@@ -213,7 +216,7 @@ bool PathMgr::InitLineDash()
 // points in the same direction as u. The return value is the length
 // (in pixels) of the line segment.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 FIX16 PathMgr::LineLength(const VERT16& vs, const VERT16& ve, VERT30 *u, VERT16 *a)
 {
@@ -232,7 +235,7 @@ FIX16 PathMgr::LineLength(const VERT16& vs, const VERT16& ve, VERT30 *u, VERT16 
     return length;
 }
 
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //
 // Private function: Adds a round cap to the start or end point of a
 // stroked line segment. Parameter vert is the start or end point of the
@@ -242,7 +245,7 @@ FIX16 PathMgr::LineLength(const VERT16& vs, const VERT16& ve, VERT30 *u, VERT16 
 // line segment. If asign < 0, vert is the start point; otherwise,
 // vert is the end point.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::RoundCap(const VERT16& vert, VERT16 a, int asign)
 {
@@ -274,12 +277,12 @@ void PathMgr::RoundCap(const VERT16& vert, VERT16 a, int asign)
 
     // Form a half circle from two symmetrical quarter circles.
     // Note that the FlattenArc function call updates _cpoint.
-    FlattenArc(vert, a, v1, v1, PI16/2);
+    FlattenArc(vert, a, v1, v1, FIX_PI/2);
     for (p = _fpoint, q = _cpoint; p < q; ++p, --q)
     {
         VERT16 swap = *p;  *p = *q;  *q = swap;
     }
-    FlattenArc(vert, a, v2, v2, PI16/2);
+    FlattenArc(vert, a, v2, v2, FIX_PI/2);
 
     // Convert points in path to polygonal edges
     p = q = _fpoint;
@@ -290,7 +293,7 @@ void PathMgr::RoundCap(const VERT16& vert, VERT16 a, int asign)
     _cpoint = 0;  // restore state of terminating figure back to empty
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Constructs a stroked line segment in accordance
 // with the currently selected dashed-line pattern. This function
@@ -307,7 +310,7 @@ void PathMgr::RoundCap(const VERT16& vert, VERT16 a, int asign)
 // direction as unit vector u. Parameter linelen is the length (in
 // pixels) of the line segment.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX16 linelen)
 {
@@ -386,14 +389,14 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
     }
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Private function: Joins two connected line segments. Parameter v0 is
 // the vertex at which the two line segments are joined. Parameters ain
 // and aout are vectors of length _linewidth/2 that point in the
 // directions of the incoming and outgoing line segments, respectively.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 {
@@ -576,7 +579,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     _vout = v4;
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Public function: Strokes the current path. First, the sides of the
 // stroked path are offset by _linewidth/2 from the line segments
@@ -585,7 +588,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 // capped. Then the points in the stroked path are converted to a list
 // of polygonal edges.
 //
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
 bool PathMgr::StrokePath()
 {

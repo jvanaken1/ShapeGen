@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -21,18 +21,19 @@
 */
 //---------------------------------------------------------------------
 //
-// 2-D Polygonal Shape Generator
+// shapegen.h:
+//   Public header file for the ShapeGen interface
 //
 //---------------------------------------------------------------------
 
 #ifndef SHAPEGEN_H
 #define SHAPEGEN_H
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Define types and constants
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 // 32-bit fixed-point value with 16-bit fraction 
 typedef int FIX16;
@@ -49,7 +50,7 @@ struct SGRect {
     SGCoord w; 
     SGCoord h; 
 };
-struct SGTpzd {  // renderer only
+struct SGTpzd {  // <-- used only by a renderer
     short ytop; 
     short height; 
     FIX16 xL; 
@@ -58,7 +59,7 @@ struct SGTpzd {  // renderer only
     FIX16 dxR; 
 };
 
-// Default line width attribute for stroked paths 
+// Default line-width attribute for stroked paths 
 const float LINEWIDTH_DEFAULT = 4.0;
 
 // Miter limit parameters 
@@ -74,7 +75,7 @@ const float FLATNESS_MAXIMUM = 16.0;      // maximum flatness setting
 // Fixed-point fraction length -- bits to right of binary point 
 const int FIXBITS_DEFAULT = 0;  // default = integer (no fixed point)
 
-// Fill rule attribute values for filled paths 
+// Fill rule attributes for filling paths 
 enum FILLRULE {
     FILLRULE_EVENODD,    // even-odd (aka "parity") fill rule
     FILLRULE_WINDING,    // nonzero winding number fill rule
@@ -82,7 +83,7 @@ enum FILLRULE {
 
 // Join attribute values for stroked paths 
 enum LINEJOIN {
-    LINEJOIN_BEVEL,   // beveled join between two line segments
+    LINEJOIN_BEVEL,  // beveled join between two line segments
     LINEJOIN_ROUND,  // rounded join between two line segments
     LINEJOIN_MITER   // mitered join between two line segments
 };
@@ -96,16 +97,20 @@ enum LINEEND {
 };
 const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Shape feeder: Breaks a shape into smaller pieces to feed to a
 // renderer. The ShapeGen object loads a shape into a shape feeder and
 // then hands off the feeder to the renderer. The renderer iteratively
-// calls either function below to receive the shape in pieces (either
-// as rectangles or trapezoids) that are ready to be drawn to the
-// display as filled shapes.
+// calls one of the three functions below to receive the shape in
+// pieces -- as either rectangles or trapezoids -- that are ready to
+// be drawn to the graphics display as filled shapes. The
+// GetNextSDLRect function dispenses rectangles in SDL2 (Simple
+// DirectMedia Layer, version 2) SDL_Rect format, and the
+// GetNextGDIRect function dispenses rectangles in Windows GDI's RECT
+// format (in spite of the somewhat misleading type cast to SGRect*).
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class ShapeFeeder
 {
@@ -115,12 +120,12 @@ public:
     virtual bool GetNextTrapezoid(SGTpzd *tpzd) = 0;
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Renderer: Handles requests from the ShapeGen object to draw filled
 // shapes on the display
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class Renderer
 {
@@ -128,16 +133,16 @@ public:
     virtual void RenderShape(ShapeFeeder *feeder) = 0;
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // 2-D Polygonal Shape Generator: Constructs paths that describe
 // polygonal shapes, and then maps these shapes onto the pixel grid.
 // The ShapeGen object relies on the Renderer object to write to the
 // pixels in the display. Consequently, all device dependencies are
 // consigned to the renderer. The ShapeGen code contains no device
-// dependencies and is highly portable. 
+// dependencies or platform-specific code, and is highly portable. 
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class ShapeGen
 {
@@ -195,7 +200,7 @@ public:
     virtual bool PolyEllipticSpline(int npts, const SGPoint xy[]) = 0;
     virtual void RoundedRectangle(const SGRect& rect, const SGPoint& round) = 0;
     
-    // Quadratic and cubic Bezier splines
+    // Bezier splines (quadratic and cubic)
     virtual bool Bezier2(const SGPoint& v1, const SGPoint& v2) = 0;
     virtual bool PolyBezier2(int npts, const SGPoint xy[]) = 0;
     virtual bool Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3) = 0;

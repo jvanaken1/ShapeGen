@@ -2,7 +2,7 @@
   Copyright (C) 2019 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty. In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -19,13 +19,14 @@
 
   3. This notice may not be removed or altered from any source distribution.
 */
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// 2-D Polygonal Shape Generator private parameters:
-//   Define constants, structures, classes, and utility functions used
-//   internally by the API implementation
+// shapepri.h:
+//   Private header file for the internal implementation of the
+//   ShapeGen class. Defines constants, structures, utility functions,
+//   and helper classes.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 #include <math.h>
 #include <string.h>
@@ -47,11 +48,11 @@
 #endif 
 #define sign(x)   ((x)<0?-1:1)	     // sign (plus or minus) of value
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Constants and structures
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 // Types used internally for fixed-point numbers 
 //typedef int FIX16;	 // fixed-point value with 16-bit fraction 
@@ -64,9 +65,9 @@ struct VERT30 { FIX30 x, y; };
 const int BIGVAL16 = 0x7FFF;  // biggest 16-bit signed integer value
 
 // Miscellaneous constants in 16.16 internal fixed-point format
-const FIX16 PI16   = 205887;  // pi radians in fixed-point format
-const FIX16 HALF16 = 0x8000;  // (1/2) in fixed-point format
-const FIX16 BIAS16 = 0x7FFF;  // (1/2-1/65536) in fixed-point format
+const FIX16 FIX_PI   = 205887;  // pi radians in fixed-point format
+const FIX16 FIX_HALF = 0x8000;  // (1/2) in fixed-point format
+const FIX16 FIX_BIAS = 0x7FFF;  // (1/2-1/65536) in fixed-point format
 
 // Constants used to generate quadratic and cubic spline curves
 const int MAXRHOS = 5;     // max. no. of non-unity sharpnesses
@@ -104,12 +105,12 @@ const int INITIAL_POOL_LENGTH = 2000;
 // Fixed length of POOL inventory of fully allocated blocks
 const int POOL_INVENTORY_LENGTH = 20;
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Storage pool of EDGE structures that we assume are allocated one at
 // a time, and which are all later freed simultaneously
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class POOL
 {
@@ -141,13 +142,13 @@ public:
     }
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Edge manager. Converts a path to a set of polygonal edges, clips
 // these edges, and produces a set of non-overlapping trapezoids that
 // are ready to be rendered on the display.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class PathMgr;  // forward declaration
 
@@ -171,21 +172,19 @@ protected:
     void NormalizeEdges(FILLRULE fillrule);
     void AttachEdge(const VERT16 *v1, const VERT16 *v2);
     void TranslateEdges(int x, int y);
-    void SetDeviceClipRectangle(SGRect *rect);
+    void SetDeviceClipRectangle(const SGRect *rect);
     bool SaveClipRegion();
     bool SwapClipRegion();
 };
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // Path Manager. Constructs a path consisting of one or more figures
 // (aka subpaths or contours). Each figure is a set of connected points
 // that can be either closed (i.e., the first point connects to the
 // last point) or open (the first and last points are not connected).
 //
-//----------------------------------------------------------------------
-
-class SGWrapper;  // forward declaration
+//---------------------------------------------------------------------
 
 class PathMgr : virtual public ShapeGen
 {
@@ -307,7 +306,7 @@ private:
     void FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v3, FIX16 angle);
     
 public:
-    // Quadratic and cubic Bezier splines
+    // Bezier splines (quadratic and cubic)
     bool Bezier2(const SGPoint& v1, const SGPoint& v2);
     bool PolyBezier2(int npts, const SGPoint xy[]);
     bool Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3);
@@ -319,36 +318,7 @@ private:
     bool IsFlatCubic(const VERT16 v[]);
 };
 
-//----------------------------------------------------------------------
-//
-// Uses the qsort function in stdlib.h to sort items in a singly linked
-// list. Parameter plist points to the head of the list. Parameter length
-// is the number of items in the list. Parameter comp is the comparison
-// function. The sortlist function returns a pointer to the head of the
-// new, sorted list.
-//
-//----------------------------------------------------------------------
-
-template<class T> T *sortlist(T *plist, int length, int (*comp)(const void *, const void *))
-{
-    int i, count = 0;
-    T **ptr = new T* [length];  // temporary storage for pointer array
-
-    assert(ptr);
-    for (T *p = plist; p; p = p->next)  // class T _must_ have "next" member
-        ptr[count++] = p;
-
-    qsort(ptr, count, sizeof(T*), comp);   // stdlib.h function
-    for (i = 1; i < count; i++)
-        ptr[i-1]->next = ptr[i];  // update links in linked list
-
-    ptr[i-1]->next = 0;
-    T *tmp = ptr[0];
-    delete[] ptr;
-    return tmp;
-}
-
-//------------------------------------------------------------------------
+//-----------------------------------------------------------------------
 //
 // Fixed-point multiply function: fixmpy(x, y, n)
 //   Takes two 32-bit, fixed-point values, x and y, both with n bits of
@@ -366,7 +336,7 @@ template<class T> T *sortlist(T *plist, int length, int (*comp)(const void *, co
 //   represented as 32-bit, fixed-point numbers. Returns the length
 //   in the same fixed-point format.
 //
-//------------------------------------------------------------------------
+//-----------------------------------------------------------------------
 
 inline FIX16 fixmpy(FIX16 x, FIX16 y, int n)
 {
@@ -397,7 +367,7 @@ inline FIX16 fixlen(FIX16 x, FIX16 y)
     return z;
 }
 
-//------------------------------------------------------------------------     
+//-----------------------------------------------------------------------     
 //
 // Rightmost one function: rmo(val)
 //   Returns the little-endian bit number (0 = LSB, 31 = MSB) of
@@ -409,7 +379,7 @@ inline FIX16 fixlen(FIX16 x, FIX16 y)
 //   the leftmost one (least-significant nonzero bit) in 32-bit
 //   parameter val; val must be nonzero, or the function faults.
 //
-//------------------------------------------------------------------------
+//-----------------------------------------------------------------------
 
 inline int rmo(unsigned int val)
 {
