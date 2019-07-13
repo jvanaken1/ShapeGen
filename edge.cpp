@@ -89,12 +89,13 @@ namespace {
     EDGE* sortlist(EDGE *plist, int length, int (*comp)(const void *, const void *))
     {
         int i, count = 0;
-        EDGE **ptr = new EDGE* [length];  // temporary storage for pointer array
+        EDGE **ptr = new EDGE*[length];  // pointer array for qsort
     
         assert(ptr);
         for (EDGE *p = plist; p; p = p->next)
             ptr[count++] = p;
     
+        //assert(count == length);
         qsort(ptr, count, sizeof(EDGE*), comp);   // stdlib.h function
         for (i = 1; i < count; i++)
             ptr[i-1]->next = ptr[i];  // update links in linked list
@@ -664,11 +665,13 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
         
         h = BIGVAL16;
         p = ylist;
-        do
+        length = 0;
+        do       
         {
             h = min(h, abs(p->dy));
             q = p->next;    // number of edges is always even
             h = min(h, abs(q->dy));
+            length += 2;
         } while ((p = q->next) != 0 && p->ytop == yscan);
         q->next = 0;
         xlist = sortlist(ylist, length, xcomp);
