@@ -770,8 +770,76 @@ void demo05(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 6: Miter limit
+// Demo page 6: Composite paths
 void demo06(SimpleRenderer *rend, const SGRect& clip)
+{
+    SGPtr sg(rend, clip);
+    TextApp txt;
+    const float PI = 3.14159265;
+    const float sin30 = sin(PI/6);
+    const float cos30 = cos(PI/6);
+    SGCoord x1 = 0, y1 = -190<<16;
+    const SGPoint v0 = { 640<<16, 540<<16 };
+    COLOR crText  = RGBVAL(40,70,110);
+    COLOR crFrame = RGBVAL(140,150,180);
+    COLOR crBkgd  = RGBVAL(170,170,170);
+    COLOR yellow  = RGBVAL(255,255,0);
+    COLOR red     = RGBVAL(255,0,0);
+
+    // Fill background and draw frame around window
+    SGPoint corner = { 40, 40 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
+    sg->BeginPath();
+    sg->RoundedRectangle(frame, corner);
+    rend->SetColor(crBkgd);
+    sg->FillPath(FILLRULE_EVENODD);
+    sg->SetLineWidth(8.0);
+    rend->SetColor(crFrame); 
+    sg->StrokePath();
+
+    // Draw title text
+    sg->SetLineWidth(6.0);
+    char *str = "Composite Paths";
+    float scale = 0.73;
+    float width = txt.GetTextWidth(scale, str);
+    SGPoint xystart;
+    xystart.x = (DEMO_WIDTH - width)/2;
+    xystart.y = 130;
+    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
+               crBkgd, crText);
+
+    // Combine multiple ellipses into a single path
+    sg->SetFixedBits(16);
+    sg->SetLineWidth(8.0);
+    sg->BeginPath();
+    for (int i = 0; i < 12; ++i)
+    {
+        SGCoord x2 = 0.4*y1, y2 = -0.4*x1;
+        SGPoint v1 = v0, v2 = v0;
+
+        v1.x += x1;
+        v1.y += y1;
+        v2.x += x1 + x2;
+        v2.y += y1 + y2;
+        sg->Ellipse(v1, v0, v2);
+        x2 =  x1*cos30 + y1*sin30;
+        y1 = -x1*sin30 + y1*cos30;
+        x1 = x2;
+    }
+
+    // Fill the ellipses in yellow, and stroke them in red
+    rend->SetColor(yellow);
+    sg->FillPath(FILLRULE_EVENODD);
+    sg->SaveClipRegion();
+    sg->SetMaskRegion(FILLRULE_EVENODD);
+    StrokePathAA(&(*sg), rend, crBkgd, red);
+    sg->SwapClipRegion();
+    sg->SetClipRegion(FILLRULE_EVENODD);
+    StrokePathAA(&(*sg), rend, yellow, red);
+}
+
+// Demo page 7: Miter limit
+void demo07(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -894,8 +962,8 @@ void demo06(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 7: Dashed line patterns
-void demo07(SimpleRenderer *rend, const SGRect& clip)
+// Demo page 8: Dashed line patterns
+void demo08(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -1067,8 +1135,8 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     sg->StrokePath();
 }
 
-// Demo page 8: Thin stroked lines
-void demo08(SimpleRenderer *rend, const SGRect& clip)
+// Demo page 9: Thin stroked lines
+void demo09(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -1175,8 +1243,8 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     sg->StrokePath();
 }
 
-// Demo page 9: Bezier curves
-void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
+// Demo page 10: Bezier curves
+void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -1328,8 +1396,8 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     sg->StrokePath();
 }
 
-// Demo page 10: Ellipses and elliptic splines
-void demo10(SimpleRenderer *rend, const SGRect& clip)
+// Demo page 11: Ellipses and elliptic splines
+void demo11(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -1477,8 +1545,8 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 11: Elliptic arcs
-void demo11(SimpleRenderer *rend, const SGRect& clip)
+// Demo page 12: Elliptic arcs
+void demo12(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -1621,8 +1689,8 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 12: Code examples
-void demo12(SimpleRenderer *rend, const SGRect& clip)
+// Demo page 13: Code examples
+void demo13(SimpleRenderer *rend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -1636,7 +1704,7 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
 
     // Fill background and draw dash-pattern frame around window
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 150, 230, DEMO_WIDTH-300, DEMO_HEIGHT-380 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->SetLineEnd(LINEEND_ROUND);
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
@@ -2720,6 +2788,7 @@ void (*testfunc[])(SimpleRenderer *rend, const SGRect& cliprect) =
     demo04, demo05, demo06,
     demo07, demo08, demo09, 
     demo10, demo11, demo12,
+    demo13,
 
     // Code examples   
     MyTest, EggRoll, PieToss,
