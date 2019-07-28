@@ -7,9 +7,9 @@
 // ColorFill class: Fills a shape with a solid color. Derived from 
 // the SimpleRenderer class in tests.h, which is derived from the
 // Renderer base class in shapegen.h. The ColorFill class
-// implementation is device-dependent -- it uses the FillRect function
-// in Windows GDI to fill the horizontal spans that comprise the shape.
-// You can use the RenderShape function below as a model for
+// implementation is platform-dependent: it uses the SDL_FillRect
+// function in SDL2 to fill the horizontal spans that comprise the
+// shape. You can use the RenderShape function below as a model for
 // implementing an enhanced renderer that does pattern fills, gradient
 // fills, image fills, alpha blending, and so on.
 //
