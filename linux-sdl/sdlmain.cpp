@@ -2,18 +2,18 @@
 #include <stdio.h>
 #include "demo.h"
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
 // ColorFill class: Fills a shape with a solid color. Derived from 
 // the SimpleRenderer class in tests.h, which is derived from the
 // Renderer base class in shapegen.h. The ColorFill class
-// implementation is device-dependent -- it uses the FillRect function
-// in Windows GDI to fill the horizontal spans that comprise the shape.
-// You can use the RenderShape function below as a model for
+// implementation is platform-dependent: it uses the SDL_FillRect
+// function in SDL2 to fill the horizontal spans that comprise the
+// shape. You can use the RenderShape function below as a model for
 // implementing an enhanced renderer that does pattern fills, gradient
 // fills, image fills, alpha blending, and so on.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class ColorFill : public SimpleRenderer
 {
@@ -74,6 +74,12 @@ void ColorFill::SetColor(COLOR color)
     _pixel = SDL_MapRGB(_surface->format, r, g, b);
 }
 
+//---------------------------------------------------------------------
+//
+// SDL2 main function
+//
+//---------------------------------------------------------------------
+
 int main(int argc, char *argv[])
 {
     SDL_Window *window = 0;
@@ -84,6 +90,7 @@ int main(int argc, char *argv[])
     int testnum = -1;
     SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
 
+    printf("Starting SDL2 app...\n");
     SDL_Init(SDL_INIT_VIDEO);
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
@@ -108,7 +115,7 @@ int main(int argc, char *argv[])
     {
         while (SDL_PollEvent(&evt) != 0)
         {
-            if ( evt.type == SDL_QUIT )
+            if (evt.type == SDL_QUIT)
             {
                 quit = true;
             }
@@ -143,7 +150,7 @@ int main(int argc, char *argv[])
             SDL_FillRect(screenSurface, 0, SDL_MapRGB(screenSurface->format, 255, 255, 255));
             if (!runtest(testnum, &fillobj, cliprect))
             {
-                testnum = 0;  // we ran the last test, so start over
+                testnum = 0;  // we just ran the final test, so start over
                 runtest(testnum, &fillobj, cliprect);
             }
             SDL_UpdateWindowSurface(window);
