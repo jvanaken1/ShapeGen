@@ -1,11 +1,12 @@
-//-----------------------------------------------------------
-// 
-// Demonstrate use of 2-D Polygonal Shape Generator  
+//---------------------------------------------------------------------
 //
-//-----------------------------------------------------------
+//  winmain.cpp:
+//    This file contains all the platform-dependent functions for
+//    running the ShapeGen demo on the Win32 API in Windows
+//
+//---------------------------------------------------------------------
 
-#include <windows.h> 
-#include <assert.h>
+#include <windows.h>
 #include "demo.h"
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -61,9 +62,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 // ColorFill class: Fills a shape with a solid color. Derived from 
 // the SimpleRenderer class in tests.h, which is derived from the
 // Renderer base class in shapegen.h. The ColorFill class
-// implementation is device-dependent -- it uses the FillRect function
-// in Windows GDI to fill the horizontal spans that comprise the shape.
-// You can use the RenderShape function below as a model for
+// implementation is platform-dependent: it uses the FillRect function
+// in Windows GDI to fill the horizontal spans that comprise the
+// shape. You can use the RenderShape function below as a model for
 // implementing an enhanced renderer that does pattern fills, gradient
 // fills, image fills, alpha blending, and so on.
 //
@@ -131,7 +132,7 @@ void ColorFill::SetColor(COLOR color)
 
 //----------------------------------------------------------------------
 //
-// Process the next message for this window
+// Win32 window procedure: Processes the next message for this window
 //
 //----------------------------------------------------------------------
 
@@ -141,7 +142,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT ps;
     static HDC hdc = 0;
     static int testnum = -1;
-    static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
+    static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT};
 
     switch (message)
     {
