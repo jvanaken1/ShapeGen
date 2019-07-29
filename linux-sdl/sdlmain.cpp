@@ -1,3 +1,11 @@
+//---------------------------------------------------------------------
+//
+//  sdlmain.cpp:
+//    This file contains all the platform-dependent functions for
+//    running the ShapeGen demo on SDL2 in Linux
+//
+//---------------------------------------------------------------------
+
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include "demo.h"
@@ -88,7 +96,7 @@ int main(int argc, char *argv[])
     bool redraw = true;
     bool quit = false;
     int testnum = -1;
-    SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
+    SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT};
 
     printf("Starting SDL2 app...\n");
     SDL_Init(SDL_INIT_VIDEO);
@@ -121,7 +129,7 @@ int main(int argc, char *argv[])
             }
             else if (evt.type == SDL_KEYDOWN)
             {
-                switch(evt.key.keysym.sym)
+                switch (evt.key.keysym.sym)
                 {
                 case SDLK_LEFT:
                     cliprect.x -= 5;
