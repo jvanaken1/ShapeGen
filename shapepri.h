@@ -36,15 +36,15 @@
 // Macro definitions 
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #ifdef min
-#undef min
+  #undef min
 #endif
 #define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values 
 #ifdef max
-#undef max
+  #undef max
 #endif
 #define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
 #ifdef sign
-#undef sign
+  #undef sign
 #endif 
 #define sign(x)   ((x)<0?-1:1)	     // sign (plus or minus) of value
 
@@ -56,11 +56,15 @@
 
 // Types used internally for fixed-point numbers 
 //typedef int FIX16;	 // fixed-point value with 16-bit fraction 
-typedef int FIX30;	 // fixed-point value with 30-bit fraction
+typedef int FIX30;   // fixed-point value with 30-bit fraction
 
 // Internal structures for 2-D points, vertexes, and vectors
-struct VERT16 { FIX16 x, y; };
-struct VERT30 { FIX30 x, y; };
+struct VERT16 { 
+    FIX16 x, y;
+};
+struct VERT30 { 
+    FIX30 x, y;
+};
 
 const int BIGVAL16 = 0x7FFF;  // biggest 16-bit signed integer value
 
@@ -82,8 +86,8 @@ struct FIGURE {
 // Structure used to describe a polygonal edge 
 struct EDGE { 
     EDGE *next;  // pointer to next item in edge list
-    short ytop;  // integer y coord at top end of edge 
-    short dy;	 // signed length of edge in y dimension 
+    int ytop;    // integer y coord at top end of edge 
+    int dy;      // signed length of edge in y dimension 
     FIX16 xtop;  // fixed point x coord at top end of edge 
     FIX16 dxdy;  // inverse slope: change in x per unit step in y 
 };
@@ -133,12 +137,12 @@ public:
     {
         if (watermark == blklen)  // is this block exhausted?
             AcquireBlock();  // yes, acquire more pool memory
-        
+
         return &block[watermark++];
     }
     int GetCount()
     {
-        return (count + watermark);
+        return(count + watermark);
     }
 };
 
@@ -220,7 +224,7 @@ class PathMgr : virtual public ShapeGen
     LINEJOIN _linejoin; // line join style
     FIX16 _miterlimit;  // miter limit              
     FIX16 _mitercheck;  // precomputed parameter for miter-limit check
-    
+
     bool PathToEdges();   // convert a path to an edge list
     void FinalizeFigure(bool bclose);  // close or end a figure
 
@@ -275,7 +279,7 @@ public:
 
     // Stroked path construction
     bool StrokePath();
-    
+
     // Stroked path attributes
     float SetLineWidth(float width);
     float SetMiterLimit(float mlim);
@@ -292,7 +296,7 @@ private:
     void DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX16 linelen);
     bool ThinStrokePath();
     void ThinJoinLines(const VERT16 *vert, int inquad, int outquad);
-    
+
 public:
     // Ellipses and elliptic arcs
     void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2);
@@ -304,7 +308,7 @@ public:
 private:
     // Internal function to flatten ellipses and elliptic arcs
     void FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v3, FIX16 angle);
-    
+
 public:
     // Bezier splines (quadratic and cubic)
     bool Bezier2(const SGPoint& v1, const SGPoint& v2);
