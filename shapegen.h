@@ -27,7 +27,7 @@
 //---------------------------------------------------------------------
 
 #ifndef SHAPEGEN_H
-#define SHAPEGEN_H
+  #define SHAPEGEN_H
 
 //---------------------------------------------------------------------
 //
@@ -51,8 +51,8 @@ struct SGRect {
     SGCoord h; 
 };
 struct SGTpzd {  // <-- used only by a renderer
-    short ytop; 
-    short height; 
+    int ytop; 
+    int height; 
     FIX16 xL; 
     FIX16 dxL; 
     FIX16 xR; 
@@ -185,21 +185,21 @@ public:
 
     // Stroked path construction
     virtual bool StrokePath() = 0;
-    
+
     // Stroked path attributes
     virtual float SetLineWidth(float width) = 0;
     virtual float SetMiterLimit(float mlim) = 0;
     virtual LINEEND SetLineEnd(LINEEND capstyle) = 0;
     virtual LINEJOIN SetLineJoin(LINEJOIN joinstyle) = 0;
     virtual void SetLineDash(char *dash, int offset, float mult) = 0;
-    
+
     // Ellipses and elliptic arcs
     virtual void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2) = 0;
     virtual void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, float aStart, float aSweep) = 0;
     virtual bool EllipticSpline(const SGPoint& v1, const SGPoint& v2) = 0;
     virtual bool PolyEllipticSpline(int npts, const SGPoint xy[]) = 0;
     virtual void RoundedRectangle(const SGRect& rect, const SGPoint& round) = 0;
-    
+
     // Bezier splines (quadratic and cubic)
     virtual bool Bezier2(const SGPoint& v1, const SGPoint& v2) = 0;
     virtual bool PolyBezier2(int npts, const SGPoint xy[]) = 0;
@@ -219,27 +219,27 @@ public:
 //--------------------------------------------------------------------- 
 class SGPtr 
 { 
-   ShapeGen *sg;
+    ShapeGen *sg;
 
-   ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect);
+    ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect);
 
 public: 
-   SGPtr(Renderer *renderer, const SGRect& cliprect) 
-   { 
-       sg = CreateShapeGen(renderer, cliprect); 
-   }
-   ~SGPtr() 
-   { 
-       delete(sg); 
-   }
-   ShapeGen& operator*() 
-   {  
-       return *sg; 
-   }
-   ShapeGen* operator->() 
-   { 
-       return sg; 
-   } 
+    SGPtr(Renderer *renderer, const SGRect& cliprect) 
+    { 
+        sg = CreateShapeGen(renderer, cliprect); 
+    }
+    ~SGPtr() 
+    { 
+        delete(sg); 
+    }
+    ShapeGen& operator*() 
+    {  
+        return *sg; 
+    }
+    ShapeGen* operator->() 
+    { 
+        return sg; 
+    } 
 };
 
 #endif  // SHAPEGEN_H
