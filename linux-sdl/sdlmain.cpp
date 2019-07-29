@@ -65,7 +65,7 @@ void ColorFill::RenderShape(ShapeFeeder *feeder)
             rect.y = tpzd.ytop++;
             rect.w = iR - iL;
             rect.h = 1;
-            SDL_FillRect(_surface, &rect, pixel);
+            SDL_FillRect(_surface, &rect, _pixel);
             tpzd.xL += tpzd.dxL;
             tpzd.xR += tpzd.dxR;
         }
