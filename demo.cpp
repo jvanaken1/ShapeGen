@@ -113,13 +113,6 @@ void FitBbox(const SGRect *bbdst, int npts, SGPoint xydst[],
     }
 }
 
-//---------------------------------------------------------------------
-//
-// Layered stroke effects: A cheap trick for anti-aliasing stroked and
-// filled shapes against a solid background color
-//
-//---------------------------------------------------------------------
-
 // Blend two pixel values
 COLOR BlendPixels(FIX16 alpha, COLOR pix1, COLOR pix2)
 {
@@ -132,74 +125,7 @@ COLOR BlendPixels(FIX16 alpha, COLOR pix1, COLOR pix2)
     r = (alpha*r1 + beta*r2) >> 16;
     g = (alpha*g1 + beta*g2) >> 16;
     b = (alpha*b1 + beta*b2) >> 16;
-    return RGBVAL(r,g,b);
-}
-
-// Draws an anti-aliased, stroked path against a solid background color
-void StrokePathAA(ShapeGen *sg, SimpleRenderer *renderer, COLOR crBkgd, COLOR crFill)
-{
-    FIX16 t = 0x0000c000;
-    float savewidth = sg->SetLineWidth(0);
-    float width = max(1.5, savewidth + 0.5);
-
-    for (int i = 0; i < 4; ++i)
-    {
-        COLOR cr = BlendPixels(t, crBkgd, crFill);
-        t -= 0x00004000;
-        renderer->SetColor(cr);
-        sg->SetLineWidth(width);
-        width -= 0.25;
-        sg->StrokePath();
-    }
-    sg->SetLineWidth(savewidth);  // restore original line width
-}
-
-// Draws an anti-aliased, filled path against a solid background color
-void FillPathAA(ShapeGen *sg, SimpleRenderer *renderer, COLOR crBkgd, COLOR crFill, FILLRULE rule)
-{
-    float savewidth = sg->SetLineWidth(2.0);
-    float width = savewidth - 0.25;
-    StrokePathAA(sg, renderer, crBkgd, crFill);
-    sg->SetLineWidth(width);
-    sg->FillPath(rule);
-    sg->SetLineWidth(savewidth);
-}
-
-// Draws anti-aliased, rotated text against a solid background color
-void DrawTextAA(ShapeGen *sg, SimpleRenderer *renderer, TextApp *txt, 
-                const float xfrm[][3], const char *str, 
-                COLOR crBkgd, COLOR crFill)
-{
-    FIX16 t = 0x0000c000;
-    float savewidth = sg->SetLineWidth(0);
-    float width = max(1.5, savewidth + 0.5);
-
-    for (int i = 0; i < 4; ++i)
-    {
-        COLOR cr = BlendPixels(t, crBkgd, crFill);
-        t -= 0x00004000;
-        renderer->SetColor(cr);
-        sg->SetLineWidth(width);
-        width -= 0.25;
-        txt->DisplayText(&(*sg), xfrm, str);
-    }
-    sg->SetLineWidth(savewidth);  // restore original line width
-}
-
-// Draws anti-aliased, horizontal text against a solid background color
-void DrawTextAA(ShapeGen *sg, SimpleRenderer *renderer, TextApp *txt, 
-                SGPoint& xystart, float scale, const char *str, 
-                COLOR crBkgd, COLOR crFill)
-{
-    float xfrm[2][3];
-
-    xfrm[0][0] = scale;
-    xfrm[0][1] = 0;
-    xfrm[0][2] = xystart.x;
-    xfrm[1][0] = 0;
-    xfrm[1][1] = scale;
-    xfrm[1][2] = xystart.y;
-    DrawTextAA(sg, renderer, txt, xfrm, str, crBkgd, crFill);
+    return RGBX(r,g,b);
 }
 
 //---------------------------------------------------------------------
@@ -230,19 +156,20 @@ char *dasharray[] = {
 //
 //----------------------------------------------------------------------
 
-// Demo page 1: ShapeGen logo
-void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
+// Demo screen 1: ShapeGen logo
+void demo01(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)  // page 1
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     float xfrm[2][3] = {
         { 2.0,  0, 175.0 }, { -0.8, 2.5, 685.0 }
     };
-    COLOR crBkgd = RGBVAL(222,222,255);
+    COLOR crBkgd = RGBX(222,222,255);
+    COLOR crText = RGBX(40, 70, 110);
     COLOR color[] = {
-        RGBVAL(222,100, 50), RGBVAL(185,100,222), 
-        RGBVAL( 90,206, 45), RGBVAL(220, 20, 60), 
-        RGBVAL(  0,206,209)
+        RGBX(222,100, 50), RGBX(185,100,222), 
+        RGBX( 90,206, 45), RGBX(220, 20, 60), 
+        RGBX(  0,206,209)
     };
     SGPoint arrow[] = {
         {  0+1170, 30+889 }, { 30+1170, 30+889 }, 
@@ -260,18 +187,23 @@ void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
     float width;
     int i;
 
-    // Fill background and draw frame around window
+    // Use the basic renderer to do a background color fill
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(color[0]);
+    aarend->SetColor(color[0]);
     sg->StrokePath();
 
     // Draw background pattern: rotated ellipses
-    rend->SetColor(RGBVAL(233, 150, 122));
+    aarend->SetColor(RGBX(233, 150, 122));
     sg->BeginPath();
     for (i = 0; i < 26; ++i)
     {
@@ -295,28 +227,25 @@ void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
     width = txt.GetTextWidth(scale, str);
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, RGBVAL(40, 70, 110));
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(4.0);
     str = "At the core of a 2-D graphics system";
     scale = 0.5;
     width = txt.GetTextWidth(scale, str);
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 780;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, RGBVAL(40, 70, 110));
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "A portable, lightweight C++ implementation";
     width = txt.GetTextWidth(scale, str);
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y += 64;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, RGBVAL(40, 70, 110));
+    txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(3.0);
     xystart.x = 748;
     xystart.y = 916;
 
-    DrawTextAA(&(*sg), rend, &txt, xystart, 0.34, 
-               "Hit space bar to continue", crBkgd, color[0]);
+    txt.DisplayText(&(*sg), xystart, 0.34, "Hit space bar to continue");
     sg->BeginPath();
     sg->Move(arrow[0].x, arrow[0].y);
     sg->PolyLine(ARRAY_LEN(arrow)-1, &arrow[1]);
@@ -326,38 +255,44 @@ void demo01(SimpleRenderer *rend, const SGRect& clip)  // page 1
     str = "ShapeGen";
     sg->SetFlatness(FLATNESS_DEFAULT);
     sg->SetLineWidth(32.0);
-    rend->SetColor(RGBVAL(99,99,99));
+    aarend->SetColor(RGBA(99,99,99,170));
     txt.SetTextSpacing(1.2);
     txt.DisplayText(&(*sg), xfrm, str);
     xfrm[0][2] -= 8.0;
     xfrm[1][2] -= 8.0;
     sg->SetLineWidth(32.0);
-    rend->SetColor(color[3]);
+    aarend->SetColor(color[3]);
     txt.DisplayText(&(*sg), xfrm, str);
     sg->SetLineWidth(24.0);
-    rend->SetColor(color[0]);
+    aarend->SetColor(color[0]);
     txt.DisplayText(&(*sg), xfrm, str);
 }
 
-// Demo page 2: Path drawing modes
-void demo02(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 2: Path drawing modes
+void demo02(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd  = RGBVAL(240,220,220);
-    COLOR crFill  = RGBVAL(70,206,209);
-    COLOR crFrame = RGBVAL(50,80,140);
-    COLOR crText  = RGBVAL( 40,  70, 110);
+    COLOR crBkgd  = RGBX(240,220,220);
+    COLOR crFrame = RGBX(50,80,140);
+    COLOR crText  = RGBX(40,70,110);
+    COLOR crFill  = RGBX(70,206,209);
+    COLOR crBlack = RGBX(0,0,0);
 
-    // Fill background and draw frame around window
+    // Use the basic renderer to do a background color fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(crFrame); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
 
     // Draw title text
@@ -368,8 +303,8 @@ void demo02(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 136;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Draw captions for three figures
     sg->SetLineWidth(3.0);
@@ -378,19 +313,16 @@ void demo02(SimpleRenderer *rend, const SGRect& clip)
     width = txt.GetTextWidth(scale, str);
     xystart.x = 280 - width/2;
     xystart.y = 796;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "Winding number fill rule";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 1000 - width/2;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "Brush stroke";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 640 - width/2;
     xystart.y = 670;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Construct star shape
     SGPoint star[5];
@@ -417,10 +349,10 @@ void demo02(SimpleRenderer *rend, const SGRect& clip)
     sg->Move(xy[0].x, xy[0].y); 
     sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
     sg->CloseFigure();
-    rend->SetColor(crFill);
+    aarend->SetColor(crFill);
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(crBlack);
+    sg->SetLineWidth(1.4);
     sg->StrokePath();
 
     // Fill star using winding number fill rule
@@ -429,10 +361,9 @@ void demo02(SimpleRenderer *rend, const SGRect& clip)
     sg->Move(xy[0].x, xy[0].y); 
     sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
     sg->CloseFigure();
-    rend->SetColor(crFill);
+    aarend->SetColor(crFill);
     sg->FillPath(FILLRULE_WINDING);
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(crBlack);
     sg->StrokePath();
 
     // Draw star using brush strokes
@@ -445,35 +376,39 @@ void demo02(SimpleRenderer *rend, const SGRect& clip)
     sg->Move(xy[0].x, xy[0].y); 
     sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
     sg->CloseFigure();
-    rend->SetColor(crFill);
+    aarend->SetColor(crFill);
     sg->StrokePath();
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    sg->SetLineWidth(1.4);
+    aarend->SetColor(crBlack);
     sg->StrokePath();
 }
 
-// Demo page 3: Clip to arbitrary shapes
-void demo03(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 3: Clip to arbitrary shapes
+void demo03(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd  = RGBVAL(222, 222, 255);
-    COLOR crFill  = RGBVAL(238, 130, 200);
-    COLOR crFrame = RGBVAL( 32, 152, 224);
-    COLOR crText  = RGBVAL( 40,  70, 110);
+    COLOR crBkgd  = RGBX(222, 222, 255);
+    COLOR crFrame = RGBX( 32, 152, 224);
+    COLOR crText  = RGBX(40,70,110);
 
-    // Fill background and draw frame around window
+    // Use the basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(crFrame); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     sg->SetLineWidth(6.0);
     char *str = "Clip to Arbitrary Shapes";
     float scale = 0.73;
@@ -481,26 +416,24 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Draw text at lower left
+    // Draw text at lower left corner of window
     scale = 0.48;
     sg->SetLineWidth(4.0);
     str = "Clip to shape";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 340 - width/2;
     xystart.y = 844;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Draw text at lower right
+    // Draw text at lower right corner of window
     str = "Mask off shape";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 940 - width/2;
     xystart.y = 844;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Construct star shape
     SGPoint star[5];
@@ -519,8 +452,8 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     };
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->SetLineEnd(LINEEND_FLAT);
-    sg->SetLineWidth(0);
-    rend->SetColor(RGBVAL(211, 211, 222));
+    sg->SetLineWidth(1.7);
+    aarend->SetColor(RGBX(211,211,222));
     sg->SetFixedBits(16);
     sg->BeginPath();
     sg->Rectangle(rect[0]);
@@ -555,18 +488,18 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
 
     // Paint solid blue color inside new clipping region
     IntToFixed(&frame);
-    rend->SetColor(RGBVAL(0,100,200));
+    aarend->SetColor(RGBA(0,100,200,200));
     sg->BeginPath();
     sg->Rectangle(frame);
     sg->FillPath(FILLRULE_EVENODD);
 
     // Paint abstract design inside clipping region
     COLOR color[] = {
-        RGBVAL( 16, 108, 240), RGBVAL( 32, 152, 224), RGBVAL( 48, 196, 208),
-        RGBVAL( 64, 240, 192), RGBVAL( 80,  28, 176), RGBVAL( 96,  72, 160),
-        RGBVAL(112, 116, 144), RGBVAL(128, 160, 128), RGBVAL(144, 204, 112),
-        RGBVAL(160, 248,  96), RGBVAL(176,  36,  80), RGBVAL(192,  80,  64),
-        RGBVAL(208, 124,  48), RGBVAL(224, 168,  32), RGBVAL(240, 212,  16),
+        RGBX( 16, 108, 240), RGBX( 32, 152, 224), RGBX( 48, 196, 208),
+        RGBX( 64, 240, 192), RGBX( 80,  28, 176), RGBX( 96,  72, 160),
+        RGBX(112, 116, 144), RGBX(128, 160, 128), RGBX(144, 204, 112),
+        RGBX(160, 248,  96), RGBX(176,  36,  80), RGBX(192,  80,  64),
+        RGBX(208, 124,  48), RGBX(224, 168,  32), RGBX(240, 212,  16),
     };
     SGPoint point[3];
     int j = 0;
@@ -580,7 +513,7 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_BEVEL);
     for (int i = 0; i <= frame.w; i += 20<<16)
     {
-        rend->SetColor(color[j]);
+        aarend->SetColor(color[j]);
         if (++j == ARRAY_LEN(color))
             j = 0;
 
@@ -592,27 +525,33 @@ void demo03(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 4: Stroked line caps and joints
-void demo04(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 4: Stroked line caps and joints
+void demo04(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
-    COLOR crBkgd  = RGBVAL(255,248,240);
-    COLOR crFrame = RGBVAL(230,140, 70);
-    COLOR crFill  = RGBVAL(255,175,100);
-    COLOR crText  = RGBVAL( 40, 70,110);
+    COLOR crBkgd  = RGBX(255,248,240);
+    COLOR crFrame = RGBX(230,140,70);
+    COLOR crText  = RGBX(40,70,110);
+    COLOR crFill  = RGBX(255,175,100);
+    COLOR crBlack = RGBX(0,0,0);
 
-    // Fill background and draw frame around window
+    // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(crFrame); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
 
     // Draw title text
@@ -623,8 +562,8 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Label rows with text
     sg->SetLineWidth(3.0);
@@ -633,35 +572,29 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
     width = txt.GetTextWidth(scale, str);
     xystart.x = 310 - width;
     xystart.y = 428;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = " Round cap";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 310 - width;
     xystart.y += 190;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "Square cap";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 310 - width;
     xystart.y += 190;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Label columns with text
     str = "Bevel joint";
     xystart.x = 392;
     xystart.y = 268;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "Round joint";
     xystart.x += 280;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "Miter joint";
     xystart.x += 280;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Draw stroked lines with different cap and joint styles
     SGPoint point[3] = { 
@@ -683,15 +616,15 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
             p1.y = point[1].y + dy;
             p2.y = point[2].y + dy;
             sg->SetLineEnd(cap[j]);
-            rend->SetColor(crFill);
-            sg->SetLineWidth(38.0);
+            aarend->SetColor(crFill);
+            sg->SetLineWidth(44.0);
             sg->BeginPath();
             sg->Move(p0.x, p0.y);
             sg->Line(p1.x, p1.y);
             sg->Line(p2.x, p2.y);
             sg->StrokePath();
-            rend->SetColor(0);
-            sg->SetLineWidth(0);
+            aarend->SetColor(crBlack);
+            sg->SetLineWidth(1.7);
             sg->StrokePath();
             SGPoint diam[2];
             sg->BeginPath();
@@ -708,158 +641,32 @@ void demo04(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 5: Layered stroke effects
-void demo05(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 5: Miter limit
+void demo05(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd  = RGBVAL(205,195,185);
-    COLOR crFill  = RGBVAL( 70,206,209);
-    COLOR crFrame = RGBVAL(100, 80, 90);
-    COLOR crText  = RGBVAL( 40, 70,110);
-
-    // Fill background and draw frame around window
-    SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
-    sg->BeginPath();
-    sg->RoundedRectangle(frame, corner);
-    rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
-    sg->SetLineWidth(8.0);
-    rend->SetColor(crFrame); 
-    sg->StrokePath();
-
-    // Draw title text
-    sg->SetLineWidth(6.0);
-    char *str = "Layered Stroke Effects";
-    float scale = 0.73;
-    float width = txt.GetTextWidth(scale, str);
-    SGPoint xystart;
-    xystart.x = (DEMO_WIDTH - width)/2;
-    xystart.y = 136;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
-
-    // Draw layered strokes in different colors
-    SGPoint xy[] = {
-        { 349, 640 }, { 545, 320 }, { 720, 620 }, { 625, 460 }, 
-        { 450, 745 }, { 960, 745 }, { 755, 400 },
-    };
-    COLOR rgb[] = {
-        0, RGBVAL(160,220,250), 0, RGBVAL(160,250,160), 
-        0, RGBVAL(250,160,160), 0 
-    };
-    float dw = 35.8;
-    float linewidth = 6.5*dw;
-
-    sg->SetLineWidth(dw);
-    sg->SetLineEnd(LINEEND_ROUND);
-    sg->SetLineJoin(LINEJOIN_ROUND);
-    for (int i = 0; i < 7; ++i)
-    {
-        sg->BeginPath();
-        sg->Move(xy[0].x, xy[0].y);
-        sg->PolyLine(2, &xy[1]);
-        sg->Move(xy[3].x, xy[3].y);
-        sg->PolyLine(3, &xy[4]);
-        rend->SetColor(rgb[i]);
-        sg->SetLineWidth(linewidth);
-        StrokePathAA(&(*sg), rend, crBkgd, rgb[i]);
-        crBkgd = rgb[i];
-        linewidth -= dw;
-    }
-}
-
-// Demo page 6: Composite paths
-void demo06(SimpleRenderer *rend, const SGRect& clip)
-{
-    SGPtr sg(rend, clip);
-    TextApp txt;
-    const float PI = 3.14159265;
-    const float sin30 = sin(PI/6);
-    const float cos30 = cos(PI/6);
-    SGCoord x1 = 0, y1 = -190<<16;
-    const SGPoint v0 = { 640<<16, 540<<16 };
-    COLOR crText  = RGBVAL(40,70,110);
-    COLOR crFrame = RGBVAL(140,150,180);
-    COLOR crBkgd  = RGBVAL(170,170,170);
-    COLOR yellow  = RGBVAL(255,255,0);
-    COLOR red     = RGBVAL(255,0,0);
-
-    // Fill background and draw frame around window
-    SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
-    sg->BeginPath();
-    sg->RoundedRectangle(frame, corner);
-    rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
-    sg->SetLineWidth(8.0);
-    rend->SetColor(crFrame); 
-    sg->StrokePath();
-
-    // Draw title text
-    sg->SetLineWidth(6.0);
-    char *str = "Composite Paths";
-    float scale = 0.73;
-    float width = txt.GetTextWidth(scale, str);
-    SGPoint xystart;
-    xystart.x = (DEMO_WIDTH - width)/2;
-    xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
-
-    // Combine multiple ellipses into a single path
-    sg->SetFixedBits(16);
-    sg->SetLineWidth(8.0);
-    sg->BeginPath();
-    for (int i = 0; i < 12; ++i)
-    {
-        SGCoord x2 = 0.4*y1, y2 = -0.4*x1;
-        SGPoint v1 = v0, v2 = v0;
-
-        v1.x += x1;
-        v1.y += y1;
-        v2.x += x1 + x2;
-        v2.y += y1 + y2;
-        sg->Ellipse(v1, v0, v2);
-        x2 =  x1*cos30 + y1*sin30;
-        y1 = -x1*sin30 + y1*cos30;
-        x1 = x2;
-    }
-
-    // Fill the ellipses in yellow, and stroke them in red
-    rend->SetColor(yellow);
-    sg->FillPath(FILLRULE_EVENODD);
-    sg->SaveClipRegion();
-    sg->SetMaskRegion(FILLRULE_EVENODD);
-    StrokePathAA(&(*sg), rend, crBkgd, red);
-    sg->SwapClipRegion();
-    sg->SetClipRegion(FILLRULE_EVENODD);
-    StrokePathAA(&(*sg), rend, yellow, red);
-}
-
-// Demo page 7: Miter limit
-void demo07(SimpleRenderer *rend, const SGRect& clip)
-{
-    SGPtr sg(rend, clip);
-    TextApp txt;
-    COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL( 40, 70,110); 
+    COLOR crBkgd = RGBX(222,222,255);
+    COLOR crFrame = RGBX(80,40,140);
+    COLOR crText = RGBX(40,70,110); 
     
-    // Fill background and draw frame around window
+    // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    //sg->SetRenderer(&renderer);
-    rend->SetColor(RGBVAL(80, 40, 140)); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     sg->SetLineWidth(6.0);
     char *str = "Miter Limit";
     float scale = 0.73;
@@ -867,24 +674,24 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = 75;
     xystart.y = 150;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Initialize parameters for circular miter-limit display
     SGPoint v[] = {
         { 4, 160 }, { 0, 240 }, { -4, 160 },
     };
     COLOR color[] = {
-        RGBVAL( 30,144,255), RGBVAL(221,160,221), RGBVAL(255, 69,  0), 
-        RGBVAL(147,112,219), RGBVAL( 50,205, 50), RGBVAL(250,235,215), 
+        RGBX( 30,144,255), RGBX(221,160,221), RGBX(255, 69,  0), 
+        RGBX(147,112,219), RGBX( 50,205, 50), RGBX(250,235,215), 
     };
     float mlim[] = { 1.0, 7.0, 13.0, 19.0 };
     SGPoint circle[3] = { { 720, 480 } };
     float linewidth = 20.0;
 
-    // Draw thin black rings in background
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    // Draw dark thin rings in background
+    aarend->SetColor(RGBX(80,80,80));
+    sg->SetLineWidth(1.7);
     sg->BeginPath();
     for (int i = 0; i < 3; ++i)
     {
@@ -902,7 +709,7 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_MITER);
     for (int i = 0; i < 4; ++i)
     {
-        rend->SetColor(color[i]);
+        aarend->SetColor(color[i]);
         sg->BeginPath();
         for (int j = 0; j < 8; ++j)
         {
@@ -924,8 +731,9 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     }
     
     // Draw thin white lines over strokes
-    sg->SetLineWidth(0);
-    rend->SetColor(RGBVAL(255,255,255));
+    sg->SetLineJoin(LINEJOIN_BEVEL);
+    sg->SetLineWidth(1.7);
+    aarend->SetColor(RGBX(255,255,255));
     sg->BeginPath();
     for (int i = 0; i < 4; ++i)
     {
@@ -952,38 +760,43 @@ void demo07(SimpleRenderer *rend, const SGRect& clip)
     char *msg[] = { "Get the", "point?" };
     scale = 0.5;
     xystart.y = circle[0].y - 16;
+    aarend->SetColor(crText);
     for (int i = 0; i < ARRAY_LEN(msg); ++i)
     {
         width = txt.GetTextWidth(scale, msg[i]);
         xystart.x = circle[0].x - width/2.0;
-        DrawTextAA(&(*sg), rend, &txt, xystart, scale, msg[i], 
-                   crBkgd, crText);
+        txt.DisplayText(&(*sg), xystart, scale, msg[i]);
         xystart.y += 50;
     }
 }
 
-// Demo page 8: Dashed line patterns
-void demo08(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 6: Dashed line patterns
+void demo06(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL( 40, 70,110); 
+    COLOR crBkgd = RGBX(222,222,255);
+    COLOR crFrame = RGBX(90,160,50);
+    COLOR crText = RGBX(40,70,110); 
     int i;
 
-    // Fill background and draw frame around window
+    // Use basic renderer to do a background color fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(90,160,50)); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     sg->SetLineWidth(6.0);
     char *str = "Dashed Line Patterns";
     float scale = 0.73;
@@ -991,8 +804,8 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Draw windmill shape
     SGPoint blade[][7] = {
@@ -1017,14 +830,14 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     sg->CloseFigure();
     sg->Move(blade[1][0].x, blade[1][0].y);
     sg->PolyBezier3(ARRAY_LEN(blade[1])-1, &blade[1][1]);
-    rend->SetColor(RGBVAL(144,238,144));
+    aarend->SetColor(RGBX(144,238,144));
     sg->CloseFigure();
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(RGBVAL(0,100,0));
+    aarend->SetColor(RGBX(0,100,0));
     sg->SetLineWidth(8.0);
     sg->SetLineDash(dashedLineShortDash, 0, 4.0);
     sg->StrokePath();
-    rend->SetColor(RGBVAL(100,180,50));
+    aarend->SetColor(RGBX(100,180,50));
     sg->SetLineEnd(LINEEND_FLAT);
     sg->StrokePath();
 
@@ -1049,9 +862,9 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     sg->Move(stretch[0].x, stretch[0].y);
     sg->PolyBezier3(ARRAY_LEN(stretch)-1, &stretch[1]);
     sg->CloseFigure();
-    rend->SetColor(RGBVAL(144,238,144));
+    aarend->SetColor(RGBX(144,238,144));
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(RGBVAL(0,100,0));
+    aarend->SetColor(RGBX(0,100,0));
     sg->SetLineWidth(4.0);
     sg->SetLineDash(dashedLineDot, 0, 3.0);
     sg->StrokePath();
@@ -1059,18 +872,20 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     // Draw clubs suit symbol
     char dashedLineBeaded[] = { 1, 12, 0 };
     SGPoint clubs[] = {
-        { 220+290, 400+145 },  { 260+290, 400+145 },
-        { 300+290, 320+145 },  { 300+290, 260+145 },
-        { 100+290, 460+145 },  { 100+290,  20+145 },
-        { 300+290, 220+145 },  { 100+290,  20+145 },
-        { 540+290,  20+145 },  { 340+290, 220+145 }, 
-        { 540+290,  20+145 },  { 540+290, 460+145 },
-        { 340+290, 260+145 },  { 340+290, 320+145 },
-        { 380+290, 400+145 },  { 420+290, 400+145 },
+        { 220, 400 },  { 260, 400 }, { 300, 320 },  { 300, 260 },
+        { 100, 460 },  { 100,  20 }, { 300, 220 },  { 100,  20 },
+        { 540,  20 },  { 340, 220 }, { 540,  20 },  { 540, 460 },
+        { 340, 260 },  { 340, 320 }, { 380, 400 },  { 420, 400 },
     };
+    SGRect srcbbox, dstbbox = { 600-250, 370-250, 500, 500 };
+    IntToFixed(ARRAY_LEN(clubs), &clubs[0]);
+    IntToFixed(&dstbbox);
+    GetBbox(&srcbbox, ARRAY_LEN(clubs), &clubs[0]);
+    FitBbox(&dstbbox, ARRAY_LEN(clubs), &clubs[0], &srcbbox, &clubs[0]); 
+    sg->SetFixedBits(16);
     sg->SetLineEnd(LINEEND_ROUND);
     sg->SetLineJoin(LINEJOIN_BEVEL);
-    rend->SetColor(RGBVAL(120, 210, 100));
+    aarend->SetColor(RGBX(120,210,100));
     sg->BeginPath();
     sg->Move(clubs[0].x, clubs[0].y);
     sg->PolyBezier3(15, &clubs[1]);
@@ -1078,26 +893,27 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineWidth(8.0);
     sg->SetLineDash(dashedLineBeaded, 0, 1.0);
-    rend->SetColor(RGBVAL(0, 100, 0));
+    aarend->SetColor(RGBX(0,100,0));
     sg->StrokePath();
 
-    // Draw circle
+    // Draw hairy ellipse
+    sg->SetFixedBits(0);
     char dashedLineBump[] = { 3, 2, 1, 2, 0 };
     SGPoint elips[3] = {
         { 1030, 340 }, { 1030+160, 340 }, { 1030, 340+120 }, 
     };
-    COLOR crElips = RGBVAL(0,139,120);
+    COLOR crElips = RGBX(0,139,120);
     sg->SetLineEnd(LINEEND_FLAT);
     sg->SetLineJoin(LINEJOIN_BEVEL);
     sg->BeginPath();
     sg->Ellipse(elips[0], elips[1], elips[2]);
-    rend->SetColor(crElips);
+    aarend->SetColor(crElips);
     sg->SetLineWidth(60.0);
     sg->SetLineDash(dashedLineBump, 3, 2.9 );
     sg->StrokePath();
 
     // Draw curly-cue shape
-    int xc = 210, yc = 740;
+    int xc = 210, yc = 735;
     int x = 24, y = 0;
     SGPoint xy[100];
     SGPoint *pxy = &xy[0];     
@@ -1126,33 +942,39 @@ void demo08(SimpleRenderer *rend, const SGRect& clip)
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyEllipticSpline(64, &xy[1]);
-    rend->SetColor(RGBVAL(0,100,0));
+    aarend->SetColor(RGBX(0,100,0));
     sg->SetLineWidth(16.0);
     sg->SetLineDash(dashedLineDashDoubleDot, 0, 4.0);
     sg->StrokePath();
-    rend->SetColor(RGBVAL(80,200,70));
+    aarend->SetColor(RGBX(80,200,70));
     sg->SetLineWidth(10.0);
     sg->StrokePath();
 }
 
-// Demo page 9: Thin stroked lines
-void demo09(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 7: Thin stroked lines
+void demo07(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd = RGBVAL(242,236,255);
-    COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL( 40, 70,110);
+    COLOR crBkgd = RGBX(242,236,255);
+    COLOR crFrame = RGBX(132,24,10);
+    COLOR crText = RGBX(40,70,110);
+    COLOR crBox = RGBX(150,50,20);
 
-    // Fill background and draw frame around window
+    // Use the basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(132,24,10)); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
 
     // Draw title text
@@ -1163,38 +985,37 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Draw text at lower left
+    // Draw text at lower left corner of window
     scale = 0.48;
     sg->SetLineWidth(4.0);
     str = "Mimic";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 340 - width/2;
     xystart.y = 812;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "Bresenham lines";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 340 - width/2;
     xystart.y = 868;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Draw text at lower right
     str = "Precisely track";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 940 - width/2;
     xystart.y = 812;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     str = "contours";
     width = txt.GetTextWidth(scale, str);
     xystart.x = 940 - width/2;
     xystart.y = 868;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+
+    // Switch to basic renderer
+    sg->SetRenderer(rend);
 
     // Draw many-pointed star on left side of window
     SGPoint point[33];
@@ -1206,7 +1027,7 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)
         point[i].x = 340 - 280*sin(t);
         point[i].y = 460 - 280*cos(t);
     }
-    rend->SetColor(RGBVAL(0,0,80));
+    rend->SetColor(RGBX(0,0,80));
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
     sg->PolyLine(ARRAY_LEN(point)-1, &point[1]);
@@ -1214,11 +1035,11 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)
     sg->CloseFigure();
     sg->StrokePath();
 
-    // Fill rectangle on right side of window
+    // Fill rectangle (square box) on right side of window
     SGRect rect = { 670, 190, 540, 540 };
     sg->BeginPath();
     sg->Rectangle(rect);
-    rend->SetColor(RGBVAL(150,50,20));
+    rend->SetColor(crBox);
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetClipRegion(FILLRULE_EVENODD);
 
@@ -1237,34 +1058,38 @@ void demo09(SimpleRenderer *rend, const SGRect& clip)
         p2.y += 2458*(460 -  350);
         sg->Ellipse(p0, p1, p2);
     }
-    rend->SetColor(RGBVAL(30,100,180));
+    rend->SetColor(RGBX(30,100,180));
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(RGBVAL(255,255,255));
+    rend->SetColor(RGBX(255,255,255));
     sg->StrokePath();
 }
 
-// Demo page 10: Bezier curves
-void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
+// Demo screen 8: Bezier curves
+void demo08(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)  // Bezier 'S'
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL( 40, 70,110); 
+    COLOR crBkgd = RGBX(222,222,255);
+    COLOR crText = RGBX(40,70,110); 
     int i;
 
-    // Fill background and draw frame around window
+    // Use basic renderer to do background fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(200, 100, 15)); 
+    aarend->SetColor(RGBX(200,100,15)); 
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     sg->SetLineWidth(6.0);
     char *str = "Bezier Curves";
     float scale = 0.73;
@@ -1272,10 +1097,10 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - len)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Define Bezier control polygon for "S" glyph
+    // Define Bezier control polygon for 'S' glyph
     SGPoint glyph[] = {
         {   0, 165 }, {  52, 100 }, { 123,  67 }, { 175,  67 }, 
         { 248,  67 }, { 288, 115 }, { 288, 152 }, { 288, 290 }, 
@@ -1291,13 +1116,14 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     SGRect bbsrc, bbdst = { 768<<16, 875<<16, 384<<16, -660<<16 };
     float width = 54.0;
 
-    // Draw "S" glyph
+    // Scale and translate control points for 'S' glyph
     IntToFixed(ARRAY_LEN(glyph), glyph);
     GetBbox(&bbsrc, ARRAY_LEN(glyph), glyph);
     FitBbox(&bbdst, ARRAY_LEN(glyph), glyph, &bbsrc, glyph); 
 
+    // Draw the 'S' glyph
     sg->SetFixedBits(16);
-    rend->SetColor(RGBVAL(255, 120, 30));
+    aarend->SetColor(RGBX(255,120,30));
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->SetMiterLimit(1.10);
     sg->SetLineWidth(width);
@@ -1306,18 +1132,17 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     sg->PolyBezier3(ARRAY_LEN(glyph)-1, &glyph[1]);
     sg->CloseFigure();
     sg->StrokePath();
-
-    // Add details to "S" glyph
     sg->SetLineWidth(width - 6);
-    rend->SetColor(RGBVAL(211,233,211));
+    aarend->SetColor(RGBX(211,233,211));
     sg->StrokePath();
 
-    sg->SetLineWidth(0);
-    rend->SetColor(RGBVAL(200,0,0));
+    // Outline control polygon for 'S' glyph
+    sg->SetLineWidth(1.0);
+    aarend->SetColor(RGBX(200,0,0));
     sg->StrokePath();
 
-    // Outline control polygon
-    rend->SetColor(RGBVAL(85,107,47));
+    // Draw Bezier handles on 'S' glyph's control polygon
+    aarend->SetColor(RGBX(85,107,47));
     sg->SetLineWidth(2.0);
     sg->BeginPath();
     sg->Move(glyph[0].x, glyph[0].y);
@@ -1329,7 +1154,7 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     }
     sg->StrokePath();
 
-    // Highlight vertexes of control polygon
+    // Highlight vertexes of 'S' glyph's control polygon
     sg->BeginPath();
     for (int k = 0; k < ARRAY_LEN(glyph)-1; k++)
     {
@@ -1341,7 +1166,7 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     }
     sg->StrokePath();
 
-    // Move and resize points in clubs array
+    // Define control points for club suit symbol
     SGPoint clubs[] = {       
         { 220, 400 }, { 260, 400 }, { 300, 320 }, { 300, 260 },
         { 100, 460 }, { 100,  20 }, { 300, 220 }, { 100,  20 },
@@ -1349,16 +1174,20 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
         { 340, 260 }, { 340, 320 }, { 380, 400 }, { 420, 400 },
     };
     SGPoint point[ARRAY_LEN(clubs)];
-    COLOR crTrim = RGBVAL(0, 160, 0);
     SGRect bboxsrc, bboxdst = { 70<<16, 240<<16, 600<<16, 600<<16 };
 
+    // Move and resize control points for club suit symbol
     IntToFixed(ARRAY_LEN(clubs), &clubs[0]);
     GetBbox(&bboxsrc, ARRAY_LEN(clubs), &clubs[0]);
     FitBbox(&bboxdst, ARRAY_LEN(clubs), &point[0], 
             &bboxsrc, &clubs[0]);
 
-    // Draw club suit symbol
-    crFill = RGBVAL(100,200,47);
+    // Switch to basic renderer for large area fill
+    sg->SetRenderer(rend);
+
+    // Fill club suit symbol
+    COLOR crFill = RGBX(100,200,47);
+    rend->SetColor(crFill);
     sg->SetLineDash(0,0,0);
     sg->SetLineEnd(LINEEND_SQUARE);
     sg->SetLineJoin(LINEJOIN_BEVEL);
@@ -1367,56 +1196,65 @@ void demo10(SimpleRenderer *rend, const SGRect& clip)  // Bezier 'S'
     sg->Move(point[0].x, point[0].y);
     sg->PolyBezier3(15, &point[1]);
     sg->CloseFigure();
-    sg->SetLineWidth(6.0);
-    rend->SetColor(crFill);
     sg->FillPath(FILLRULE_EVENODD);
-    rend->SetColor(crTrim);
+
+    // Switch to antialiasing renderer to stroke edges
+    sg->SetRenderer(aarend);
+
+    // Stroke edges of club suit symbol
+    COLOR crTrim = RGBX(0,160,0);
+    aarend->SetColor(crTrim);
+    sg->SetLineWidth(6.0);
     sg->StrokePath();
 
-    // Outline control polygon
+    // Outline control polygon for club suit symbol
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
     sg->PolyLine(ARRAY_LEN(point)-1, &point[1]);
-    rend->SetColor(RGBVAL(255,0,0));
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(200,0,0));
+    sg->SetLineWidth(1.0);
     sg->StrokePath();
 
-    // Highlight vertexes of control polygon
+    // Highlight vertexes of club suit control polygon
+    aarend->SetColor(RGBX(200,0,0));
     sg->BeginPath();
     for (int i = 0; i < ARRAY_LEN(point); ++i)
     {
-        SGRect rect;
-        rect.x = point[i].x - (2 << 16);
-        rect.y = point[i].y - (2 << 16);
-        rect.w = 4 << 16;
-        rect.h = 4 << 16;
-        sg->Rectangle(rect);
+        SGPoint p0, p1, p2;
+
+        p0 = p1 = p2 = point[i];
+        p1.x += 3 << 16;
+        p2.y += 3 << 16;
+        sg->Ellipse(p0, p1, p2);
     }
-    rend->SetColor(RGBVAL(200,0,0));
-    sg->StrokePath();
+    sg->FillPath(FILLRULE_WINDING);
 }
 
-// Demo page 11: Ellipses and elliptic splines
-void demo11(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 9: Ellipses and elliptic splines
+void demo09(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd = RGBVAL(220,220,220);
-    COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL( 40, 70,110);
+    COLOR crBkgd = RGBX(220,220,220);
+    COLOR crText = RGBX(40,70,110);
 
-    // Fill background and draw frame around window
+    // Use basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(200, 100, 15)); 
+    aarend->SetColor(RGBX(200,100,15)); 
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     sg->SetLineWidth(6.0);
     char *str = "Ellipses and Elliptic Splines";
     float scale = 0.73;
@@ -1424,10 +1262,10 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - len)/2;
     xystart.y = 130;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // glyph '@'
+    // Define the points for the "at" (i.e., '@') glyph 
     XY glyph[] = {
         {  1.5,  1.0 },  //  0 bounding box min
         { 39.2, 40.0 },  //  1 bounding box max
@@ -1450,11 +1288,12 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     };
     SGPoint xy[ARRAY_LEN(glyph)];
     int xoffset = 12;
-    int width = 0;
+    float width = 2.0;
 
+    // Draw the '@' glyph at several different scales
     scale = 0.60;
     sg->SetFixedBits(16);
-    rend->SetColor(RGBVAL(255, 120, 30));
+    aarend->SetColor(RGBX(255,120,30));
     sg->SetLineEnd(LINEEND_ROUND);
     sg->SetLineJoin(LINEJOIN_ROUND);
     for (int i = 0; i < 5; ++i)
@@ -1468,7 +1307,7 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
             xy[j].y += 0x00001000;
             xy[j].y &= 0xffff0000;
         }
-        sg->SetLineWidth(float((width + 1) & ~1));
+        sg->SetLineWidth(width);
         sg->BeginPath();
         sg->Ellipse(xy[2], xy[3], xy[4]); 
         sg->Move(xy[5].x, xy[5].y);
@@ -1476,18 +1315,18 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
         sg->StrokePath();
         xoffset += xoffset + 24;
         scale += 1.2*scale;
-        width += width + 3;
+        width += width + 1;
     }
     sg->SetLineWidth(width/2 - 6);
-    rend->SetColor(RGBVAL(200, 210, 220));
+    aarend->SetColor(RGBX(200,210,220));
     sg->StrokePath();
-    sg->SetLineWidth(0);
-    rend->SetColor(RGBVAL(200, 0, 0));
+    sg->SetLineWidth(1.7);
+    aarend->SetColor(RGBX(200,0,0));
     sg->StrokePath();
 
     // Outline control polygon
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->SetLineWidth(1.4);
     sg->BeginPath();
     sg->Move(xy[3].x, xy[3].y);
     sg->Line(xy[2].x, xy[2].y);
@@ -1496,9 +1335,8 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     sg->PolyLine(12, &xy[6]);
     sg->StrokePath();
 
-    SGPoint pt[] = { { 2<<16, 0 }, { 0, 2<<16 } };
-
     // Highlight vertexes of control polygon
+    SGPoint pt[] = { { 2<<16, 0 }, { 0, 2<<16 } };
     sg->BeginPath();
     for (int k = 2; k < ARRAY_LEN(xy); k++)
     {
@@ -1510,15 +1348,15 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Draw atomic symbol
-    SGPoint p0 = { 250, 382 };
-    SGPoint p1 = { 250, 382+12 };
-    SGPoint p2 = { 250+12, 382 };
+    SGPoint p0 = {    250,    392 };
+    SGPoint p1 = {    250, 15+392 };
+    SGPoint p2 = { 15+250,    392 };
     char electron[] = { 1, 100, 0 };
     float astart = PI/4;
     sg->SetFixedBits(0);
     sg->BeginPath();
-    sg->Ellipse(p0, p1, p2);
-    rend->SetColor(RGBVAL(0,80,120));
+    sg->Ellipse(p0, p1, p2);  // nucleus
+    aarend->SetColor(RGBX(0,80,120));
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineEnd(LINEEND_ROUND);
     for (int i = 0; i < 3; ++i)
@@ -1527,47 +1365,51 @@ void demo11(SimpleRenderer *rend, const SGRect& clip)
         float sina = sin(i*PI/3);
         float cosa = cos(i*PI/3);
         sg->BeginPath();
-        sg->SetLineWidth(4.0);
+        sg->SetLineWidth(5.0);
         sg->SetLineDash(0,0,0);
         p1 = p2 = p0;
-        p1.x -= 160*sina;
-        p1.y += 160*cosa;
-        p2.x +=  40*cosa;
-        p2.y +=  40*sina;
-        sg->Ellipse(p0, p1, p2);
+        p1.x -= 200*sina;
+        p1.y += 200*cosa;
+        p2.x +=  50*cosa;
+        p2.y +=  50*sina;
+        sg->Ellipse(p0, p1, p2);  // orbit
         sg->StrokePath();
         sg->BeginPath();
         sg->EllipticArc(p0, p1, p2, astart, PI/16);
         astart += PI;
-        sg->SetLineWidth(12.0);
+        sg->SetLineWidth(15.0);
         sg->SetLineDash(electron, 0, 1.0);
         sg->StrokePath();
     }
 }
 
-// Demo page 12: Elliptic arcs
-void demo12(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 10: Elliptic arcs
+void demo10(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
-    COLOR crBkgd = RGBVAL(222,222,255);
-    COLOR crFill = RGBVAL(238,130,200);
-    COLOR crText = RGBVAL( 40, 70,110);
+    COLOR crBkgd = RGBX(222,222,255);
+    COLOR crText = RGBX(40,70,110);
 
-    // Fill background and draw frame around window
+    // Use the basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw the outer frame
     sg->SetLineWidth(8.0);
-    rend->SetColor(RGBVAL(222,100,50)); 
+    aarend->SetColor(RGBX(222,100,50)); 
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     sg->SetLineWidth(6.0);
     char *str = "Elliptic Arcs";
     float scale = 0.73;
@@ -1575,21 +1417,21 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
     SGPoint xystart;
     xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 170;
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Draw pie chart
+    // Define the data values for the pie chart
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 14.7, 19.2, 8.2
     };
     COLOR crSlice[] = 
     {
-        RGBVAL( 65,105,225), RGBVAL(255, 99, 71), RGBVAL(218,165, 32),     
-        RGBVAL( 60,179,113), RGBVAL(199, 21,133), RGBVAL( 72,209,204),
-        RGBVAL(255,105,180), RGBVAL( 50,205, 50), RGBVAL(128,  0,  0),
+        RGBX( 65,105,225), RGBX(255, 99, 71), RGBX(218,165, 32),     
+        RGBX( 60,179,113), RGBX(199, 21,133), RGBX( 72,209,204),
+        RGBX(255,105,180), RGBX( 50,205, 50), RGBX(128,  0,  0),
     };
     COLOR crRim[ARRAY_LEN(crSlice)];
-    COLOR crEdge = RGBVAL(51,51,51);
+    COLOR crEdge = RGBX(51,51,51);
     const int high = 95;
     const int wide = 420;
     const int deep = 196;
@@ -1604,10 +1446,11 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
     FIX16 alpha = 0.3*0x00010000;
     float startAngle = 0;
 
+    // Create darker shading for rims of pie slices
     for (int i = 0; i < ARRAY_LEN(crSlice); ++i)
-    {
         crRim[i] = BlendPixels(alpha, 0, crSlice[i]);
-    }
+
+    // Draw all the pie slices
     sg->SetLineWidth(3.0);
     for (int i = 0; i < ARRAY_LEN(percent); ++i)
     {
@@ -1622,6 +1465,8 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
                 v[j].x += 200;
             }
         }
+        // Switch to the basic renderer to do large area fills
+        sg->SetRenderer(rend);
 
         // Paint the top of the pie slice
         sg->BeginPath();
@@ -1631,22 +1476,31 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
         sg->CloseFigure();
         rend->SetColor(crSlice[i]);
         sg->FillPath(FILLRULE_EVENODD);
-        rend->SetColor(crEdge);
+
+        // Switch to antialiasing renderer to outline edges
+        sg->SetRenderer(aarend);
+        aarend->SetColor(crEdge);
         sg->StrokePath();
 
         if (i == 1 || i == 2)
         {
+            // Switch to basic renderer to do large area fills
+            sg->SetRenderer(rend);
+
             // Paint the filling in the pulled-out pie slice
-            COLOR crFilling = BlendPixels(alpha/2, 0, crSlice[i]);
+            COLOR crFill = BlendPixels(alpha/2, 0, crSlice[i]);
             sg->BeginPath();
             sg->Move(xy.x, xy.y);
             sg->Line(xy.x, xy.y + high);
             sg->Line(v[3].x, v[3].y);
             sg->Line(v[0].x, v[0].y);
             sg->CloseFigure();
-            rend->SetColor(crFilling);
+            rend->SetColor(crFill);
             sg->FillPath(FILLRULE_EVENODD);
-            rend->SetColor(crEdge);
+
+            // Switch to antialiasing renderer to outline edges
+            sg->SetRenderer(aarend);
+            aarend->SetColor(crEdge);
             sg->StrokePath();
         }
 
@@ -1666,6 +1520,9 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
         }
         if (astart >= PI/2 && astart < 3*PI/2)
         {
+            // Switch to basic renderer to do large area fills
+            sg->SetRenderer(rend);
+
             // Rim of pie slice is visible, so paint it
             sg->BeginPath();
             sg->EllipticArc(v[0], v[1], v[2], astart+asweep, -asweep);
@@ -1675,7 +1532,10 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
             rend->SetColor(crRim[i]);
             sg->CloseFigure();
             sg->FillPath(FILLRULE_EVENODD);
-            rend->SetColor(crEdge);
+
+            // Switch to antialiasing renderer to outline edges
+            sg->SetRenderer(aarend);
+            aarend->SetColor(crEdge);
             sg->StrokePath();
         }
         startAngle += sweepAngle;
@@ -1689,20 +1549,233 @@ void demo12(SimpleRenderer *rend, const SGRect& clip)
     }
 }
 
-// Demo page 13: Code examples
-void demo13(SimpleRenderer *rend, const SGRect& clip)
+// Demo screen 11: Layered stroke effects
+void demo11(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    COLOR crBkgd  = RGBVAL(230,230,255);
-    COLOR crFrame = RGBVAL( 65,105,225);
-    COLOR crDash  = RGBVAL(140,190,255);
-    COLOR crText  = RGBVAL( 65,105,225);
-    COLOR crWhite = RGBVAL(255,255,255);
+    COLOR crBkgd = RGBX(205,195,185);
+    COLOR crFrame = RGBX(100,80,90);
+    COLOR crText = RGBX(40,70,110);
+    COLOR crBlack = RGBX(0,0,0);
+
+    // Use basic renderer to do background color fill
+    SGPoint corner = { 40, 40 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
+    sg->BeginPath();
+    sg->RoundedRectangle(frame, corner);
+    rend->SetColor(crBkgd);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
+    sg->SetLineWidth(8.0);
+    aarend->SetColor(crFrame); 
+    sg->StrokePath();
+
+    // Draw the title text
+    sg->SetLineWidth(6.0);
+    char *str = "Layered Stroke Effects";
+    float scale = 0.73;
+    float width = txt.GetTextWidth(scale, str);
+    SGPoint xystart;
+    xystart.x = (DEMO_WIDTH - width)/2;
+    xystart.y = 136;
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+
+    // Draw layered strokes in different colors
+    SGPoint xy[] = {
+        { 349, 640 }, { 545, 320 }, { 720, 620 }, { 625, 460 }, 
+        { 450, 745 }, { 960, 745 }, { 755, 400 },
+    };
+    COLOR rgb[] = {
+        crBlack, RGBX(160,220,250), crBlack, RGBX(160,250,160), 
+        crBlack, RGBX(250,160,160), crBlack 
+    };
+    float dw = 35.8;
+    float linewidth = 6.5*dw;
+
+    sg->SetLineWidth(dw);
+    sg->SetLineEnd(LINEEND_ROUND);
+    sg->SetLineJoin(LINEJOIN_ROUND);
+    for (int i = 0; i < 7; ++i)
+    {
+        sg->BeginPath();
+        sg->Move(xy[0].x, xy[0].y);
+        sg->PolyLine(2, &xy[1]);
+        sg->Move(xy[3].x, xy[3].y);
+        sg->PolyLine(3, &xy[4]);
+        aarend->SetColor(rgb[i]);
+        sg->SetLineWidth(linewidth);
+        sg->StrokePath();
+        linewidth -= dw;
+    }
+}
+
+// Demo screen 12: Composite paths
+void demo12(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(rend, clip);
+    TextApp txt;
+    const float PI = 3.14159265;
+    const float sin30 = sin(PI/6);
+    const float cos30 = cos(PI/6);
+    SGCoord x1 = 0, y1 = -190<<16;
+    const SGPoint v0 = { 640<<16, 540<<16 };
+    COLOR crBkgd = RGBX(170,170,170);
+    COLOR crFrame = RGBX(140,150,180);
+    COLOR crText = RGBX(40,70,110);
+
+    // Use basic renderer to do background color fill
+    SGPoint corner = { 40, 40 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
+    sg->BeginPath();
+    sg->RoundedRectangle(frame, corner);
+    rend->SetColor(crBkgd);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
+    sg->SetLineWidth(8.0);
+    aarend->SetColor(crFrame); 
+    sg->StrokePath();
+
+    // Draw the title text
+    sg->SetLineWidth(6.0);
+    char *str = "Composite Paths";
+    float scale = 0.73;
+    float width = txt.GetTextWidth(scale, str);
+    SGPoint xystart;
+    xystart.x = (DEMO_WIDTH - width)/2;
+    xystart.y = 130;
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+
+    // Switch to the basic renderer to fill large areas
+    sg->SetRenderer(rend);
+
+    // Combine multiple ellipses into a single path
+    sg->SetFixedBits(16);
+    sg->SetLineWidth(8.0);
+    sg->BeginPath();
+    for (int i = 0; i < 12; ++i)
+    {
+        SGCoord x2 = 0.4*y1, y2 = -0.4*x1;
+        SGPoint v1 = v0, v2 = v0;
+
+        v1.x += x1;
+        v1.y += y1;
+        v2.x += x1 + x2;
+        v2.y += y1 + y2;
+        sg->Ellipse(v1, v0, v2);
+        x2 =  x1*cos30 + y1*sin30;
+        y1 = -x1*sin30 + y1*cos30;
+        x1 = x2;
+    }
+
+    // Fill the ellipses in yellow
+    rend->SetColor(RGBX(255,255,0));
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Stroke the edges of the ellipses in red
+    aarend->SetColor(RGBX(255,0,0));
+    sg->StrokePath();
+}
+
+// Demo screen 13: Alpha blending
+void demo13(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(rend, clip);
+    TextApp txt;
+    COLOR crBkgd = RGBX(240,240,240);
+    COLOR crFrame = RGBX(170,170,170);
+    COLOR crText = RGBX(40,70,110);
+    COLOR crBlack = RGBX(0,0,0);
+    SGPoint xy[][6] = {
+        { { 240,  80 }, { 560,  80 }, { 880,  80 }, { 1200,  80 }, { 1200, 400 }, { 1200, 720 } },
+        { {  80, 240 }, {  80, 560 }, {  80, 880 }, {  400, 880 }, {  720, 880 }, { 1040, 880 } },
+        { {  80, 720 }, {  80, 400 }, {  80,  80 }, {  400,  80 }, {  720,  80 }, { 1040,  80 } },
+        { { 240, 880 }, { 560, 880 }, { 880, 880 }, { 1200, 880 }, { 1200, 560 }, { 1200, 240 } },
+    };
+
+    // Use basic renderer to do background color fill
+    SGPoint corner = { 40, 40 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
+    sg->BeginPath();
+    sg->RoundedRectangle(frame, corner);
+    rend->SetColor(crBkgd);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw a frame around the window
+    sg->SetLineWidth(8.0);
+    aarend->SetColor(crFrame); 
+    sg->StrokePath();
+
+    // Draw the title text
+    char *str[] = { "ALPHA", "BLENDING" };
+    float width, scale = 2.2; 
+    SGPoint xystart;
+    sg->SetLineWidth(40.0);
+    txt.SetTextSpacing(1.3);
+    aarend->SetColor(RGBX(220,20,60));
+    for (int i = 0; i < 2; ++i)
+    {
+        width = txt.GetTextWidth(scale, str[0]);
+        xystart.x = (DEMO_WIDTH - width)/2;
+        xystart.y = DEMO_HEIGHT/2 - 60;
+        txt.DisplayText(&(*sg), xystart, scale, str[0]);
+        width = txt.GetTextWidth(scale, str[1]);
+        xystart.x = (DEMO_WIDTH - width)/2;
+        xystart.y += 250;
+        txt.DisplayText(&(*sg), xystart, scale, str[1]);
+        sg->SetLineWidth(28.0);
+        aarend->SetColor(RGBX(222,120,80));
+    }
+
+    // Stroke a set of crossed diagonal lines
+    sg->SetLineWidth(100.0);
+    sg->SetLineEnd(LINEEND_ROUND);
+    for (int i = 0; i < 6; ++i)
+    {   
+        sg->BeginPath();
+        sg->Move(xy[0][i].x, xy[0][i].y);
+        sg->Line(xy[1][i].x, xy[1][i].y);
+        aarend->SetColor(RGBA(0,100,200,100));
+        sg->StrokePath();
+
+        sg->BeginPath();
+        sg->Move(xy[2][i].x, xy[2][i].y);
+        sg->Line(xy[3][i].x, xy[3][i].y);
+        aarend->SetColor(RGBA(100,200,0,100));
+        sg->StrokePath();
+    }
+}
+
+// Demo screen 14: Code examples
+void demo14(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(rend, clip);
+    TextApp txt;
+    COLOR crBkgd  = RGBX(230,230,255);
+    COLOR crFrame = RGBX( 65,105,225);
+    COLOR crDash  = RGBX(140,190,255);
+    COLOR crText  = RGBX( 65,105,225);
+    COLOR crWhite = RGBX(255,255,255);
     float linewidth = 10.0;
     char dash[] = { 1, 4, 0 };
 
-    // Fill background and draw dash-pattern frame around window
+    // Use the basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->SetLineEnd(LINEEND_ROUND);
@@ -1710,30 +1783,35 @@ void demo13(SimpleRenderer *rend, const SGRect& clip)
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
+
+    // Draw the outer frame
     sg->SetLineWidth(linewidth);
-    rend->SetColor(crFrame); 
+    aarend->SetColor(crFrame); 
     sg->StrokePath();
     sg->SetLineDash(dash, 0, linewidth/4.0);
     sg->SetLineWidth(linewidth - 4.0);
-    rend->SetColor(crDash);
+    aarend->SetColor(crDash);
     sg->StrokePath();
 
-    // Draw frame around title
+    // Draw a frame around the title text
     SGRect frame2 = { 320, 165, 640, 130 };
     sg->BeginPath();
     sg->Rectangle(frame2);
-    rend->SetColor(crDash);
+    aarend->SetColor(crDash);
     sg->FillPath(FILLRULE_EVENODD);
     sg->SetLineJoin(LINEJOIN_ROUND);
     sg->SetLineWidth(14.0);
-    rend->SetColor(crFrame);
+    aarend->SetColor(crFrame);
     sg->SetLineDash(0,0,0);
     sg->StrokePath();
     sg->SetLineWidth(8.0);
-    rend->SetColor(crWhite);
+    aarend->SetColor(crWhite);
     sg->StrokePath();
 
-    // Draw title text
+    // Draw the title text
     txt.SetTextSpacing(1.3);
     char *str = "Code Examples";
     float scale = 0.73;
@@ -1743,13 +1821,13 @@ void demo13(SimpleRenderer *rend, const SGRect& clip)
     xystart.y = 245;
     sg->SetLineDash(0,0,0);
     sg->SetLineWidth(12.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crDash, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(6.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crText, crWhite);
+    aarend->SetColor(crWhite);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Write text message
+    // Write the text message
     char *s[] = {
         "The graphics output that follows this screen",
         "is produced by the code examples in the",
@@ -1760,14 +1838,14 @@ void demo13(SimpleRenderer *rend, const SGRect& clip)
     };
     txt.SetTextSpacing(1.0);
     scale = 0.40;
+    aarend->SetColor(crText);
     sg->SetLineWidth(3.0);
     xystart.y = 400;
-    crText = BlendPixels(0.4*(1<<16), 0, crText);
     width = txt.GetTextWidth(scale, s[0]);
     xystart.x = (DEMO_WIDTH - width)/2;
     for (int i = 0; i < ARRAY_LEN(s); ++i)
     {
-        DrawTextAA(&(*sg), rend, &txt, xystart, scale, s[i], crBkgd, crText);
+        txt.DisplayText(&(*sg), xystart, scale, s[i]);
         xystart.y += 55;
     }
 }
@@ -1780,37 +1858,37 @@ void MySub(ShapeGen *sg, SGRect& rect)
     sg->FillPath(FILLRULE_EVENODD);
 }
 
-void MyTest(SimpleRenderer *rend, const SGRect& clip)
+void MyTest(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     SGRect rect = { 100, 80, 250, 160 };
      
     sg->BeginPath();
     sg->Rectangle(clip);
-    rend->SetColor(RGBVAL(255,255,255));  // white
+    rend->SetColor(RGBX(255,255,255));  // white
     sg->FillPath(FILLRULE_EVENODD);
      
-    rend->SetColor(RGBVAL(0,120,255));  // blue
+    rend->SetColor(RGBX(0,120,255));  // blue
     MySub(&(*sg), rect);
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from \"Creating a "
                 "ShapeGen object\" topic in userdoc.pdf";
     float scale = 0.3;
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
+    sg->SetRenderer(aarend);
+    aarend->SetColor(crText);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // 1st code example from UG topic "Ellipses and elliptic arcs"
-void EggRoll(SimpleRenderer *rend, const SGRect& clip)
+void EggRoll(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SGPtr sg(aarend, clip);
     SGPoint xy[][4] = {
         { {  20,  80 }, {  20,  20 }, {  80,  20 } },
         { { 110, 100 }, { 110,  40 }, { 210,  40 } },
@@ -1835,7 +1913,7 @@ void EggRoll(SimpleRenderer *rend, const SGRect& clip)
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
-        rend->SetColor(RGBVAL(100,100,100));
+        aarend->SetColor(RGBX(100,100,100));
         sg->StrokePath();
 
         // The center v0 of the ellipse is simply the center of
@@ -1852,10 +1930,10 @@ void EggRoll(SimpleRenderer *rend, const SGRect& clip)
         v2.y = (xy[i][1].y + xy[i][2].y)/2;
         sg->BeginPath();
         sg->Ellipse(v0, v1, v2);
-        rend->SetColor(RGBVAL(220,250,220));
+        aarend->SetColor(RGBX(220,250,220));
         sg->FillPath(FILLRULE_EVENODD);
-        sg->SetLineWidth(0);
-        rend->SetColor(0);
+        sg->SetLineWidth(1.7);
+        aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
 
         // Draw a pair of red lines connecting the ellipse
@@ -1865,36 +1943,35 @@ void EggRoll(SimpleRenderer *rend, const SGRect& clip)
         sg->Move(v1.x, v1.y);
         sg->Line(v0.x, v0.y);
         sg->Line(v2.x, v2.y);
-        rend->SetColor(RGBVAL(255,0,0));
+        aarend->SetColor(RGBX(255,0,0));
         sg->StrokePath();
     }
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "First screenshot from \"Ellipses and "
                 "elliptic arcs\" topic in userdoc.pdf";
     float scale = 0.3;
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // 2nd code example from UG topic "Ellipses and elliptic arcs"
-void PieToss(SimpleRenderer *rend, const SGRect& clip)
+void PieToss(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SGPtr sg(aarend, clip);
     const float PI = 3.14159265;
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 15.3, 18.7
     };
     COLOR color[] = 
     {
-        RGBVAL(240,160,160), RGBVAL(160,240,200), RGBVAL(200,160,240), RGBVAL(200,240,160),
-        RGBVAL(240,160,200), RGBVAL(160,240,160), RGBVAL(240,200,160), RGBVAL(160,200,240), 
+        RGBX(240,160,160), RGBX(160,240,200), RGBX(200,160,240), RGBX(200,240,160),
+        RGBX(240,160,200), RGBX(160,240,160), RGBX(240,200,160), RGBX(160,200,240), 
     };
     // Define three corner points of each square, rectangle,
     // or parallelogram. We'll calculate the fourth point.
@@ -1914,14 +1991,14 @@ void PieToss(SimpleRenderer *rend, const SGRect& clip)
         float astart = 0;
 
         // Use symmetry to calculate the fourth point of the
-        // square, rectangle, or parallelogram
+        // square, rectangle, or parallelogram. Draw it.
         xy[i][3].x = xy[i][0].x - xy[i][1].x + xy[i][2].x;
         xy[i][3].y = xy[i][0].y - xy[i][1].y + xy[i][2].y;
         sg->BeginPath();
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
-        rend->SetColor(RGBVAL(160,170,180));
+        aarend->SetColor(RGBX(150,160,170));
         sg->SetLineWidth(2.0);
         sg->StrokePath();
 
@@ -1948,10 +2025,10 @@ void PieToss(SimpleRenderer *rend, const SGRect& clip)
             sg->EllipticArc(v0, v1, v2, astart, asweep);
             sg->Line(v0.x, v0.y); 
             sg->CloseFigure();
-            rend->SetColor(color[j]);
+            aarend->SetColor(color[j]);
             sg->FillPath(FILLRULE_EVENODD);
-            rend->SetColor(0);
-            sg->SetLineWidth(0);
+            aarend->SetColor(RGBX(80,80,80));
+            sg->SetLineWidth(1.0);
             sg->StrokePath();
             astart += asweep;
         }
@@ -1959,36 +2036,34 @@ void PieToss(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Second screenshot from \"Ellipses and "
                 "elliptic arcs\" topic in userdoc.pdf";
     float scale = 0.3;
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::Bezier2 reference topic
-void example01(SimpleRenderer *rend, const SGRect& clip)
+void example01(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint v0 = { 100, 200 }, v1 = { 200, 75 }, v2 = { 230, 270 };
 
     // Draw quadratic Bezier spline in red
-    rend->SetColor(RGBVAL(255,80,80));
-    sg->SetLineWidth(2.0);
+    aarend->SetColor(RGBX(255,120,100));
+    sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
     sg->Bezier2(v1, v2);
     sg->StrokePath();
 
     // Outline control polygon in black
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->SetLineWidth(2.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
     sg->Line(v1.x, v1.y);
@@ -1997,37 +2072,35 @@ void example01(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "Bezier2 reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::Bezier3 reference topic
-void example02(SimpleRenderer *rend, const SGRect& clip)
+void example02(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint v0 = { 100, 200 }, v1 = { 150, 30 }, 
             v2 = { 260, 200 }, v3 = { 330, 30 };
 
     // Draw cubic Bezier spline in red
-    rend->SetColor(RGBVAL(255,80,80));
-    sg->SetLineWidth(2.0);
+    aarend->SetColor(RGBX(255,120,100));
+    sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
     sg->Bezier3(v1, v2, v3);
     sg->StrokePath();
 
     // Outline control polygon in black
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->SetLineWidth(2.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
     sg->Line(v1.x, v1.y);
@@ -2037,27 +2110,26 @@ void example02(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "Bezier3 reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::Ellipse reference topic
-void example03(SimpleRenderer *rend, const SGRect& clip)
+void example03(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SGPtr sg(aarend, clip);
     SGPoint u[4] = { { 100, 275 }, { 100, 75 }, { 300, 75 }, };
     SGPoint du[3] = { { 244, 34 }, { 270, 74 }, { 308, -38 }, };
     SGPoint v0, v1, v2;
 
-    sg->SetLineWidth(0);
+    sg->SetLineWidth(2.0);
     for (int i = 0; i < 2; ++i)
     {
         u[3].x = u[0].x - u[1].x + u[2].x;
@@ -2073,12 +2145,12 @@ void example03(SimpleRenderer *rend, const SGRect& clip)
         sg->PolyLine(3, &u[1]);
         sg->CloseFigure();
         sg->Ellipse(v0, v1, v2);
-        rend->SetColor(RGBVAL(200,200,240));
+        aarend->SetColor(RGBX(200,200,240));
         sg->FillPath(FILLRULE_EVENODD);
         sg->Move(v1.x, v1.y);
         sg->Line(v0.x, v0.y);
         sg->Line(v2.x, v2.y);
-        rend->SetColor(0);
+        aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         for (int j = 0; j < 3; ++j)
         {
@@ -2089,37 +2161,35 @@ void example03(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "Ellipse reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::EllipticArc reference topic
-void example04(SimpleRenderer *rend, const SGRect& clip)
+void example04(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     const float PI = 3.14159265;
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 15.3, 18.7
     };
     COLOR color[] = 
     {
-        RGBVAL(240,200,200), RGBVAL(200,240,220), RGBVAL(220,200,240), RGBVAL(220,240,200),
-        RGBVAL(240,200,220), RGBVAL(200,240,200), RGBVAL(240,220,200), RGBVAL(200,220,240), 
+        RGBX(240,200,200), RGBX(200,240,220), RGBX(220,200,240), RGBX(220,240,200),
+        RGBX(240,200,220), RGBX(200,240,200), RGBX(240,220,200), RGBX(200,220,240), 
     };
     SGPoint v0[] = { { 200, 175 }, { 476, 173 } };
     SGPoint v1[] = { { 200,  75 }, { 489,  93 } };
     SGPoint v2[] = { { 300, 175 }, { 595, 117 } };
 
-    sg->SetLineWidth(0);
+    sg->SetLineWidth(1.7);
     for (int i = 0; i < 2; ++i)
     {
         float astart = 0;
@@ -2131,10 +2201,10 @@ void example04(SimpleRenderer *rend, const SGRect& clip)
             sg->BeginPath();
             sg->EllipticArc(v0[i], v1[i], v2[i], astart, asweep);
             sg->Line(v0[i].x, v0[i].y);
-            rend->SetColor(color[j]);
+            aarend->SetColor(color[j]);
             sg->CloseFigure();
             sg->FillPath(FILLRULE_EVENODD);
-            rend->SetColor(RGBVAL(80, 80, 80));
+            aarend->SetColor(RGBX(80, 80, 80));
             sg->StrokePath();
             astart += asweep;
         }
@@ -2142,36 +2212,34 @@ void example04(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "EllipticArc reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::EllipticSpline reference topic
-void example05(SimpleRenderer *rend, const SGRect& clip)
+void example05(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint v0 = { 100, 200 }, v1 = { 200, 75 }, v2 = { 230, 270 };
 
     // Draw elliptic spline in green
-    rend->SetColor(RGBVAL(40,220,80));
-    sg->SetLineWidth(3.0);
+    aarend->SetColor(RGBX(40,220,80));
+    sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
     sg->EllipticSpline(v1, v2);
     sg->StrokePath();
 
     // Outline control polygon in black
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->SetLineWidth(2.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
     sg->Line(v1.x, v1.y);
@@ -2180,23 +2248,21 @@ void example05(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "EllipticSpline reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::GetBoundingBox reference topic
-void example06(SimpleRenderer *rend, const SGRect& clip)
+void example06(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint xy[] = {
         { 104, 62 }, { 247, 196 }, { 261, 129 },
         { 80, 190 }, { 127, 234 }, { 165, 43 }
@@ -2208,7 +2274,7 @@ void example06(SimpleRenderer *rend, const SGRect& clip)
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
-    rend->SetColor(RGBVAL(200,220,240));
+    aarend->SetColor(RGBX(200,220,240));
     sg->FillPath(FILLRULE_EVENODD);
 
     // Get bounding box and outline it in black
@@ -2217,7 +2283,7 @@ void example06(SimpleRenderer *rend, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->BeginPath();
     sg->Rectangle(bbox);
-    rend->SetColor(0);
+    aarend->SetColor(RGBX(0,0,0));
     sg->StrokePath();
 
     // Move the shape to the right
@@ -2231,7 +2297,7 @@ void example06(SimpleRenderer *rend, const SGRect& clip)
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
     sg->CloseFigure();
-    rend->SetColor(RGBVAL(200,220,240));
+    aarend->SetColor(RGBX(200,220,240));
     sg->StrokePath();
 
     // Get the bounding box and outline it in black
@@ -2240,7 +2306,7 @@ void example06(SimpleRenderer *rend, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->BeginPath();
     sg->Rectangle(bbox);
-    rend->SetColor(0);
+    aarend->SetColor(RGBX(0,0,0));
     sg->StrokePath();
 
     // Expand each side of the bounding box by half the line width
@@ -2252,28 +2318,26 @@ void example06(SimpleRenderer *rend, const SGRect& clip)
     // Outline the modified bounding box in red
     sg->BeginPath();
     sg->Rectangle(bbox);
-    rend->SetColor(RGBVAL(255,80,80));
+    aarend->SetColor(RGBX(255,80,80));
     sg->StrokePath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "GetBoundingBox reference topic";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::PolyBezier2 reference topic
-void example07(SimpleRenderer *rend, const SGRect& clip)
+void example07(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint xy[] = {
         { 40, 140 }, { 70, 30 }, { 115, 120 }, { 160, 210 }, 
         { 195, 120 }, { 230, 30 }, { 274, 150 }
@@ -2281,16 +2345,16 @@ void example07(SimpleRenderer *rend, const SGRect& clip)
     SGPoint v0, v1, v2;
 
     // Stroke three connected quadratic Bezier splines in green
-    rend->SetColor(RGBVAL(160,200,160));
-    sg->SetLineWidth(6.0);
+    aarend->SetColor(RGBX(160,200,160));
+    sg->SetLineWidth(14.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyBezier2(6, &xy[1]);
     sg->StrokePath();
 
     // Outline spline skeleton in black; mark knots & control points
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(60,60,60));
+    sg->SetLineWidth(1.25);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(6, &xy[1]);
@@ -2305,23 +2369,21 @@ void example07(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "PolyBezier2 reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::PolyBezier3 reference topic
-void example08(SimpleRenderer *rend, const SGRect& clip)
+void example08(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint xy[] = {
         { 30, 250 }, { 60, 120 }, { 130, 270 }, { 195, 145 }, { 260, 20 },
         { 140, 20 }, { 230, 135 }, { 320, 250 }, { 380, 190 }, { 380, 110 } 
@@ -2330,16 +2392,16 @@ void example08(SimpleRenderer *rend, const SGRect& clip)
     int i;
 
     // Stroke three connected cubic Bezier splines in yellow
-    rend->SetColor(RGBVAL(230,200,80));
-    sg->SetLineWidth(6.0);
+    aarend->SetColor(RGBX(230,200,80));
+    sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyBezier3(9, &xy[1]);
     sg->StrokePath();
 
     // Draw spline handles in black
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->SetLineWidth(1.25);
     sg->BeginPath();
     for (i = 0; i < 9; i += 3)
     {
@@ -2359,23 +2421,21 @@ void example08(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "PolyBezier3 reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::PolyEllipticSpline reference topic
-void example09(SimpleRenderer *rend, const SGRect& clip)
+void example09(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint xy[] = {
         { 40, 140 }, { 70, 30 }, { 115, 120 }, { 160, 210 }, 
         { 195, 120 }, { 230, 30 }, { 274, 150 }
@@ -2383,16 +2443,16 @@ void example09(SimpleRenderer *rend, const SGRect& clip)
     SGPoint v0, v1, v2;
 
     // Stroke three connected elliptic splines in blue
-    rend->SetColor(RGBVAL(180,180,230));
-    sg->SetLineWidth(6.0);
+    aarend->SetColor(RGBX(180,180,230));
+    sg->SetLineWidth(16.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyEllipticSpline(6, &xy[1]);
     sg->StrokePath();
 
     // Outline spline skeleton in black; mark knots & control points
-    rend->SetColor(0);
-    sg->SetLineWidth(0);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->SetLineWidth(1.25);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(6, &xy[1]);
@@ -2407,23 +2467,21 @@ void example09(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "PolyEllipticSpline reference topic";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::Rectangle reference topic
-void example10(SimpleRenderer *rend, const SGRect& clip)
+void example10(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
-
     SGRect rect = { 100, 75, 300, 225 };
 
     sg->BeginPath();
@@ -2441,34 +2499,35 @@ void example10(SimpleRenderer *rend, const SGRect& clip)
     rect.y += rect.h;
     rect.h = -rect.h;
     sg->Rectangle(rect);
-    rend->SetColor(RGBVAL(200,200,240));
+    rend->SetColor(RGBX(200,200,240));
     sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule
-    sg->SetLineWidth(1.0);
+    sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
-    rend->SetColor(RGBVAL(80,0,0));
+    rend->SetColor(RGBX(0,0,0));
     sg->StrokePath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "Rectangle reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
+    sg->SetRenderer(aarend);
+    aarend->SetColor(crText);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::RoundedRectangle reference topic
-void example11(SimpleRenderer *rend, const SGRect& clip)
+void example11(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
-
     SGRect rect = { 100, 75, 300, 225 };
-    SGPoint round = { 32, 24 };
+    SGPoint round = { 30, 30 };
+
+    // Construct outer rounded rectangle 
     sg->BeginPath();
     sg->RoundedRectangle(rect, round);
 
@@ -2477,39 +2536,41 @@ void example11(SimpleRenderer *rend, const SGRect& clip)
     rect.y += 15;
     rect.w -= 95;
     rect.h -= 75;
+    round.x = round.y -= 10;
 
     // Modify the parameters so that construction
-    // of the second rounded rectangle proceeds
+    // of the inner rounded rectangle proceeds
     // in the CCW direction
     rect.y += rect.h;
     rect.h = -rect.h; 
     round.y = -round.y;
     sg->RoundedRectangle(rect, round);
-    rend->SetColor(RGBVAL(200,200,240));
+    rend->SetColor(RGBX(200,200,240));
     sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule
-    sg->SetLineWidth(0);
-    rend->SetColor(RGBVAL(80,0,0));
+
+    // Switch to antialiasing renderer and stroke boundaries
+    sg->SetRenderer(aarend);
+    aarend->SetColor(RGBX(80,80,80));
+    sg->SetLineWidth(2.0);
     sg->StrokePath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "RoundedRectangle reference topic";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::SetClipRegion reference topic
-void example12(SimpleRenderer *rend, const SGRect& clip)
+void example12(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
-
     const float PI = 3.14159265;
     const float t = 0.8*PI;
     const float sint = sin(t);
@@ -2521,8 +2582,11 @@ void example12(SimpleRenderer *rend, const SGRect& clip)
     // Draw a square filled with a light blue color
     sg->BeginPath();
     sg->Rectangle(rect);
-    rend->SetColor(RGBVAL(220,240,255));
+    rend->SetColor(RGBX(220,240,255));
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Switch to the antialiasing renderer
+    sg->SetRenderer(aarend);
 
     // Set the clipping region to a star-shaped area inside the square
     sg->BeginPath();
@@ -2537,7 +2601,7 @@ void example12(SimpleRenderer *rend, const SGRect& clip)
     sg->SetClipRegion(FILLRULE_WINDING);
 
     // Draw a series of horizontal, red lines through the square
-    rend->SetColor(RGBVAL(200,80,80));
+    aarend->SetColor(RGBX(238,50,50));
     sg->SetLineWidth(1.0);
     sg->BeginPath();
     for (int y = 50; y < 254; y += 4)
@@ -2549,24 +2613,22 @@ void example12(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "SetClipRegion reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
     sg->ResetClipRegion();
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::SetLineDash reference topic
-void example13(SimpleRenderer *rend, const SGRect& clip)
+void example13(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     const float PI = 3.14159265;
     SGPoint xy[] = {
         {  86, 192 }, {  86, 153 }, {  40, 192 }, { 140, 230 }, 
@@ -2579,7 +2641,7 @@ void example13(SimpleRenderer *rend, const SGRect& clip)
     char dashdotdot[] = { 5, 2, 2, 2, 2, 2, 0 };
     char *pattern[] = { dot, dash, dashdot, dashdotdot };
 
-    rend->SetColor(RGBVAL(205, 92, 92));
+    aarend->SetColor(RGBX(205, 92, 92));
     sg->SetLineWidth(linewidth);
     for (int i = 0; i < 4; ++i)
     {
@@ -2595,24 +2657,22 @@ void example13(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "SetLineDash reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
     sg->SetLineDash(0,0,0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::SetLineEnd reference topic
-void example14(SimpleRenderer *rend, const SGRect& clip)
+void example14(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
     SGPoint vert[] = { { 70, 240 }, { 170, 95 }, { 220, 270 } };
 
@@ -2623,10 +2683,10 @@ void example14(SimpleRenderer *rend, const SGRect& clip)
         sg->PolyLine(2, &vert[1]);
         sg->SetLineWidth(40.0);
         sg->SetLineEnd(cap[i]);
-        rend->SetColor(RGBVAL(200,200,240));
+        aarend->SetColor(RGBX(200,200,240));
         sg->StrokePath();
-        sg->SetLineWidth(0);
-        rend->SetColor(0);
+        sg->SetLineWidth(1.7);
+        aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         for (int j = 0; j < 3; ++j)
             vert[j].x += 230;
@@ -2634,23 +2694,21 @@ void example14(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "SetLineEnd reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::SetLineJoin reference topic
-void example15(SimpleRenderer *rend, const SGRect& clip)
+void example15(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     SGPoint vert[] = { { 70, 240 }, { 170, 95 }, { 220, 270 } };
 
@@ -2662,10 +2720,10 @@ void example15(SimpleRenderer *rend, const SGRect& clip)
         sg->SetLineWidth(40.0);
         sg->SetLineJoin(join[i]);
         sg->CloseFigure();
-        rend->SetColor(RGBVAL(200,200,240));
+        aarend->SetColor(RGBX(200,200,240));
         sg->StrokePath();
-        sg->SetLineWidth(0);
-        rend->SetColor(0);
+        sg->SetLineWidth(1.7);
+        aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         for (int j = 0; j < 3; ++j)
             vert[j].x += 230;
@@ -2673,23 +2731,21 @@ void example15(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "SetLineJoin reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::SetMaskRegion reference topic
-void example16(SimpleRenderer *rend, const SGRect& clip)
+void example16(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
-
     const float PI = 3.14159265;
     const float t = 0.8*PI;
     const float sint = sin(t);
@@ -2701,8 +2757,11 @@ void example16(SimpleRenderer *rend, const SGRect& clip)
     // Draw a square filled with a light blue color
     sg->BeginPath();
     sg->Rectangle(rect);
-    rend->SetColor(RGBVAL(220,240,255));
+    rend->SetColor(RGBX(220,240,255));
     sg->FillPath(FILLRULE_EVENODD);
+
+    // Switch to antialiasing renderer
+    sg->SetRenderer(aarend);
 
     // Mask off a star-shaped area inside the square
     sg->BeginPath();
@@ -2717,7 +2776,7 @@ void example16(SimpleRenderer *rend, const SGRect& clip)
     sg->SetMaskRegion(FILLRULE_WINDING);
 
     // Draw a series of horizontal, red lines through the square
-    rend->SetColor(RGBVAL(200,80,80));
+    aarend->SetColor(RGBX(234,50,50));
     sg->SetLineWidth(1.0);
     sg->BeginPath();
     for (int y = 50; y < 254; y += 4)
@@ -2729,23 +2788,21 @@ void example16(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "SetMaskRegion reference topic";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::SetMiterLimit reference topic
-void example17(SimpleRenderer *rend, const SGRect& clip)
+void example17(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-
+    SGPtr sg(aarend, clip);
     SGPoint vert[] = { { 100, 250 }, { 170, 95 }, { 210, 270 } };
 
     sg->SetLineEnd(LINEEND_SQUARE); 
@@ -2757,10 +2814,10 @@ void example17(SimpleRenderer *rend, const SGRect& clip)
         sg->Move(vert[0].x, vert[0].y);
         sg->PolyLine(2, &vert[1]);
         sg->SetLineWidth(40.0);
-        rend->SetColor(RGBVAL(200, 200, 240));
+        aarend->SetColor(RGBX(200, 200, 240));
         sg->StrokePath();
-        sg->SetLineWidth(0);
-        rend->SetColor(0);
+        sg->SetLineWidth(1.7);
+        aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         sg->SetMiterLimit(1.4);
         for (int j = 0; j < 3; ++j)
@@ -2769,35 +2826,69 @@ void example17(SimpleRenderer *rend, const SGRect& clip)
 
     //-----  Label the output of this code example -----
     TextApp txt;
-    COLOR crBkgd = RGBVAL(255,255,255);
-    COLOR crText = RGBVAL(40,70,110);
+    COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from ShapeGen::"
                 "SetMiterLimit reference topic in userdoc.pdf";
-    SGPoint xystart = { 24, 360 };
+    SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    DrawTextAA(&(*sg), rend, &txt, xystart, scale, str, 
-               crBkgd, crText);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
-void (*testfunc[])(SimpleRenderer *rend, const SGRect& cliprect) =
+// Code example from ShapeGen::SetRenderer reference topic
+void example18(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
-    // Demo pages
-    demo01, demo02, demo03,  
-    demo04, demo05, demo06,
-    demo07, demo08, demo09, 
-    demo10, demo11, demo12,
-    demo13,
+    SGPtr sg(rend, clip);
+    SGRect rect = { 100, 110, 400, 240 };
+    SGPoint v0 = { 360, 170 }, v1 = { 360+160, 170 }, v2 = { 360, 170+110 };
 
-    // Code examples   
+    // Use the basic renderer to fill a green rectangle
+    sg->BeginPath();
+    sg->Rectangle(rect);
+    rend->SetColor(RGBX(0,200,0));  // green (opaque)
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Switch to the antialiased renderer
+    sg->SetRenderer(aarend);
+
+    // Alpha-blend a magenta, stroked ellipse over the rectangle
+    sg->BeginPath();
+    sg->Ellipse(v0, v1, v2);
+    aarend->SetColor(RGBA(200,0,200,100));  // magenta + alpha
+    sg->SetLineWidth(60.0);
+    sg->StrokePath();
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from ShapeGen::"
+                "SetRenderer reference topic in userdoc.pdf";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+void (*testfunc[])(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& cliprect) =
+{
+    // Demo screens
+    demo01, demo02, demo03, demo04, 
+    demo05, demo06, demo07, demo08, 
+    demo09, demo10, demo11, demo12, 
+    demo13, demo14,
+
+    // Code examples from userdoc.pdf
     MyTest, EggRoll, PieToss,
     example01, example02, example03,
     example04, example05, example06,
     example07, example08, example09,
     example10, example11, example12,
     example13, example14, example15,
-    example16, example17,
+    example16, example17, example18, 
 };
 
 //---------------------------------------------------------------------
@@ -2806,11 +2897,11 @@ void (*testfunc[])(SimpleRenderer *rend, const SGRect& cliprect) =
 //
 //---------------------------------------------------------------------
 
-bool runtest(int testnum, SimpleRenderer *rend, const SGRect& cliprect)
+bool runtest(int testnum, SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& cliprect)
 {
     if (0 <= testnum && testnum < ARRAY_LEN(testfunc))
     {
-        testfunc[testnum](rend, cliprect);
+        testfunc[testnum](rend, aarend, cliprect);
         return true;
     }
     return false;

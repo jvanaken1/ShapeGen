@@ -208,7 +208,7 @@ bool PathMgr::ThinStrokePath()
     }
 
     // Fill the stroked path and initialize current path to empty
-    _edge->TranslateEdges(-_scroll.x, -_scroll.y);
+    _edge->TranslateEdges(_scroll.x, _scroll.y);
     _edge->NormalizeEdges(FILLRULE_WINDING);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->FillEdgeList();

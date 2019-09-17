@@ -168,28 +168,32 @@ class Feeder : ShapeFeeder
 {
     friend EdgeMgr;
 
-    EDGE *_edgeL, *_edgeR;
+    EDGE *_list, *_edgeL, *_edgeR;
     FIX16 _xL, _xR, _dxL, _dxR;
     int _ytop, _height;
+    
+    EDGE* ysortlist(EDGE *plist, int length);
 
 protected:
-    Feeder() : 
-        _edgeL(0), _edgeR(0), _ytop(0), _height(0), 
-        _xL(0), _xR(0), _dxL(0), _dxR(0)
+    Feeder() : _list(0), _edgeL(0), _edgeR(0), _ytop(0),
+               _height(0), _xL(0), _xR(0), _dxL(0), _dxR(0)
     {
     }
     ~Feeder()
     {
     }
-    void SetEdgeList(EDGE *list)
+    void SetEdgeList(EDGE *list, int length)
     {
-        _edgeL = list;
+        if (length)
+            _list = ysortlist(list, length/2);  // antialiasing
+        else
+            _edgeL = list;  // no antialiasing
     }
 
 public:
-    bool GetNextSDLRect(SGRect *rect);
     bool GetNextGDIRect(SGRect *rect);
-    bool GetNextTrapezoid(SGTpzd *tpzd);
+    bool GetNextSDLRect(SGRect *rect);
+    bool GetNextSGSpan(SGSpan *span);
 };
 
 //---------------------------------------------------------------------
@@ -305,67 +309,111 @@ bool Feeder::GetNextGDIRect(SGRect *rect)
 
 //---------------------------------------------------------------------
 //
-// Public function: Gets the next trapezoid for the renderer to fill.
-// The renderer iteratively calls this function to receive the shape
-// stored in the normalized edge list as a series of trapezoids. The
-// function returns true to indicate that it has successfully
-// retrieved a trapezoid, or it returns false to indicate that
-// no more trapezoids are available (because the shape is complete).
-// The x-y coordinates in each rectangle are integer values.
+// This version fills in the members of the SGSpan structure, which
+// describes a subpixel span in an A-buffer. This function is called
+// by a renderer that supports antialiasing.
 //
 //---------------------------------------------------------------------
 
-bool Feeder::GetNextTrapezoid(SGTpzd *tpzd)
+bool Feeder::GetNextSGSpan(SGSpan *span)
 {
-    // Do any more spans remain in current trapezoid?
-    if (_height == 0)
+    if (_list == 0 && _edgeL == 0)
+        return false;
+
+    // Are any more trapezoids left in the current scan line?
+    if (_edgeL == 0)
     {
-        // No more spans are left in the current trapezoid.
-        // Do any more trapezoids remain in the edge list?
-        if (_edgeL == 0)
-            return false;  // no, the edge list is empty
+        // No, the next trapezoid starts on a new scan line
+        int yscan = _list->ytop;
+        EDGE *p = _list, *q = 0;
 
-        // Yes, get next trapezoid from edge list
-        _edgeR = _edgeL->next;
-        assert(_edgeR != 0);  // edges always come in L/R pairs
-        tpzd->ytop   = _edgeL->ytop;
-        tpzd->height = _edgeL->dy;
-        tpzd->xL     = _edgeL->xtop;
-        tpzd->dxL    = _edgeL->dxdy;
-        tpzd->xR     = _edgeR->xtop;
-        tpzd->dxR    = _edgeR->dxdy;
+        do
+        {
+            q = p->next;
+            p = q->next;
+        } while (p != 0 && yscan == p->ytop);
+        _edgeL = _list;
+        _list = p;
+        q->next = 0;
+    }
+
+    // Detach topmost span from the next trapezoid in this scan line
+    _edgeR = _edgeL->next;
+    span->xL = _edgeL->xtop;
+    span->xR = _edgeR->xtop;
+    span->y = _edgeL->ytop;
+
+    // Are there more spans left in this trapezoid?
+    if (_edgeL->dy > 1)
+    {
+        // Yes, update and save remainder of this trapezoid
+        _edgeL->ytop = _edgeR->ytop += 1;
+        _edgeL->dy -= 1;
+        _edgeR->dy += 1;
+        _edgeL->xtop += _edgeL->dxdy;
+        _edgeR->xtop += _edgeR->dxdy;
+
+        EDGE *tmp = _edgeL;
         _edgeL = _edgeR->next;
-        return true;
-    } 
+        _edgeR->next = _list;
+        _list = tmp;
+    }
+    else
+        _edgeL = _edgeR->next;  // discard empty trapezoid
 
-    // Send remainder of trapezoid to renderer
-    tpzd->ytop   = _ytop;
-    tpzd->height = _height;
-    tpzd->xL     = _xL;
-    tpzd->dxL    = _dxL;
-    tpzd->xR     = _xR;
-    tpzd->dxR    = _dxR;
-    _height = 0;
-    _edgeL = _edgeR->next;
     return true;
 }
 
 //---------------------------------------------------------------------
 //
-// Polygonal edge manager constructor and destructor
+// Uses the qsort function in stdlib.h to sort items in a singly linked
+// list of EDGE pairs. The qsort function in stdlib.h is used to sort
+// the EDGE pairs in order of ascending ytop values. Parameter plist
+// points to the head of the list. Parameter length is the number of
+// EDGE pairs in the list. The ysortlist function returns a pointer to
+// the head of the new, y-sorted list.
+//
+//---------------------------------------------------------------------
+
+EDGE* Feeder::ysortlist(EDGE *plist, int length)
+{
+    if (length < 2)
+        return plist;
+
+    int i, count = 0;
+    EDGE **ptr = new EDGE*[length];  // pointer array for qsort
+
+    assert(ptr);
+    for (EDGE *p = plist; p; p = p->next->next)
+        ptr[count++] = p;  // add pointer to next EDGE pair in list
+
+    //assert(count == length);
+    qsort(ptr, count, sizeof(EDGE*), ycomp);  // stdlib.h function
+    for (i = 1; i < count; i++)
+        ptr[i-1]->next->next = ptr[i];  // update links in linked list
+
+    ptr[i-1]->next->next = 0;
+    EDGE *tmp = ptr[0];
+    delete[] ptr;
+    return tmp;
+}
+
+//---------------------------------------------------------------------
+//
+// Polygonal edge manager -- EdgeMgr constructor and destructor
 //
 //---------------------------------------------------------------------
 
 EdgeMgr::EdgeMgr(Renderer *renderer) :
-    _renderer(renderer), _inlist(0), _outlist(0), _cliplist(0), _rendlist(0), _savelist(0)
+    _inlist(0), _outlist(0), _cliplist(0), _rendlist(0), _savelist(0)
 {
-    assert(renderer != 0);
+    SetRenderer(renderer);
     _inpool = new POOL;
     _outpool = new POOL;
     _clippool = new POOL;
     _rendpool = new POOL;
     _savepool = new POOL;
-    assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && _savepool != 0);
+    assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && _rendpool != 0 && _savepool != 0);
 }
 
 EdgeMgr::~EdgeMgr()
@@ -373,7 +421,24 @@ EdgeMgr::~EdgeMgr()
     delete _inpool;
     delete _outpool;
     delete _clippool;
+    delete _rendpool;
     delete _savepool;
+}
+
+//---------------------------------------------------------------------
+//
+// Protected function: Sets the Renderer object that the ShapeGen
+// object will use to draw filled shapes on the display
+//
+//---------------------------------------------------------------------
+
+void EdgeMgr::SetRenderer(Renderer *renderer)
+{
+    assert(renderer);
+    int yres = renderer->QueryYResolution();
+    _yshift = 16 - yres;
+    _ybias = FIX_BIAS >> yres;
+    _renderer = renderer;
 }
 
 //---------------------------------------------------------------------
@@ -470,12 +535,13 @@ void EdgeMgr::ReverseEdges()
 
 void EdgeMgr::TranslateEdges(int x, int y)
 {
-    FIX16 xfix = x << 16;
+    x = x << 16;
+    y = y << (16 - _yshift);
 
     for (EDGE *p = _inlist; p != 0; p = p->next)
     {
-        p->xtop += xfix;
-        p->ytop += y;
+        p->xtop -= x;
+        p->ytop -= y;
     }
 }
 
@@ -539,6 +605,7 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
 bool EdgeMgr::FillEdgeList()
 {
     Feeder iter;
+    int length;  // this is nonzero only if antialiasing is enabled
 
     if (_outlist == 0)
         return false;
@@ -547,7 +614,8 @@ bool EdgeMgr::FillEdgeList()
     POOL *swap = _outpool;  _outpool = _rendpool;  _rendpool = swap;
     _outlist = 0;
     _outpool->Reset();
-    iter.SetEdgeList(_rendlist);
+    length = (_yshift == 16) ? 0 : _rendpool->GetCount();
+    iter.SetEdgeList(_rendlist, length);
     _renderer->RenderShape(&iter);
     return true;
 }
@@ -799,8 +867,8 @@ void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
     int j, k, y;
 
     // If edge is horizontal, discard it
-    j = (v1->y + FIX_BIAS) >> 16;
-    k = (v2->y + FIX_BIAS) >> 16;
+    j = (v1->y + _ybias) >> _yshift;
+    k = (v2->y + _ybias) >> _yshift;
     if (k == j)
         return;
 
@@ -820,8 +888,8 @@ void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
 
     // Create new EDGE structure and insert at head of _inlist
     p = _inpool->Allocate();
-    p->dxdy = fixdiv(vbot.x - vtop.x, vbot.y - vtop.y, 16);
-    xgap = fixmpy(p->dxdy, (y << 16) + FIX_HALF - vtop.y, 16);
+    p->dxdy = fixdiv(vbot.x - vtop.x, vbot.y - vtop.y, _yshift);
+    xgap = fixmpy(p->dxdy, (y << _yshift) + (_ybias+1) - vtop.y, _yshift);
     p->xtop = vtop.x + xgap + FIX_BIAS;
     p->dy = k - j;
     p->ytop = y;

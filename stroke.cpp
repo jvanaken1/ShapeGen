@@ -717,7 +717,7 @@ bool PathMgr::StrokePath()
     _figtmp = 0;
 
     // Fill within the polygonal boundaries of the stroked path
-    _edge->TranslateEdges(-_scroll.x, -_scroll.y);
+    _edge->TranslateEdges(_scroll.x, _scroll.y);
     _edge->NormalizeEdges(FILLRULE_WINDING);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->FillEdgeList();

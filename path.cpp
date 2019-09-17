@@ -52,7 +52,7 @@ ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 //---------------------------------------------------------------------
 
 PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect) :
-    _pathlength(INITIAL_PATH_LENGTH),
+    _renderer(renderer), _pathlength(INITIAL_PATH_LENGTH),
     _fpoint(0), _cpoint(0), _figure(0), _figtmp(0),
     _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true)
 {
@@ -89,8 +89,10 @@ PathMgr::~PathMgr()
 
 void PathMgr::SetRenderer(Renderer *renderer)
 {
-    assert(renderer != 0);
-    _edge->_renderer = renderer;
+    assert(renderer);
+    _edge->SetRenderer(renderer);
+    ResetClipRegion();
+    renderer->SetMaxWidth(_devicecliprect.w);
 }
 
 //---------------------------------------------------------------------
@@ -429,7 +431,7 @@ bool PathMgr::PathToEdges()
         }
     }
     if ((_scroll.x | _scroll.y) != 0)
-        _edge->TranslateEdges(-_scroll.x, -_scroll.y);
+        _edge->TranslateEdges(_scroll.x, _scroll.y);
 
     return true;
 }
@@ -516,6 +518,7 @@ void PathMgr::InitClipRegion(int width, int height)
     _devicecliprect.w = width;
     _devicecliprect.h = height;
     _edge->SetDeviceClipRectangle(&_devicecliprect);
+    _renderer->SetMaxWidth(width);
 }
 
 //---------------------------------------------------------------------

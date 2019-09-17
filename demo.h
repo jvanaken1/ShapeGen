@@ -35,9 +35,12 @@ const float PI = 3.14159265;
 const int DEMO_WIDTH  = 1280;
 const int DEMO_HEIGHT =  960;
 
+typedef unsigned int COLOR;
+
 // Macro definitions 
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-#define RGBVAL(r,g,b)  (((r)&255)|(((g)&255)<<8)|(((b)&255)<<16))
+#define RGBX(r,g,b)    (COLOR)(((r)&255)|(((g)&255)<<8)|(((b)&255)<<16)|0xff000000)
+#define RGBA(r,g,b,a)  (COLOR)(((r)&255)|(((g)&255)<<8)|(((b)&255)<<16)|((a)<<24))
 #ifdef min
 #undef min
 #endif
@@ -57,8 +60,6 @@ const int DEMO_HEIGHT =  960;
 //
 //---------------------------------------------------------------------
 
-typedef unsigned int COLOR;
-
 // Extract the r, g, and b components from a pixel value
 inline void GetRgbValues(const COLOR color, int *r, int *g, int *b)
 {
@@ -69,26 +70,27 @@ inline void GetRgbValues(const COLOR color, int *r, int *g, int *b)
 
 //---------------------------------------------------------------------
 //
-// A simple renderer derived from the Renderer base class
+// A simple renderer derived from the Renderer base class. This
+// renderer fills shapes with solid colors.
 //
 //---------------------------------------------------------------------
 
 class SimpleRenderer : public Renderer
 {
 public:
-    virtual void SetColor(COLOR pix) = 0;
+    virtual void SetColor(COLOR color) = 0;
 };
 
 //---------------------------------------------------------------------
 //
 // Runs the graphics test function specified by index testnum.
-// Parameter rend is a SimpleRenderer object pointer (see interface
-// definition in demo.h), and parameter cliprect specifies the device
-// clipping rectangle.
+// Parameter rend is a basic renderer that does no antialiasing.
+// Parameter aarend is an antialiasing renderer. Parameter cliprect
+// specifies the device clipping rectangle.
 //
 //---------------------------------------------------------------------
 
-extern bool runtest(int testnum, SimpleRenderer *rend, const SGRect& cliprect);
+extern bool runtest(int testnum, SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& cliprect);
 
 //---------------------------------------------------------------------
 //

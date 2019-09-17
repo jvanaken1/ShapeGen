@@ -35,10 +35,10 @@
 //
 //---------------------------------------------------------------------
 
-// 32-bit fixed-point value with 16-bit fraction 
+// 32-bit fixed-point value with 16-bit fraction (16.16 fixed point) 
 typedef int FIX16;
 
-// Coordinates, points, rectangles, and trapezoids in user coordinates
+// Coordinates, points, rectangles, trapezoids, and spans
 typedef int SGCoord;
 struct SGPoint { 
     SGCoord x; 
@@ -50,13 +50,10 @@ struct SGRect {
     SGCoord w; 
     SGCoord h; 
 };
-struct SGTpzd {  // <-- used only by a renderer
-    int ytop; 
-    int height; 
+struct SGSpan {  // <-- used only by a renderer 
     FIX16 xL; 
-    FIX16 dxL; 
-    FIX16 xR; 
-    FIX16 dxR; 
+    FIX16 xR;
+    int y; 
 };
 
 // Default line-width attribute for stroked paths 
@@ -102,8 +99,8 @@ const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end
 // Shape feeder: Breaks a shape into smaller pieces to feed to a
 // renderer. The ShapeGen object loads a shape into a shape feeder and
 // then hands off the feeder to the renderer. The renderer iteratively
-// calls one of the three functions below to receive the shape in
-// pieces -- as either rectangles or trapezoids -- that are ready to
+// calls one of the four functions below to receive the shape in
+// pieces -- as rectangles, spans, or trapezoids -- that are ready to
 // be drawn to the graphics display as filled shapes. The
 // GetNextSDLRect function dispenses rectangles in SDL2 (Simple
 // DirectMedia Layer, version 2) SDL_Rect format, and the
@@ -117,13 +114,15 @@ class ShapeFeeder
 public:
     virtual bool GetNextSDLRect(SGRect *rect) = 0;
     virtual bool GetNextGDIRect(SGRect *rect) = 0;
-    virtual bool GetNextTrapezoid(SGTpzd *tpzd) = 0;
+    virtual bool GetNextSGSpan(SGSpan *span) = 0;
 };
 
 //---------------------------------------------------------------------
 //
 // Renderer: Handles requests from the ShapeGen object to draw filled
-// shapes on the display
+// shapes on the display. An antialiasing renderer implements its own
+// versions of the QueryYResolution and SetClipWidth functions, but a
+// simple renderer uses the rudimentary versions defined here.
 //
 //---------------------------------------------------------------------
 
@@ -131,6 +130,8 @@ class Renderer
 {
 public:
     virtual void RenderShape(ShapeFeeder *feeder) = 0;
+    virtual int QueryYResolution() { return 0; }
+    virtual bool SetMaxWidth(int width) { return true; }
 };
 
 //---------------------------------------------------------------------

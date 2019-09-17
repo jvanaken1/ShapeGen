@@ -162,13 +162,15 @@ class EdgeMgr
 
     EDGE *_inlist, *_outlist, *_cliplist, *_rendlist, *_savelist;
     POOL *_inpool, *_outpool, *_clippool, *_rendpool, *_savepool;
+    Renderer *_renderer;
+    int _yshift, _ybias;
 
     void SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR);
 
 protected:
-    Renderer *_renderer;
     EdgeMgr(Renderer *renderer);
     ~EdgeMgr();
+    void SetRenderer(Renderer *renderer);
     bool SetClipList();
     void ReverseEdges();
     void ClipEdges(FILLRULE fillrule);
@@ -194,6 +196,7 @@ class PathMgr : virtual public ShapeGen
 {
     friend SGPtr;
 
+    Renderer *_renderer;
     EdgeMgr *_edge;     // manages lists of polygonal edges
     SGPoint _scroll;    // integer x-y window scrolling position
     SGRect _devicecliprect;  // clipping rectangle for display device
