@@ -3,7 +3,7 @@
 # Run the Microsoft nmake utility from the command line in this directory
 # Remember to run vcvars32.bat first to set up your build environment
 
-LIBFILES = user32.lib gdi32.lib Winmm.lib
+LIBFILES = user32.lib gdi32.lib Winmm.lib Msimg32.lib
 OBJFILES = demo.obj textapp.obj arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
 CC = cl.exe
 CDEBUG = -Zi
