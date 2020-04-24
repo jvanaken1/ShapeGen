@@ -48,7 +48,7 @@ The window size for the demo is set at 1280-by-960.
 
 The `userdoc.pdf` file in this GitHub project contains the _ShapeGen User's Guide_. This guide discusses general principles of operation, describes the functions in the ShapeGen programming interface, and includes numerous code examples. The source code for these code examples is also included in the `demo.cpp` file, and is executed at the end of the demo program.
 
-For a high-level overview of ShapeGen capabilities and internal operation, see [_ShapeGen: A lightweight, open-source 2-D graphics library written in C++_](https://www.researchgate.net/publication/340540755_ShapeGen_A_lightweight_open-source_2-D_graphics_library_written_in_C) on the ResearchGate website.
+For a high-level overview of ShapeGen capabilities and internal operation, see [_ShapeGen: A lightweight, open-source 2-D graphics library written in C++_](https://www.researchgate.net/publication/340881312_ShapeGen_A_lightweight_open-source_2-D_graphics_library_written_in_C) on the ResearchGate website.
 
 ## Project files
 
