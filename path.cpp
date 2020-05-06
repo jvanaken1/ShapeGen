@@ -98,11 +98,10 @@ void PathMgr::SetRenderer(Renderer *renderer)
 //---------------------------------------------------------------------
 //
 // Public function: Sets the scroll position for the display window.
-// Parameters x and y specify the x-y displacements subtracted from
+// Parameters x and y specify the x-y displacements to subtract from
 // the points in any path before they are drawn. This feature permits
-// the viewer to scroll through a canvas that is larger than the
-// display window. This function assumes that x and y are integer
-// values regardless of any previous call to SetFixedBits.
+// the viewer to scroll and pan through a constructed image that is
+// larger than the display window. 
 //
 //---------------------------------------------------------------------
 
@@ -110,6 +109,8 @@ void PathMgr::SetScrollPosition(int x, int y)
 {
     _scroll.x = x;
     _scroll.y = y;
+    _edge->SetDeviceClipRectangle(0);  // discard any saved clip region
+    _edge->SetDeviceClipRectangle(&_devicecliprect);
 }
 
 //---------------------------------------------------------------------
@@ -512,7 +513,7 @@ void PathMgr::ResetClipRegion()
 
 void PathMgr::InitClipRegion(int width, int height)
 {
-    _edge->SetDeviceClipRectangle(0);  // discard any stored clip region
+    _edge->SetDeviceClipRectangle(0);  // discard any saved clip region
     _devicecliprect.x = 0;
     _devicecliprect.y = 0;
     _devicecliprect.w = width;
@@ -527,10 +528,9 @@ void PathMgr::InitClipRegion(int width, int height)
 // is defined (that is, if the current figure is not empty), this
 // function writes the x-y coordinates of the current point to the
 // location pointed to by parameter cpoint, and returns a value of
-// true. If the current point is undefined, the function fails and
-// immediately returns false. The current point is expressed in user
-// coordinates. By default, user coordinates are integer values, but
-// can be modified to be fixed-point values by calling SetFixedBits.
+// true. If the current point is undefined, the function immediately
+// returns false. By default, coordinates are integer values, but the
+// user can switch to fixed-point coordinates by calling SetFixedBits.
 //
 //---------------------------------------------------------------------
 
@@ -539,10 +539,13 @@ bool PathMgr::GetCurrentPoint(SGPoint *cpoint)
     if (_cpoint == 0)
         return false;  // current point is undefined
 
-    FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
-
-    cpoint->x = (_cpoint->x + roundoff) >> _fixshift;
-    cpoint->y = (_cpoint->y + roundoff) >> _fixshift;
+    if (cpoint != 0)
+    {
+        FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
+    
+        cpoint->x = (_cpoint->x + roundoff) >> _fixshift;
+        cpoint->y = (_cpoint->y + roundoff) >> _fixshift;
+    }
     return true;
 }
 
@@ -550,13 +553,12 @@ bool PathMgr::GetCurrentPoint(SGPoint *cpoint)
 //
 // Public function: Retrieves the first point in the current figure.
 // If the first point is defined (that is, if the current figure is
-// not empty), this/ function writes the x-y coordinates of the first
+// not empty), this function writes the x-y coordinates of the first
 // point to the location pointed to by parameter fpoint, and returns
 // a value of true. If the first point is undefined, the function
-// fails and immediately returns false. The first point is expressed
-// in user coordinates. By default, user coordinates are integer
-// values, but can be modified to be fixed-point values by calling
-// SetFixedBits.
+// immediately returns false. By default, coordinates are integer
+// values, but the user can switch to fixed-point coordinates by
+// calling SetFixedBits.
 //
 //---------------------------------------------------------------------
 
@@ -565,24 +567,25 @@ bool PathMgr::GetFirstPoint(SGPoint *fpoint)
     if (_cpoint == 0)
         return false;  // current point is undefined
 
-    FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
-
-    fpoint->x = (_fpoint->x + roundoff) >> _fixshift;
-    fpoint->y = (_fpoint->y + roundoff) >> _fixshift;
+    if (fpoint != 0)
+    {
+        FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
+    
+        fpoint->x = (_fpoint->x + roundoff) >> _fixshift;
+        fpoint->y = (_fpoint->y + roundoff) >> _fixshift;
+    }
     return true;
 }
 
 //---------------------------------------------------------------------
 //
 // Public function: Retrieves the minimum bounding box for the current
-// path. If successful, the function returns true after setting the
-// x and y members of parameter bbox to the minimum x and y values
-// in the path, and the w and h members to the bounding box width and
-// height. If the path is empty, the function fails and immediately
-// returns false. This function does not alter the path in any way.
-// The bounding box is expressed in user coordinates. By default, user
-// coordinates are integer values, but can be modified to be
-// fixed-point values by calling SetFixedBits.
+// path. If the path is not empty, the function returns true after
+// writing the bounding box's x-y coordinates and dimensions to the
+// structure pointed to by bbox. If the path is empty, the function
+// immediately returns false. This function does not alter the path in
+// any way. By default, coordinates are integer values, but the user
+// can switch to fixed-point coordinates by calling SetFixedBits.
 //
 //---------------------------------------------------------------------
 
@@ -626,12 +629,14 @@ bool PathMgr::GetBoundingBox(SGRect *bbox)
         }
         offset = fig->offset;
     }
-
-    FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
-
-    bbox->x = (xmin + roundoff) >> _fixshift;
-    bbox->y = (ymin + roundoff) >> _fixshift;
-    bbox->w = ((xmax + roundoff) >> _fixshift) - bbox->x;
-    bbox->h = ((ymax + roundoff) >> _fixshift) - bbox->y;
+    if (bbox != 0)
+    {
+        FIX16 roundup = 0xffff >>_fixshift;
+    
+        bbox->x = xmin >> _fixshift;
+        bbox->y = ymin >> _fixshift;
+        bbox->w = ((xmax + roundup) >> _fixshift) - bbox->x;
+        bbox->h = ((ymax + roundup) >> _fixshift) - bbox->y;
+    }
     return true;
 }

@@ -646,10 +646,11 @@ void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
 
 //---------------------------------------------------------------------
 //
-// Protected function: Sets the clip region to the current device
-// clipping rectangle. The x and y coordinates in parameter rect are
-// integer values, and so must be converted to the internal 16.16
-// fixed-point format before the function calls AttachEdge.
+// Protected function: Sets the clipping region to the device clipping
+// rectangle. Only the w and h members of the input rectangle are
+// used here. The x and y values are ignored. The input width and
+// height values are integers, and must be converted to the internal
+// 16.16 fixed-point format before calling the AttachEdge function.
 //
 //---------------------------------------------------------------------
 
@@ -657,22 +658,22 @@ void EdgeMgr::SetDeviceClipRectangle(const SGRect *rect)
 {
     VERT16 v1, v2;  // top and bottom ends of vertical edge
 
+    // A null rect pointer is a special value that tells us to
+    // discard any previously saved copy of the clipping region
     if (rect == 0)
     {
-        _cliplist = 0;  // empty clipping region
-        _clippool->Reset();
         _savelist = 0;
         _savepool->Reset();
         return;
     }
 
-    // Add left and right sides of rect to _inpool
+    // Add left and right sides of rectangle to _inpool
     assert(_inlist == 0 && _inpool->GetCount() == 0);
-    v1.y = rect->y << 16;
-    v2.y = v1.y + (rect->h << 16);
-    v1.x = v2.x = rect->x << 16;
+    v1.y = 0;
+    v2.y = rect->h << 16;
+    v1.x = v2.x = 0;
     AttachEdge(&v1, &v2);  
-    v1.x = v2.x += rect->w << 16;
+    v1.x = v2.x = rect->w << 16;
     AttachEdge(&v2, &v1);  // <-- note reverse ordering
 
     // Swap _inpool with _clippool, and reset _inpool
@@ -685,11 +686,11 @@ void EdgeMgr::SetDeviceClipRectangle(const SGRect *rect)
 //---------------------------------------------------------------------
 //
 // Protected function: Partition a complex polygonal shape (consisting
-// of perhaps multiple closed figures) into a list of non-overlapping
+// of perhaps multiple closed figures) into a list of nonoverlapping
 // trapezoids that are ready to be filled. The boundaries of each
 // trapezoid are determined according to the specified polygon fill
 // rule. The polygon may contain holes, disjoint regions, and
-// self-intersecting edges. The path manager is responsible for
+// boundary self-intersections. The path manager is responsible for
 // ensuring that all figures are closed, which means that the number
 // of edges intersected by any scan line is always even, and never odd.
 //
@@ -725,7 +726,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     xlist = 0;
     while (ylist != 0)
     {
-        yscan = ylist->ytop;    // y coordinate at current scan line
+        yscan = ylist->ytop;  // y coordinate at current scan line
 
         // Starting at the head of the y-sorted list, remove each edge
         // for which ytop == yscan. Set height h to the minimum height
