@@ -260,7 +260,7 @@ public:
     void SetScrollPosition(int x, int y);
     bool GetCurrentPoint(SGPoint *cpoint);
     bool GetFirstPoint(SGPoint *fpoint);
-    bool GetBoundingBox(SGRect *bbox);
+    int GetBoundingBox(SGRect *bbox);
 
     // Clipping and masking
     void InitClipRegion(int width, int height); 

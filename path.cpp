@@ -580,29 +580,30 @@ bool PathMgr::GetFirstPoint(SGPoint *fpoint)
 //---------------------------------------------------------------------
 //
 // Public function: Retrieves the minimum bounding box for the current
-// path. If the path is not empty, the function returns true after
-// writing the bounding box's x-y coordinates and dimensions to the
-// structure pointed to by bbox. If the path is empty, the function
-// immediately returns false. This function does not alter the path in
-// any way. By default, coordinates are integer values, but the user
-// can switch to fixed-point coordinates by calling SetFixedBits.
+// path. If the path is not empty, the function writes the bounding box
+// coordinates, width, and height to the structure pointed to by bbox,
+// and then returns a count of the number of points in the path. If the
+// path is empty, the function immediately returns zero without writing
+// to the bbox structure. This function does not alter the path in any
+// way. By default, coordinates are integer values, but the user can
+// call SetFixedBits to switch to fixed-point coordinates.
 //
 //---------------------------------------------------------------------
 
-bool PathMgr::GetBoundingBox(SGRect *bbox)
+int PathMgr::GetBoundingBox(SGRect *bbox)
 {
     FIX16 xmin = 0x7fffffff, ymin = 0x7fffffff;
     FIX16 xmax = 0x80000000, ymax = 0x80000000;
     FIGURE *fig;
     VERT16 *point;
-    int offset;
+    int offset, count = 0;
     
     if (_cpoint == 0)
     {
         // Current figure is empty
         offset = _figure->offset;
         if (offset == 0)
-            return false;  // current path is empty
+            return 0;  // current path is empty
             
         fig = _figure;
         point = _fpoint;
@@ -627,6 +628,7 @@ bool PathMgr::GetBoundingBox(SGRect *bbox)
             xmax = max(point[i].x, xmax);
             ymax = max(point[i].y, ymax);
         }
+        count += npts;
         offset = fig->offset;
     }
     if (bbox != 0)
@@ -638,5 +640,5 @@ bool PathMgr::GetBoundingBox(SGRect *bbox)
         bbox->w = ((xmax + roundup) >> _fixshift) - bbox->x;
         bbox->h = ((ymax + roundup) >> _fixshift) - bbox->y;
     }
-    return true;
+    return count;
 }

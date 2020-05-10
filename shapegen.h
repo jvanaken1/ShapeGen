@@ -170,7 +170,7 @@ public:
     virtual void SetScrollPosition(int x, int y) = 0;
     virtual bool GetCurrentPoint(SGPoint *cpoint) = 0;
     virtual bool GetFirstPoint(SGPoint *fpoint) = 0;
-    virtual bool GetBoundingBox(SGRect *bbox) = 0;
+    virtual int GetBoundingBox(SGRect *bbox) = 0;
 
     // Clipping and masking
     virtual void InitClipRegion(int width, int height) = 0;
