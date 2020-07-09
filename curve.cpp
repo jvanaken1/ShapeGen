@@ -30,6 +30,25 @@
 #include <math.h>
 #include "shapepri.h"
 
+namespace {
+    //-------------------------------------------------------------------
+    //
+    // Returns the approximate length of vector (x,y). The error in the
+    // return value falls within the range -2.8 to +0.78 percent.
+    //
+    //-------------------------------------------------------------------
+
+    inline FIX16 VLen(FIX16 x, FIX16 y)
+    {
+        x = abs(x);
+        y = abs(y);
+        if (x > y)
+            return x + max(y/8, y/2 - x/8);
+    
+        return y + max(x/8, x/2 - y/8);
+    }
+}
+
 //--------------------------------------------------------------------
 //
 // Private function: Returns a true/false value indicating whether
@@ -41,11 +60,11 @@
 
 bool PathMgr::IsFlatQuadratic(const VERT16 v[])
 {
-    FIX16 dx = abs(v[0].x - 2*v[1].x + v[2].x)/2;
-    FIX16 dy = abs(v[0].y - 2*v[1].y + v[2].y)/2;
-    FIX16 epsilon = dx + dy - min(dx,dy)/2;
+    FIX16 dx = abs(v[0].x - 2*v[1].x + v[2].x);
+    FIX16 dy = abs(v[0].y - 2*v[1].y + v[2].y);
+    FIX16 error = VLen(dx, dy)/4;
 
-    return (epsilon/2 <= _flatness);
+    return (error <= _flatness);
 }
 
 //---------------------------------------------------------------------
@@ -169,18 +188,16 @@ bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
 
 bool PathMgr::IsFlatCubic(const VERT16 v[])
 {
-    FIX16 ax, ay, bx, by;
-    FIX16 xmax, ymax; 
-    FIX16 epsilon;
 
-    ax = abs(2*(v[1].x - v[0].x) + v[1].x - v[3].x);
-    ay = abs(2*(v[1].y - v[0].y) + v[1].y - v[3].y);
-    bx = abs(2*(v[2].x - v[3].x) + v[2].x - v[0].x);
-    by = abs(2*(v[2].y - v[3].y) + v[2].y - v[0].y);
-    xmax = max(ax, bx);
-    ymax = max(ay, by);
-    epsilon = xmax + ymax - min(xmax,ymax)/2;
-    return (epsilon/4 <= _flatness);
+    FIX16 ux = abs(2*(v[1].x - v[0].x) + v[1].x - v[3].x);
+    FIX16 uy = abs(2*(v[1].y - v[0].y) + v[1].y - v[3].y);
+    FIX16 vx = abs(2*(v[2].x - v[3].x) + v[2].x - v[0].x);
+    FIX16 vy = abs(2*(v[2].y - v[3].y) + v[2].y - v[0].y);
+    FIX16 xmax = max(ux, vx);
+    FIX16 ymax = max(uy, vy);
+    FIX16 error = VLen(xmax, ymax)/4;
+
+    return (error <= _flatness);
 }
 
 //---------------------------------------------------------------------

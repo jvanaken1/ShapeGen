@@ -276,13 +276,19 @@ void PathMgr::RoundCap(const VERT16& vert, VERT16 a, int asign)
     _cpoint->y = vert.y + a.y;
 
     // Form a half circle from two symmetrical quarter circles.
-    // Note that the FlattenArc function call updates _cpoint.
-    FlattenArc(vert, a, v1, v1, FIX_PI/2);
+    // Note that the EllipseCore function call updates _cpoint.
+    EllipseCore(vert.x, vert.y, a.x, a.y, v1.x, v1.y, FIX_PI/2);
+    PathCheck(++_cpoint);
+    _cpoint->x = v1.x + vert.x;
+    _cpoint->y = v1.y + vert.y;
     for (p = _fpoint, q = _cpoint; p < q; ++p, --q)
     {
         VERT16 swap = *p;  *p = *q;  *q = swap;
     }
-    FlattenArc(vert, a, v2, v2, FIX_PI/2);
+    EllipseCore(vert.x, vert.y, a.x, a.y, v2.x, v2.y, FIX_PI/2);
+    PathCheck(++_cpoint);
+    _cpoint->x = v2.x + vert.x;
+    _cpoint->y = v2.y + vert.y;
 
     // Convert points in path to polygonal edges
     p = q = _fpoint;

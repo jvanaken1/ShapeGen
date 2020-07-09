@@ -65,9 +65,9 @@ const float MITERLIMIT_MINIMUM = 1.0;    // minimum miter limit
 const float MITERLIMIT_MAXIMUM = 100.0;  // minimum miter limit
 
 // Flatness threshold -- required arc- or curve-to-chord tolerance 
-const float FLATNESS_DEFAULT = 0.6;       // default flatness setting
-const float FLATNESS_MINIMUM = 1.0/16.0;  // minimum flatness setting
-const float FLATNESS_MAXIMUM = 16.0;      // maximum flatness setting
+const float FLATNESS_DEFAULT = 0.5;      // default flatness setting
+const float FLATNESS_MINIMUM = 0.2;      // minimum flatness setting
+const float FLATNESS_MAXIMUM = 100.0;    // maximum flatness setting
 
 // Fixed-point fraction length -- bits to right of binary point 
 const int FIXBITS_DEFAULT = 0;  // default = integer (no fixed point)

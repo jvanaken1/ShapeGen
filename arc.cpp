@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2020 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -32,168 +32,175 @@
 #include "shapepri.h"
 
 namespace {
-
     //-------------------------------------------------------------------
     //
-    // Returns the approximate length of vector (x,y). See the analysis
-    // of this approximation by Alan Paeth in Graphics Gems I, p. 427.
+    // Returns the approximate length of vector (x,y). The error in the
+    // return value falls within the range -2.8 to +0.78 percent.
     //
     //-------------------------------------------------------------------
 
-    inline FIX16 vlen(FIX16 x, FIX16 y)
+    inline FIX16 VLen(FIX16 x, FIX16 y)
     {
         x = abs(x);
         y = abs(y);
-        return x + y - min(x,y)/2;
+        if (x > y)
+            return x + max(y/8, y/2 - x/8);
+    
+        return y + max(x/8, x/2 - y/8);
     }
 
     //-------------------------------------------------------------------
     //
     // Returns the approximate length of the radius of the major
     // auxiliary circle for the origin-centered ellipse specified by
-    // conjugate diameter end points v1 and v2. This radius is half the
-    // length of the ellipse's major axis.
+    // conjugate diameter end points (xP,yP) and (xQ,yQ). This radius
+    // is half the length of the ellipse's major axis. The error in
+    // the return value falls within the range -4.2 to +7.1 percent.
     //
     //-------------------------------------------------------------------
 
-    FIX16 auxradius(VERT16 v1, VERT16 v2)
+    FIX16 AuxRadius(FIX16 xP, FIX16 yP, FIX16 xQ, FIX16 yQ)
     {
-        const int shift[] = { 1, 4, 6, /* 8, 10, 12 */ };
-        VERT16 v3;
-        FIX16 r;
+        FIX16 dP = VLen(xP, yP);
+        FIX16 dQ = VLen(xQ, yQ);
+        FIX16 dA = VLen(xP + xQ, yP + yQ);
+        FIX16 dB = VLen(xP - xQ, yP - yQ);
+        FIX16 r1 = max(dP, dQ);
+        FIX16 r2 = max(dA, dB); 
     
-        // Start with points v1, v2, and v3 on the ellipse boundary
-        v3.x = -v1.x;
-        v3.y = -v1.y;
-    
-        // With each iteration of this for-loop, points v1 and v3 more
-        // narrowly bracket the ellipse's major axis
-        for (int n = 0; n < ARRAY_LEN(shift); ++n)
-        {
-            FIX16 d12 = vlen(v1.x - v2.x, v1.y - v2.y);
-            FIX16 d23 = vlen(v2.x - v3.x, v2.y - v3.y);
-    
-            if (d12 < d23)
-                v3 = v2;
-            else
-                v1 = v2;
-    
-            v2.x = (v1.x + v3.x)/2;  // set v2 to midpoint of v1 and v3
-            v2.y = (v1.y + v3.y)/2;
-            v2.x += v2.x >> shift[n];  // extend v2 to edge of ellipse
-            v2.y += v2.y >> shift[n];
-        }
-        r = vlen(v2.x, v2.y);
-        return r;
+        return max(r1 + r1/16, r2 - r2/4);
     }
+
+    //-------------------------------------------------------------------
+    //
+    // The inner loop of Marvin Minsky's circle generator. This function
+    // rotates point (u,v) around the origin by an approximate angular
+    // increment of alpha = 1/2^k radians, so that multiplication of a
+    // value x by alpha is calculated as x*alpha = x >> k.
+    //
+    //-------------------------------------------------------------------
+
+    inline void SineGen(FIX16& u, FIX16& v, int k)
+    {
+        u -= v >> k;
+        v += u >> k;
+    }
+
+    //-------------------------------------------------------------------
+    //
+    // Coordinates (u0,v0) specify an initial point on a circle that
+    // is to be drawn by Minsky's circle generator. The InitialValue
+    // function returns a value U0 to substitute for u0; this substi-
+    // tution that will cancel out most of the error in the v
+    // coordinates produced by the circle generator (and turn it into
+    // a precise sine wave generator).
+    //
+    //-------------------------------------------------------------------
+
+    inline FIX16 InitialValue(FIX16 u0, FIX16 v0, int k)
+    {
+        int shift = 2*k + 3;
+        FIX16 w = u0 >> shift;
+        FIX16 U0 = u0 - w + (v0 >> (k + 1));
+    
+        w >>= shift + 1;
+        U0 -= w;
+        w >>= shift;
+        U0 -= w;
+        return U0;
+    }
+}
+
+//-------------------------------------------------------------------
+//
+// Private function: Returns the exponent k used to calculate the
+// approximate angular increment between points plotted on an
+// ellipse centered at the origin. The ellipse is specified by
+// conjugate diameter end points (xP,yP) and (xQ,yQ). The
+// corresponding angular increment is alpha = 1/2^k radians, and
+// multiplication of a value x by alpha is calculated as x >> k.
+//
+//-------------------------------------------------------------------
+
+int PathMgr::AngularInc(FIX16 xP, FIX16 yP, FIX16 xQ, FIX16 yQ)
+{
+    FIX16 r = AuxRadius(xP, yP, xQ, yQ);
+    FIX16 err2 = r >> 3;    // 2nd-order term
+    FIX16 err4 = r >> 7;    // 4th-order term
+
+    for (int k = 0; k < KMAX; ++k)
+    {
+        if (_flatness >= err2 + err4)
+            return k;
+
+        err2 >>= 2;
+        err4 >>= 4;
+    }
+    return KMAX;
 }
 
 //---------------------------------------------------------------------
 //
-// Private function: Generates a series of points approximating the
-// specified elliptic arc. Parameter v0 specifies the x-y coordinates
-// at the center of the ellipse. Parameters v1, v2, and v3 are points
-// on the ellipse, and are specified as center-relative coordinates--
-// that is, as displacements from v0. Parameters v1 and v3 are the
-// start and end points of the arc. Parameters v1 and v2 are the end
-// points of a pair of conjugate diameters of the ellipse. Parameter
-// asweep is the angle swept out by the arc. If parameter asweep is
-// positive, the arc sweeps in the direction from v1 to v2; otherwise,
-// it sweeps in the opposite direction. This code is based on the
-// quarter-ellipse algorithm from Graphics Gems III.
+// Private function: Core ellipse algorithm. Generates a series of
+// points along the specified elliptic arc. Parameters (xC,yC) are
+// the x-y coordinates at the center of the ellipse. Parameters
+// (xP,yP) and (xQ,yQ) are the center-relative coordinates of two end
+// points, P and Q, of a pair of conjugate diameters of the ellipse.
+// Center-relative coordinates are specified as x-y offsets from the
+// ellipse center. The arc starting point is (xP,yP). Parameter asweep
+// is the angle swept out by the arc. If parameter asweep is positive,
+// the arc sweeps in the direction from (xP,yP) to (xQ,yQ). This code
+// is based on the quarter-ellipse algorithm from Graphics Gems III.
 //
 //----------------------------------------------------------------------
 
-void PathMgr::FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v3, FIX16 asweep)
-{
-    int k, nverts;
-    FIX16 vx, ux, vy, uy, w;
-    FIX16 r = auxradius(v1, v2);  // 1/2 length of ellipse major axis
-    FIX16 e1 = r/2, e2 = r/4;     // flatness error components
+void PathMgr::EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP, 
+                          FIX16 xQ, FIX16 yQ, FIX16 sweep)
+{   
+    int k = AngularInc(xP, yP, xQ, yQ);
+    int count = sweep >> (16 - k);
 
-    // Find shift amount k for which arc segments meet flatness spec
-    for (k = 1; k < MAXLEVELS; ++k)
+    xQ = InitialValue(xQ, xP, k);
+    yQ = InitialValue(yQ, yP, k);
+    for (int i = 0; i < count; ++i)
     {
-        e1 = e1/4;
-        e2 = e2/16;
-        if (e1 + e2 <= _flatness)
-            break;
-    }
-
-    // Convert negative angle to positive angle in opposite direction
-    if (asweep < 0)
-    {
-        v2.x = -v2.x;
-        v2.y = -v2.y;
-        asweep = -asweep;
-    }
-
-    // Count number of vertexes needed to smoothly approximate arc
-    nverts = (asweep << k) >> 16;
-
-    // Generate a series of line segments to represent the arc
-    vx = v1.x;
-    ux = v2.x;
-    vy = v1.y;
-    uy = v2.y;
-    ux -= (w = ux >> (2*k + 3));   // cancel 2nd-order error
-    ux -= (w >>= (2*k + 4));       // cancel 4th-order error
-    ux -= w >> (2*k + 3);          // cancel 6th-order error
-    ux += vx >> (k + 1);           // cancel 1st-order error
-    uy -= (w = uy >> (2*k + 3));   // cancel 2nd-order error
-    uy -= (w >>= (2*k + 4));       // cancel 4th-order error
-    uy -= w >> (2*k + 3);          // cancel 6th-order error
-    uy += vy >> (k + 1);           // cancel 1st-order error
-    for (int i = 0; i < nverts; ++i)
-    {
-        ux -= vx >> k;
-        vx += ux >> k;
-        uy -= vy >> k;
-        vy += uy >> k;
-        v2.x = v0.x + vx;
-        v2.y = v0.y + vy;
+        SineGen(xQ, xP, k);
+        SineGen(yQ, yP, k);
         PathCheck(++_cpoint);
-        *_cpoint = v2;
+        _cpoint->x = xC + xP;
+        _cpoint->y = yC + yP;
     }
-
-    // Just in case the current point, *_cpoint, falls slightly short of the
-    // exact arc end point, v3, append a final line segment extending to v3.
-    v3.x += v0.x;
-    v3.y += v0.y;
-    PathCheck(++_cpoint);
-    *_cpoint = v3;
 }
 
 //---------------------------------------------------------------------
 //
 // Public function: Adds a rotated ellipse to the current path. The
-// ellipse is specified by the three points v0, v1, and v3. Parameter v0
-// specifies the x-y coordinates at the center of the ellipse.
-// Parameters v1 and v2 specify the x-y coordinates at the end points of
-// two conjugate diameters of the ellipse. Before constructing the
-// ellipse, the function ends any previous figure that might have been
-// under construction in the current path. Then the function adds the
-// ellipse to the path as a new, closed figure. Finally, the function
-// starts a new, empty figure in the same path (so that, on return, the
-// current point is undefined).
+// ellipse is specified by the three points v0, v1, and v3. Parameter
+// v0 specifies the x-y coordinates at the center of the ellipse.
+// Parameters v1 and v2 specify the x-y coordinates at the end points
+// of two conjugate diameters of the ellipse. Before constructing the
+// ellipse, the function finalizes any previous figure that might have
+// been under construction in the current path. Then the function adds
+// the ellipse to the path as a new, closed figure. Finally, the
+// function starts a new, empty figure in the same path (so that, on
+// return, the current point is undefined).
 //
 //----------------------------------------------------------------------
 
 void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 {
-    VERT16 v[3];
-    
+    FIX16 xC = v0.x << _fixshift;
+    FIX16 yC = v0.y << _fixshift;
+    FIX16 xP = (v1.x - v0.x) << _fixshift;
+    FIX16 yP = (v1.y - v0.y) << _fixshift;
+    FIX16 xQ = (v2.x - v0.x) << _fixshift;
+    FIX16 yQ = (v2.y - v0.y) << _fixshift;
+
     EndFigure();
     _cpoint = _fpoint;
     _cpoint->x = v1.x << _fixshift;
     _cpoint->y = v1.y << _fixshift;
-    v[0].x = v0.x << _fixshift;
-    v[0].y = v0.y << _fixshift;
-    v[1].x = (v1.x - v0.x) << _fixshift;
-    v[1].y = (v1.y - v0.y) << _fixshift;
-    v[2].x = (v2.x - v0.x) << _fixshift;
-    v[2].y = (v2.y - v0.y) << _fixshift;
-    FlattenArc(v[0], v[1], v[2], v[1], 2*FIX_PI);  // flatten ellipse
+    EllipseCore(xC, yC, xP, yP, xQ, yQ, FIX_2PI);
     CloseFigure();
 }
 
@@ -202,7 +209,7 @@ void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 // Public function: Appends an elliptic arc to the current path. 
 // Point v0 is the center of the ellipse, and v1 and v2 are the end
 // points of a pair of conjugate diameters of the ellipse. Parameter
-// aStart is the starting angle of the arc, and parameter aSweep is the
+// astart is the starting angle of the arc, and parameter asweep is the
 // angle swept out by the arc. Both angles are specified in radians of
 // elliptic arc, and both can have positive or negative values. The
 // starting angle is specified relative to v1, and is positive in the
@@ -216,52 +223,61 @@ void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 //
 //----------------------------------------------------------------------
 
-void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, float aStart, float aSweep)
-{  
-    float sina = sin(aStart);
-    float cosa = cos(aStart);
-    float sinb = sin(aSweep);
-    float cosb = cos(aSweep);
-    float shift = 1 << _fixshift;
-    float x1, y1, x2, y2;
-    FIX16 asweep = 65536.0*aSweep;
-    VERT16 va, vb, v[4];
+void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, 
+                          float astart, float asweep)
+{
+    FIX16 xC = v0.x << _fixshift;
+    FIX16 yC = v0.y << _fixshift;
+    FIX16 xP = (v1.x - v0.x) << _fixshift;
+    FIX16 yP = (v1.y - v0.y) << _fixshift;
+    FIX16 xQ = (v2.x - v0.x) << _fixshift;
+    FIX16 yQ = (v2.y - v0.y) << _fixshift;
+    float cosb, sinb;
+    FIX16 swangle;
 
-    // Convert center coordinates to 16.16 fixed-point format
-    v[0].x = v0.x << _fixshift;
-    v[0].y = v0.y << _fixshift;
+    if (astart != 0)
+    {
+        // Generate new conjugate diameter end points P' and Q'
+        // by rotating points P and Q by starting angle astart
+        float cosa = cos(astart);
+        float sina = sin(astart);
+        FIX16 x = xP*cosa + xQ*sina;
+        FIX16 y = yP*cosa + yQ*sina;
 
-    // Rotate conjugate diameter end points v1 and v2 around the
-    // perimeter of the ellipse by aStart radians so that the
-    // first end point coincides with the arc starting point.
-    va.x = v1.x - v0.x;
-    va.y = v1.y - v0.y;
-    vb.x = v2.x - v0.x;
-    vb.y = v2.y - v0.y;
-    x1 = va.x*cosa + vb.x*sina;
-    y1 = va.y*cosa + vb.y*sina;
-    x2 = vb.x*cosa - va.x*sina;
-    y2 = vb.y*cosa - va.y*sina;
-    v[1].x = x1*shift;
-    v[1].y = y1*shift;
-    v[2].x = x2*shift;
-    v[2].y = y2*shift;
+        xQ = xQ*cosa - xP*sina;
+        yQ = yQ*cosa - yP*sina;
+        xP = x;
+        yP = y;
+    }
 
-    // Calculate the arc end point by rotating aSweep radians around
-    // the ellipse starting from the arc starting point at (x1,y1).
-    v[3].x = (x1*cosb + x2*sinb)*shift;
-    v[3].y = (y1*cosb + y2*sinb)*shift;
+    // Convert negative angle to positive angle in opposite direction 
+    if (asweep < 0)
+    {
+        xQ = -xQ;
+        yQ = -yQ;
+        asweep = -asweep;
+    }
+    swangle = 65536.0*asweep;
 
     // Set the current point to the arc starting point, and call the
-    // FlattenArc function to add the points in the arc to the path.
+    // EllipseCore function to add the points in the arc to the path.
     if (_cpoint == 0)
         _cpoint = _fpoint;
     else
         PathCheck(++_cpoint);
 
-    _cpoint->x = v[0].x + v[1].x;
-    _cpoint->y = v[0].y + v[1].y;
-    FlattenArc(v[0], v[1], v[2], v[3], asweep);
+    _cpoint->x = xC + xP;
+    _cpoint->y = yC + yP;
+    EllipseCore(xC, yC, xP, yP, xQ, yQ, swangle);
+
+    // Append arc end point to path
+    cosb = cos(asweep);
+    sinb = sin(asweep);
+    xP = xP*cosb + xQ*sinb;
+    yP = yP*cosb + yQ*sinb;
+    PathCheck(++_cpoint);
+    _cpoint->x = xC + xP;
+    _cpoint->y = yC + yP;
 }
 
 //----------------------------------------------------------------------
@@ -277,31 +293,23 @@ void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v
 
 bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
 {
-    VERT16 v[3];
-
     if (_cpoint == 0)
     {
         assert(_cpoint != 0);
         return false;
     }
+    
+    FIX16 xP = _cpoint->x;
+    FIX16 yP = _cpoint->y;
+    FIX16 xQ = v2.x << _fixshift;
+    FIX16 yQ = v2.y << _fixshift;
+    FIX16 xC = xP + xQ - (v1.x << _fixshift);
+    FIX16 yC = yP + yQ - (v1.y << _fixshift);
 
-    // Get 3 vertexes for spline control polygon
-    v[1] = *_cpoint;
-    v[0].x = v1.x << _fixshift;
-    v[0].y = v1.y << _fixshift;
-    v[2].x = v2.x << _fixshift;
-    v[2].y = v2.y << _fixshift;
-
-    // Get center of ellipse
-    v[0].x = v[1].x + v[2].x - v[0].x;
-    v[0].y = v[1].y + v[2].y - v[0].y;
-
-    // Convert start/end points to center-relative coordinates
-    v[1].x -= v[0].x;
-    v[1].y -= v[0].y;
-    v[2].x -= v[0].x;
-    v[2].y -= v[0].y;
-    FlattenArc(v[0], v[1], v[2], v[2], FIX_PI/2);   // flatten spline
+    EllipseCore(xC, yC, xP-xC, yP-yC, xQ-xC, yQ-yC, FIX_PI/2);
+    PathCheck(++_cpoint);
+    _cpoint->x = xQ;
+    _cpoint->y = yQ;
     return true;
 }
 
@@ -368,18 +376,22 @@ void PathMgr::RoundedRectangle(const SGRect& rect, const SGPoint& round)
     FIX16 yround = round.y << _fixshift;
 
     // Add top-left rounded corner to path
-    VERT16 v[3];
-    v[0].x = xmin + xround;
-    v[0].y = ymin + yround;
-    v[1].x = -xround;
-    v[1].y = 0;
-    v[2].x = 0;
-    v[2].y = -yround;
+    FIX16 xC = xmin + xround;
+    FIX16 yC = ymin + yround;
+    FIX16 xP = -xround;
+    FIX16 yP = 0;
+    FIX16 xQ = 0;
+    FIX16 yQ = -yround;
+
+    // Add points in top-left rounded corner to path
     EndFigure();
     _cpoint = _fpoint;
     _cpoint->x = xmin;
     _cpoint->y = ymin + yround;
-    FlattenArc(v[0], v[1], v[2], v[2], FIX_PI/2);
+    EllipseCore(xC, yC, xP, yP, xQ, yQ, FIX_PI/2);
+    PathCheck(++_cpoint);
+    _cpoint->x = xC + xQ;
+    _cpoint->y = yC + yQ;
 
     // Use symmetry to copy top-left corner to other 3 corners
     int count = _cpoint - _fpoint + 1;

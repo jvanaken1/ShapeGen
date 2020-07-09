@@ -70,12 +70,13 @@ const int BIGVAL16 = 0x7FFF;  // biggest 16-bit signed integer value
 
 // Miscellaneous constants in 16.16 internal fixed-point format
 const FIX16 FIX_PI   = 205887;  // pi radians in fixed-point format
+const FIX16 FIX_2PI  = 411775;  // 2*pi radians in fixed-point format
 const FIX16 FIX_HALF = 0x8000;  // (1/2) in fixed-point format
 const FIX16 FIX_BIAS = 0x7FFF;  // (1/2-1/65536) in fixed-point format
 
 // Constants used to generate quadratic and cubic spline curves
-const int MAXRHOS = 5;     // max. no. of non-unity sharpnesses
-const int MAXLEVELS = 12;  // max. no. of subdivision levels
+const int KMAX = 6;        // max k for ellipse angular increment 1/2^k
+const int MAXLEVELS = 12;  // max number bezier subdivision levels
 
 // Structure used to describe a figure (aka subpath or contour) 
 struct FIGURE { 
@@ -233,7 +234,7 @@ class PathMgr : virtual public ShapeGen
 
     // Path memory management functions
     void ExpandPath();
-    void PathCheck(VERT16 *ptr)
+    inline void PathCheck(VERT16 *ptr)
     {
         if (ptr == &_path[_pathlength])
             ExpandPath();
@@ -309,8 +310,10 @@ public:
     void RoundedRectangle(const SGRect& rect, const SGPoint& round);
 
 private:
-    // Internal function to flatten ellipses and elliptic arcs
-    void FlattenArc(const VERT16& v0, const VERT16& v1, VERT16 v2, VERT16 v3, FIX16 angle);
+    // Internal functions to flatten ellipses and elliptic arcs
+    void EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP, 
+                     FIX16 xQ, FIX16 yQ, FIX16 sweep);
+    int AngularInc(FIX16 xP, FIX16 yP, FIX16 xQ, FIX16 yQ);
 
 public:
     // Bezier splines (quadratic and cubic)

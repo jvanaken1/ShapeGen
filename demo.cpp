@@ -1388,8 +1388,6 @@ void demo10(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
-    LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
     COLOR crBkgd = RGBX(222,222,255);
     COLOR crText = RGBX(40,70,110);
 
