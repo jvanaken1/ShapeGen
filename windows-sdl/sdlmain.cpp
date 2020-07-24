@@ -44,6 +44,7 @@ protected:
 public:
     BasicRenderer(SDL_Surface* screenSurface) : _surface(screenSurface), _pixel(0)
     {
+        SetColor(RGBX(0,0,0));
     }
     ~BasicRenderer()
     {
@@ -110,7 +111,7 @@ public:
             _winsurf(winsurf), _argbsurf(0), _pixbits(0), _width(0), _aabuf(0)
     {
         memset(_aarow, 0, sizeof(_aarow));
-        memset(_lut, 0xf, sizeof(_lut));
+        SetColor(RGBX(0,0,0));
     }
     ~AA4x8Renderer()
     {
