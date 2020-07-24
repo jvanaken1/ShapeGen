@@ -82,6 +82,7 @@ protected:
 public:
     BasicRenderer(HDC hdc) : _hdc(hdc), _hBrush(0)
     {
+        SetColor(RGBX(0,0,0));
     }
     ~BasicRenderer()
     {
@@ -152,7 +153,7 @@ public:
                 _width(0), _aabuf(0), _alpha(0)
     {
         memset(_aarow, 0, sizeof(_aarow));
-        memset(_lut, 0xf, sizeof(_lut));
+        SetColor(RGBX(0,0,0));
     }
     ~AA4x8Renderer()
     {
