@@ -34,15 +34,27 @@
 namespace {
     //-------------------------------------------------------------------
     //
+    // Returns the absolute value of signed integer x.
+    //
+    //-------------------------------------------------------------------
+
+    inline int iabs(int x)
+    {
+        return (x < 0) ? -x : x;
+    }
+
+    //-------------------------------------------------------------------
+    //
     // Returns the approximate length of vector (x,y). The error in the
     // return value falls within the range -2.8 to +0.78 percent.
     //
     //-------------------------------------------------------------------
 
-    inline FIX16 VLen(FIX16 x, FIX16 y)
+    FIX16 VLen(FIX16 xx, FIX16 yy)
     {
-        x = abs(x);
-        y = abs(y);
+        unsigned int x = iabs(xx);
+        unsigned int y = iabs(yy);
+
         if (x > y)
             return x + max(y/8, y/2 - x/8);
     
@@ -75,12 +87,12 @@ namespace {
     //
     // The inner loop of Marvin Minsky's circle generator. This function
     // rotates point (u,v) around the origin by an approximate angular
-    // increment of alpha = 1/2^k radians, so that multiplication of a
-    // value x by alpha is calculated as x*alpha = x >> k.
+    // increment of epsilon = 1/2^k radians, so that multiplication of a
+    // value x by epsilon is calculated as x*alpha = x >> k.
     //
     //-------------------------------------------------------------------
 
-    inline void SineGen(FIX16& u, FIX16& v, int k)
+    inline void CircleGen(FIX16& u, FIX16& v, int k)
     {
         u -= v >> k;
         v += u >> k;
@@ -164,8 +176,8 @@ void PathMgr::EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP,
     yQ = InitialValue(yQ, yP, k);
     for (int i = 0; i < count; ++i)
     {
-        SineGen(xQ, xP, k);
-        SineGen(yQ, yP, k);
+        CircleGen(xQ, xP, k);
+        CircleGen(yQ, yP, k);
         PathCheck(++_cpoint);
         _cpoint->x = xC + xP;
         _cpoint->y = yC + yP;
