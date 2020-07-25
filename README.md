@@ -2,7 +2,7 @@ ShapeGen: C++ implementation of a 2-D polygonal shape generator
 ===============================================================
 
 _Author:_ Jerry R. VanAken  
-_Date:_ 5/6/2020
+_Date:_ 7/25/2020
 
 The polygonal shape generator is the part of a 2-D graphics system that takes a graphical shape specified in terms of curves, arcs, and line segments, and converts this shape to a list of nonoverlapping trapezoids that can be passed to a renderer and filled on a graphics display.
 
@@ -49,6 +49,8 @@ The window size for the demo is set at 1280-by-960.
 The `userdoc.pdf` file in this GitHub project contains the _ShapeGen User's Guide_. This guide discusses general principles of operation, describes the functions in the ShapeGen programming interface, and includes numerous code examples. The source code for these code examples is also included in the `demo.cpp` file, and is executed at the end of the demo program.
 
 For a high-level overview of ShapeGen capabilities and internal operation, see [_ShapeGen: A lightweight, open-source 2-D graphics library written in C++_](https://www.researchgate.net/publication/341194243_ShapeGen_A_lightweight_open-source_2-D_graphics_library_written_in_C) on the ResearchGate website.
+
+For an in-depth discussion of the parametric ellipse algorithm that ShapeGen uses to draw circles, ellipses, elliptic arcs, elliptic splines, and rounded rectangles, see [_A Fast Parametric Ellipse Algorithm_](https://www.researchgate.net/publication/343180244_A_Fast_Parametric_Ellipse_Algorithm) on the ResearchGate website.
 
 ## Project files
 
