@@ -50,7 +50,7 @@ The `userdoc.pdf` file in this GitHub project contains the _ShapeGen User's Guid
 
 For a high-level overview of ShapeGen capabilities and internal operation, see [_ShapeGen: A lightweight, open-source 2-D graphics library written in C++_](https://www.researchgate.net/publication/341194243_ShapeGen_A_lightweight_open-source_2-D_graphics_library_written_in_C) on the ResearchGate website.
 
-For an in-depth discussion of the parametric ellipse algorithm that ShapeGen uses to draw circles, ellipses, elliptic arcs, elliptic splines, and rounded rectangles, see [_A Fast Parametric Ellipse Algorithm_](https://www.researchgate.net/publication/343615655_A_Fast_Parametric_Ellipse_Algorithm) on the ResearchGate website.
+For an in-depth discussion of the parametric ellipse algorithm that ShapeGen uses to draw circles, ellipses, elliptic arcs, elliptic splines, and rounded rectangles, see [_A Fast Parametric Ellipse Algorithm_](https://www.researchgate.net/publication/343615829_A_Fast_Parametric_Ellipse_Algorithm) on the ResearchGate website.
 
 ## Project files
 
