@@ -667,14 +667,14 @@ void demo05(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
     sg->StrokePath();
 
     // Draw the title text
-    sg->SetLineWidth(6.0);
-    char *str = "Miter Limit";
-    float scale = 0.73;
-    float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
     xystart.x = 75;
     xystart.y = 150;
+    char *str = "Miter Limit";
+    float scale = 0.73;
+    float width = txt.GetTextWidth(scale, str);
     aarend->SetColor(crText);
+    sg->SetLineWidth(6.0);
     txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Initialize parameters for circular miter-limit display
@@ -686,55 +686,26 @@ void demo05(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
         RGBX(147,112,219), RGBX( 50,205, 50), RGBX(250,235,215), 
     };
     float mlim[] = { 1.0, 7.0, 13.0, 19.0 };
-    SGPoint circle[3] = { { 720, 480 } };
+    SGPoint center = { 720, 480 };
     float linewidth = 20.0;
 
-    // Draw dark thin rings in background
+    // Draw dark, thin rings in background
     aarend->SetColor(RGBX(80,80,80));
+    sg->SetFixedBits(16);
     sg->SetLineWidth(1.7);
     sg->BeginPath();
     for (int i = 0; i < 3; ++i)
     {
-        int radius = 240 + mlim[i]*linewidth/2;
-        circle[1] = circle[2] = circle[0];
-        circle[1].x += radius;
-        circle[2].y += radius;
-        sg->Ellipse(circle[0], circle[1], circle[2]);
+        int radius = 65536*(240 + mlim[i]*linewidth/2);
+        SGPoint ring[3] = { { 720<<16, 480<<16 } };
+
+        ring[1] = ring[2] = ring[0];
+        ring[1].x += radius;
+        ring[2].y += radius;
+        sg->Ellipse(ring[0], ring[1], ring[2]);
     }
     sg->StrokePath();
     
-    // Draw strokes with variety of miter limits
-    sg->SetLineWidth(linewidth);
-    sg->SetLineEnd(LINEEND_FLAT);
-    sg->SetLineJoin(LINEJOIN_MITER);
-    for (int i = 0; i < 4; ++i)
-    {
-        aarend->SetColor(color[i]);
-        sg->BeginPath();
-        for (int j = 0; j < 8; ++j)
-        {
-            float cosa = cos(2*i*PI/32.0 + 2*j*PI/8.0);
-            float sina = sin(2*i*PI/32.0 + 2*j*PI/8.0);
-            int x[3], y[3];
-
-            for (int k = 0; k < 3; ++k)
-            {
-                x[k] = circle[0].x + cosa*v[k].x - sina*v[k].y;
-                y[k] = circle[0].y + sina*v[k].x + cosa*v[k].y;
-            }
-            sg->Move(x[0], y[0]);
-            sg->Line(x[1], y[1]);
-            sg->Line(x[2], y[2]);
-        }
-        sg->SetMiterLimit(mlim[i]);
-        sg->StrokePath();
-    }
-    
-    // Draw thin white lines over strokes
-    sg->SetLineJoin(LINEJOIN_BEVEL);
-    sg->SetLineWidth(1.7);
-    aarend->SetColor(RGBX(255,255,255));
-    sg->BeginPath();
     for (int i = 0; i < 4; ++i)
     {
         for (int j = 0; j < 8; ++j)
@@ -743,28 +714,46 @@ void demo05(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
             float sina = sin(2*i*PI/32.0 + 2*j*PI/8.0);
             int x[3], y[3];
 
+            // Stroke fat lines with a variety of miter limits
             for (int k = 0; k < 3; ++k)
             {
-                x[k] = circle[0].x + cosa*v[k].x - sina*v[k].y;
-                y[k] = circle[0].y + sina*v[k].x + cosa*v[k].y;
+                x[k] = 65536*(center.x + cosa*v[k].x - sina*v[k].y);
+                y[k] = 65536*(center.y + sina*v[k].x + cosa*v[k].y);
             }
+            aarend->SetColor(color[i]);
+            sg->SetLineWidth(linewidth);
+            sg->SetLineEnd(LINEEND_FLAT);
+            sg->SetLineJoin(LINEJOIN_MITER);
+            sg->BeginPath();
             sg->Move(x[0], y[0]);
             sg->Line(x[1], y[1]);
             sg->Line(x[2], y[2]);
+            sg->SetMiterLimit(mlim[i]);
+            sg->StrokePath();
+
+            // Draw thin white lines over fat lines
+            aarend->SetColor(RGBX(255,255,255));
+            sg->SetLineJoin(LINEJOIN_BEVEL);
+            sg->SetLineWidth(1.7);
+            sg->BeginPath();
+            sg->Move(x[0], y[0]);
+            sg->Line(x[1], y[1]);
+            sg->Line(x[2], y[2]);
+            sg->StrokePath();
         }
     }
-    sg->StrokePath();
 
     // Draw text inside circle
+    char *msg[] = { "Get the", "point?" }; 
+    sg->SetFixedBits(0);
     sg->SetLineWidth(4.0);
-    char *msg[] = { "Get the", "point?" };
     scale = 0.5;
-    xystart.y = circle[0].y - 16;
+    xystart.y = center.y - 16;
     aarend->SetColor(crText);
     for (int i = 0; i < ARRAY_LEN(msg); ++i)
     {
         width = txt.GetTextWidth(scale, msg[i]);
-        xystart.x = circle[0].x - width/2.0;
+        xystart.x = center.x - width/2.0;
         txt.DisplayText(&(*sg), xystart, scale, msg[i]);
         xystart.y += 50;
     }
@@ -823,7 +812,7 @@ void demo06(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
         },
     };
     sg->SetLineEnd(LINEEND_SQUARE);
-    sg->SetLineJoin(LINEJOIN_BEVEL);
+    sg->SetLineJoin(LINEJOIN_MITER);
     sg->BeginPath();
     sg->Move(blade[0][0].x, blade[0][0].y);
     sg->PolyBezier3(ARRAY_LEN(blade[0])-1, &blade[0][1]);
@@ -834,11 +823,12 @@ void demo06(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
     sg->CloseFigure();
     sg->FillPath(FILLRULE_EVENODD);
     aarend->SetColor(RGBX(0,100,0));
-    sg->SetLineWidth(8.0);
     sg->SetLineDash(dashedLineShortDash, 0, 4.0);
+    sg->SetLineWidth(10.0);
     sg->StrokePath();
     aarend->SetColor(RGBX(100,180,50));
     sg->SetLineEnd(LINEEND_FLAT);
+    sg->SetLineWidth(4.0);
     sg->StrokePath();
 
     // Draw spikey shape
@@ -896,20 +886,29 @@ void demo06(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
     aarend->SetColor(RGBX(0,100,0));
     sg->StrokePath();
 
-    // Draw hairy ellipse
-    sg->SetFixedBits(0);
-    char dashedLineBump[] = { 3, 2, 1, 2, 0 };
-    SGPoint elips[3] = {
-        { 1030, 340 }, { 1030+160, 340 }, { 1030, 340+120 }, 
+    // Draw square-weave pattern
+    SGPoint shape[] = {
+         {   0,   0 }, { 100,   0 }, { 100, 300 }, {   0, 300 },
+         {   0, 200 }, { 300, 200 }, { 300, 300 }, { 200, 300 },
+         { 200,   0 }, { 300,   0 }, { 300, 100 }, {   0, 100 },   {0,0}
     };
-    COLOR crElips = RGBX(0,139,120);
+    char dashedline[] = { 6,2, 5,2, 4,2, 3,2, 2,2, 1,2, 2,2, 3,2, 4,2, 5,2, 0 };
+
+    for (int i = 0; i < ARRAY_LEN(shape); ++i)
+    {
+        shape[i].x += 890;
+        shape[i].y += 205;
+    }
+    aarend->SetColor(RGBX(0,139,120));
     sg->SetLineEnd(LINEEND_FLAT);
-    sg->SetLineJoin(LINEJOIN_BEVEL);
-    sg->BeginPath();
-    sg->Ellipse(elips[0], elips[1], elips[2]);
-    aarend->SetColor(crElips);
+    sg->SetLineJoin(LINEJOIN_ROUND);
     sg->SetLineWidth(60.0);
-    sg->SetLineDash(dashedLineBump, 3, 2.9 );
+    sg->SetLineDash(dashedline, 3, 0.909);
+    sg->SetFixedBits(0);
+    sg->BeginPath();
+    sg->Move(shape[0].x, shape[0].y);
+    sg->PolyLine(ARRAY_LEN(shape)-1, &shape[1]);
+    sg->CloseFigure();
     sg->StrokePath();
 
     // Draw curly-cue shape
@@ -939,15 +938,20 @@ void demo06(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
         alpha = -1.0/alpha;
         pxy = &xy[32];
     }
+    sg->SetLineEnd(LINEEND_ROUND);
+    sg->SetLineJoin(LINEJOIN_BEVEL);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyEllipticSpline(64, &xy[1]);
     aarend->SetColor(RGBX(0,100,0));
     sg->SetLineWidth(16.0);
-    sg->SetLineDash(dashedLineDashDoubleDot, 0, 4.0);
+    sg->SetLineDash(dashedLineDashDoubleDot, 0, 4.6);
     sg->StrokePath();
     aarend->SetColor(RGBX(80,200,70));
     sg->SetLineWidth(10.0);
+    sg->StrokePath();
+    aarend->SetColor(RGBX(144,238,144));
+    sg->SetLineWidth(6.0);
     sg->StrokePath();
 }
 

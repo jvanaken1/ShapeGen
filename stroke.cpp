@@ -29,6 +29,64 @@
 #include <math.h>
 #include "shapepri.h"
 
+namespace {
+
+    // By default, use the acos function in math.h
+#if 0                 
+    //-----------------------------------------------------------------
+    //
+    // Arccosine approximation from Abramowitz & Stegun, page 81.
+    // Input range is -1 <= x <= 1. Output range is 0 <= angle <= pi.
+    //
+    //-----------------------------------------------------------------
+    
+    float acos(float x) 
+    {   
+        const float PI = 3.14159265358979;
+        const float a0 =  1.5707288;
+        const float a1 = -0.2121144;
+        const float a2 =  0.0742610;
+        const float a3 = -0.0187293;
+        float val = a3;
+        bool negate = x < 0;
+    
+        if (negate)
+            x = -x;
+    
+        val = val*x + a2;
+        val = val*x + a1;
+        val = val*x + a0;
+        val *= sqrt(1.0 - x);
+        return (negate) ? PI - val : val;
+    }
+#endif
+    //-----------------------------------------------------------------
+    //
+    // Return the angle, in radians, between unit vectors u and v
+    //
+    //-----------------------------------------------------------------
+    FIX16 GetAngle(const VERT30& u, const VERT30& v)
+    {
+        float ux = u.x, uy = u.y; 
+        float cost = (ux*v.x + uy*v.y)/(1<<30)/(1<<30);
+        float theta = acos(cost);
+        FIX16 angle = 65536*theta;
+    
+        return angle;
+    }
+
+    //-----------------------------------------------------------------
+    //
+    // Flip vector v around to point in the opposite direction
+    //
+    //-----------------------------------------------------------------
+    inline void FlipVector(VERT16& v)
+    {
+        v.x = -v.x;
+        v.y = -v.y;
+    }
+}
+
 //---------------------------------------------------------------------
 //
 // Public function: Sets the stroked line width. Parameter width
@@ -42,7 +100,7 @@ float PathMgr::SetLineWidth(float width)
     float oldwidth = _linewidth/65536.0;
 
     assert(width >= 0);
-    _linewidth = 65536.0*width;  // convert to 16.16 fixed-point format
+    _linewidth = 65536*width;  // convert to 16.16 fixed-point format
     return oldwidth;
 }
 
@@ -110,10 +168,11 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 // length at which the sharp point of a mitered corner should be 
 // beveled off. Internally, the mlim value is multiplied by half the
 // stroked line width to determine the maximum extent of a mitered
-// join. Parameter mlim should be a value in the range 1.0 to 100.0;
-// otherwise, the function clamps it to this range. A value of
+// join. Parameter mlim should be a value greater than or equal to
+// 1.0; if less than 1.0, the function clamps it to 1.0. A value of
 // mlim = 1.0 cuts off miters at any angle to produce beveled
-// joins. The default miter limit value is 10.0.
+// joins. The default miter limit value is 10.0. The return value is
+// the previous miter limit setting.
 //
 //---------------------------------------------------------------------
 
@@ -122,7 +181,6 @@ float PathMgr::SetMiterLimit(float mlim)
     float oldmlim = _miterlimit/65536.0;
 
     mlim = max(mlim, MITERLIMIT_MINIMUM);
-    mlim = min(mlim, MITERLIMIT_MAXIMUM);
     _miterlimit = 65536.0*mlim;
     _mitercheck = 65536.0*sqrt(mlim*mlim - 1.0);
     return oldmlim;
@@ -149,7 +207,7 @@ float PathMgr::SetMiterLimit(float mlim)
 // offset for each new figure in a path. When the StrokePath function
 // reaches the end of the dash array, it resets to the start of the
 // array and continues interpreting the array. The maximum length of
-// the dash array is 15 elements, not counting the terminating zero.
+// the dash array is 32 elements, not counting the terminating zero.
 // The default line pattern is a solid line. This default can always
 // be restored by calling SetLineDash with the dash parameter set to
 // zero or pointing to an empty string.
@@ -164,11 +222,11 @@ void PathMgr::SetLineDash(char *dash, int offset, float mult)
 
     for (int i = 0; i < ARRAY_LEN(_dasharray) && dash[i] != '\0'; ++i)
     {
-        _dasharray[i] = 65536.0*mult*static_cast<unsigned char>(dash[i]);
+        _dasharray[i] = 65536*mult*static_cast<unsigned char>(dash[i]);
         assert(_dasharray[i] < (1 << 30));
     }
     _dasharray[ARRAY_LEN(_dasharray)-1] = 0;  // force terminating zero
-    _dashoffset = 65536.0*mult*offset;
+    _dashoffset = 65536*mult*offset;
 }
 
 //---------------------------------------------------------------------
@@ -235,70 +293,6 @@ FIX16 PathMgr::LineLength(const VERT16& vs, const VERT16& ve, VERT30 *u, VERT16 
     return length;
 }
 
-//----------------------------------------------------------------------
-//
-// Private function: Adds a round cap to the start or end point of a
-// stroked line segment. Parameter vert is the start or end point of the
-// line segment. Parameter a is a vector of length _linewidth/2 that
-// points in the direction of the line segment. Parameter asign
-// indicates whether vert is the start or end point of the directed
-// line segment. If asign < 0, vert is the start point; otherwise,
-// vert is the end point.
-//
-//----------------------------------------------------------------------
-
-void PathMgr::RoundCap(const VERT16& vert, VERT16 a, int asign)
-{
-    VERT16 *p, *q, v1, v2;
-    int count;
-
-    // Path should be properly terminated with empty figure
-    assert(_cpoint == 0);
-    assert(_fpoint == reinterpret_cast<VERT16*>(_figure + 1));
-    assert(_figure->isclosed == false);
-
-    // Which end of the directed line segment is to be capped?
-    if (asign < 0)
-    {
-        a.x = -a.x;  // vert is the start point
-        a.y = -a.y;
-    }
-
-    // Set center-relative start/end coordinates for half circle
-    v1.x =  a.y;
-    v1.y = -a.x;
-    v2.x = -a.y;
-    v2.y =  a.x;
-
-    // Set up temporary buffer on path stack for cap segments
-    _cpoint = _fpoint;
-    _cpoint->x = vert.x + a.x;
-    _cpoint->y = vert.y + a.y;
-
-    // Form a half circle from two symmetrical quarter circles.
-    // Note that the EllipseCore function call updates _cpoint.
-    EllipseCore(vert.x, vert.y, a.x, a.y, v1.x, v1.y, FIX_PI/2);
-    PathCheck(++_cpoint);
-    _cpoint->x = v1.x + vert.x;
-    _cpoint->y = v1.y + vert.y;
-    for (p = _fpoint, q = _cpoint; p < q; ++p, --q)
-    {
-        VERT16 swap = *p;  *p = *q;  *q = swap;
-    }
-    EllipseCore(vert.x, vert.y, a.x, a.y, v2.x, v2.y, FIX_PI/2);
-    PathCheck(++_cpoint);
-    _cpoint->x = v2.x + vert.x;
-    _cpoint->y = v2.y + vert.y;
-
-    // Convert points in path to polygonal edges
-    p = q = _fpoint;
-    count = _cpoint - _fpoint;
-    for (int i = 0; i < count; ++i)
-        _edge->AttachEdge(p++, ++q);
-
-    _cpoint = 0;  // restore state of terminating figure back to empty
-}
-
 //---------------------------------------------------------------------
 //
 // Private function: Constructs a stroked line segment in accordance
@@ -349,7 +343,13 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
             
             // Cap the end of this dash
             if (_lineend == LINEEND_ROUND)
-                RoundCap(vs, a, 1);
+            {
+                VERT16 a2 = a;
+
+                FlipVector(a2);
+                _angle = FIX_PI;
+                RoundJoin(vs, a, a2);
+            }
             else             
                 _edge->AttachEdge(&v1, &v2);  // flat or square cap
         }
@@ -370,7 +370,13 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
             
             // Cap the start of the next dash
             if (_lineend == LINEEND_ROUND)
-                RoundCap(vs, a, -1);
+            {
+                VERT16 a1 = a;
+
+                FlipVector(a1);
+                _angle = FIX_PI;
+                RoundJoin(vs, a1, a);
+            }
             else             
                 _edge->AttachEdge(&_vout, &_vin);  // flat or square cap
         }
@@ -393,6 +399,63 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
         _dashlen = *_pdash++;
         _dashon = !_dashon;
     }
+}
+
+//----------------------------------------------------------------------
+//
+// Private function: Adds a round joint to the intersection of two line
+// segments, or adds a round cap to the start or end point of a stroked
+// line segment. Parameter v0 is the start/end point of the line
+// segment or segments. Parameters a1 and a2 are vectors of length
+// _linewidth/2 that point in the directions of the two directed line
+// segments. Before calling this function, set member variable _angle
+// to the angle traversed by the arc that forms the round joint or
+// round cap; _angle is a nonnegative, 16.16 fixed-point value, and
+// is expressed in radians. To draw a round cap, set _angle to pi
+// radians, and set vectors a1 and a2 to point in opposite directions.
+//
+//----------------------------------------------------------------------
+
+void PathMgr::RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2)
+{
+    VERT16 *p, *q, v1, v2;
+    int count;
+
+    // Path should be properly terminated with empty figure
+    assert(_cpoint == 0);
+    assert(_fpoint == reinterpret_cast<VERT16*>(_figure + 1));
+    assert(_figure->isclosed == false);
+
+    // Center-relative arc start point v1 and end point v2
+    v1.x =  a1.y;
+    v1.y = -a1.x;
+    v2.x =  a2.y;
+    v2.y = -a2.x;
+
+    // Initialize temp buffer on path stack
+    _cpoint = _fpoint;
+
+    // Add arc's starting point to temp path buffer
+    _cpoint->x = v0.x + v1.x;
+    _cpoint->y = v0.y + v1.y;
+
+    // The EllipseCore function call calculates the points in
+    // the arc, adds them to the path, and updates _cpoint
+    EllipseCore(v0.x, v0.y, v1.x, v1.y, a1.x, a1.y, _angle);
+
+    // Add arc's ending point to temporary path buffer 
+    PathCheck(++_cpoint);
+    _cpoint->x = v0.x + v2.x;
+    _cpoint->y = v0.y + v2.y;
+
+    // Convert points in path to polygonal edges
+    p = q = _fpoint;
+    count = _cpoint - _fpoint;
+    for (int i = 0; i < count; ++i)
+        _edge->AttachEdge(p++, ++q);
+
+    // Restore temp buffer on path stack to empty state
+    _cpoint = 0;  
 }
 
 //---------------------------------------------------------------------
@@ -420,29 +483,6 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     v4.x -= aout.y;
     v4.y += aout.x;
 
-    // Check for round line join
-    if (_linejoin == LINEJOIN_ROUND)
-    {
-        // Construct the line segment that enters the line join
-        _edge->AttachEdge(&_vin, &v1);
-        _edge->AttachEdge(&v2, &_vout);
-
-        // Construct the line join (three implementations)
-#if 1
-        RoundCap(v0, ain, 1);  // draw arc from v1 to v2
-        _edge->AttachEdge(&v4, &v3);
-#elif 0
-        RoundCap(v0, aout, -1);  // draw arc from v4 to v3
-        _edge->AttachEdge(&v1, &v2);
-#else
-        RoundCap(v0, ain, 1);  // draw arc from v1 to v2
-        RoundCap(v0, aout, -1);  // draw arc from v4 to v3
-#endif
-        _vin = v3;
-        _vout = v4;
-        return;
-    }
-
     // Connect the edges on the "inside" of the bend that's formed
     // where the incoming and outgoing lines meet to form the joint
     FIX16 xprod = fixmpy(ain.x, aout.y, 16) - fixmpy(ain.y, aout.x, 16);
@@ -460,7 +500,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     }
 
     // Check for beveled line join
-    if (_linejoin == LINEJOIN_BEVEL)
+    if (_linejoin != LINEJOIN_MITER)
     {
         // Construct the line segment that enters the line join
         _edge->AttachEdge(&_vin, &v1);
@@ -468,14 +508,28 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 
         // Add the bevel
         if (xprod < 0)
-        {   
+        {
             // Stroke turns left (CCW) at joint
-            _edge->AttachEdge(&v4, &v2);
+            if (_linejoin == LINEJOIN_ROUND)
+            {
+                VERT16 a1 = aout, a2 = ain;
+
+                FlipVector(a1);
+                FlipVector(a2);
+                RoundJoin(v0, a1, a2);
+            }
+            else
+                _edge->AttachEdge(&v4, &v2);  // bevel
         }
         else
         {   
             // Stroke turns right (CW) at joint
-            _edge->AttachEdge(&v1, &v3);
+            if (_linejoin == LINEJOIN_ROUND)
+            {
+                RoundJoin(v0, ain, aout);
+            }
+            else
+                _edge->AttachEdge(&v1, &v3);  // bevel
         }
         _vin = v3;
         _vout = v4;
@@ -613,9 +667,9 @@ bool PathMgr::StrokePath()
     int off;
     while ((off = _figtmp->offset) != 0)
     {
-        bool dashon0 = InitLineDash();   // initial _dashon state
-        VERT16 *vs0, a0, vin0, vout0;    // to save initial values
-        VERT30 uin, uout;  // unit vectors in directions of lines  
+        bool dashon0 = InitLineDash();  // initial _dashon state
+        VERT16 *vs0, a0, vin0, vout0;  // save initial values
+        VERT30 uin, uout, u0;  // unit vector in line direction  
         VERT16 ain, aout;  // vectors of length = _linewidth/2
         FIX16 linelen;     // length of current line segment
         VERT16 *fpt = reinterpret_cast<VERT16*>(_figtmp + 1);
@@ -633,6 +687,7 @@ bool PathMgr::StrokePath()
         vs0 = vs;
         linelen = LineLength(*vs, *ve, &uin, &ain);
         a0 = ain;
+        u0 = uin;
         
         // Offset stroked edges _linewidth/2 from initial line segment
         if (dashon0)
@@ -654,7 +709,12 @@ bool PathMgr::StrokePath()
         {
             linelen = LineLength(*vs, *ve, &uout, &aout);
             if (_dashon)
+            {
+                if (_linejoin == LINEJOIN_ROUND)
+                    _angle = GetAngle(uin, uout);
+
                 JoinLines(*vs, ain, aout);
+            }
 
             if (_pdash != 0)
                 DashedLine(*ve, uout, aout, linelen);
@@ -668,6 +728,9 @@ bool PathMgr::StrokePath()
         if (_figtmp->isclosed && dashon0 && _dashon)
         {
             // Join the two ends of the figure together
+            if (_linejoin == LINEJOIN_ROUND)
+                _angle = GetAngle(uin, u0);
+
             JoinLines(*vs0, ain, a0);
             _edge->AttachEdge(&_vin, &vin0);
             _edge->AttachEdge(&vout0, &_vout);
@@ -693,7 +756,13 @@ bool PathMgr::StrokePath()
                 _edge->AttachEdge(&_vin, &v1);
                 _edge->AttachEdge(&v2, &_vout);
                 if (_lineend == LINEEND_ROUND)
-                    RoundCap(*vs, ain, 1);
+                {
+                    VERT16 a2 = ain;
+
+                    FlipVector(a2);
+                    _angle = FIX_PI;
+                    RoundJoin(*vs, ain, a2);
+                }
                 else
                     _edge->AttachEdge(&v1, &v2);  // square or butt cap
             }
@@ -716,7 +785,13 @@ bool PathMgr::StrokePath()
                     _edge->AttachEdge(&vout0, &vin0);  // square or butt cap
                 }
                 else
-                    RoundCap(*vs0, a0, -1);
+                {
+                    VERT16 a1 = a0;
+
+                    FlipVector(a1);
+                    _angle = FIX_PI;
+                    RoundJoin(*vs0, a1, a0);
+                }
             }
         }
     }

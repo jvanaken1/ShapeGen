@@ -215,28 +215,29 @@ class PathMgr : virtual public ShapeGen
     FIGURE *_figtmp;  // temporary figure pointer
 
     // Dashed line pattern parameters
-    FIX16 _dasharray[16];  // zero-terminated dashed-line pattern array
+    FIX16 _dasharray[33];  // zero-terminated dashed-line pattern array
     FIX16 _dashoffset;     // starting offset into dashed-line pattern
     FIX16 *_pdash;         // pointer to current position in dash array
     FIX16 _dashlen;        // length in pixels of the current dash/gap
     bool _dashon;          // true (false) if _pdash points to dash (gap)
 
     // Stroked path variables
-    VERT16 _vin, _vout; // line join in/out vectors of length linewidth/2
-    FIX16 _linewidth;   // width of stroked line        
-    LINEEND _lineend;   // line end (aka cap) style      
+    VERT16 _vin, _vout; // edge vertexes at start of stroked segment
+    FIX16 _linewidth;   // width (in pixels) of stroked line        
+    LINEEND _lineend;   // line end cap style      
     LINEJOIN _linejoin; // line join style
     FIX16 _miterlimit;  // miter limit              
     FIX16 _mitercheck;  // precomputed parameter for miter-limit check
+    FIX16 _angle;       // angle between line segments at round join
 
     bool PathToEdges();   // convert a path to an edge list
     void FinalizeFigure(bool bclose);  // close or end a figure
 
     // Path memory management functions
     void ExpandPath();
-    inline void PathCheck(VERT16 *ptr)
+    void PathCheck(VERT16 *ptr)
     {
-        if (ptr == &_path[_pathlength])
+        if (ptr == &_path[_pathlength])  // detect path overflow
             ExpandPath();
     }
 
@@ -295,7 +296,7 @@ private:
     // Stroked path internal functions
     bool InitLineDash();
     FIX16 LineLength(const VERT16& vs, const VERT16& ve, VERT30 *u, VERT16 *a);
-    void RoundCap(const VERT16& vert, VERT16 a, int asign);
+    void RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2);
     void JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout);
     void DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX16 linelen);
     bool ThinStrokePath();

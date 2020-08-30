@@ -53,7 +53,7 @@ ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 
 PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect) :
     _renderer(renderer), _pathlength(INITIAL_PATH_LENGTH),
-    _fpoint(0), _cpoint(0), _figure(0), _figtmp(0),
+    _fpoint(0), _cpoint(0), _figure(0), _figtmp(0), _angle(0),
     _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true)
 {
     assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack hack

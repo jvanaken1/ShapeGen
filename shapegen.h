@@ -62,10 +62,9 @@ const float LINEWIDTH_DEFAULT = 4.0;
 // Miter limit parameters 
 const float MITERLIMIT_DEFAULT = 10.0;   // default miter limit
 const float MITERLIMIT_MINIMUM = 1.0;    // minimum miter limit
-const float MITERLIMIT_MAXIMUM = 100.0;  // minimum miter limit
 
 // Flatness threshold -- required arc- or curve-to-chord tolerance 
-const float FLATNESS_DEFAULT = 0.5;      // default flatness setting
+const float FLATNESS_DEFAULT = 0.6;      // default flatness setting
 const float FLATNESS_MINIMUM = 0.2;      // minimum flatness setting
 const float FLATNESS_MAXIMUM = 100.0;    // maximum flatness setting
 
