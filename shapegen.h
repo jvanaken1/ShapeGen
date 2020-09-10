@@ -71,6 +71,9 @@ const float FLATNESS_MAXIMUM = 100.0;    // maximum flatness setting
 // Fixed-point fraction length -- bits to right of binary point 
 const int FIXBITS_DEFAULT = 0;  // default = integer (no fixed point)
 
+// Maximum length of dash-pattern array, not counting terminating 0
+const int DASHARRAY_MAXLEN = 32;
+
 // Fill rule attributes for filling paths 
 enum FILLRULE {
     FILLRULE_EVENODD,    // even-odd (aka "parity") fill rule

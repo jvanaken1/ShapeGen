@@ -403,13 +403,13 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
 
 //----------------------------------------------------------------------
 //
-// Private function: Adds a round joint to the intersection of two line
+// Private function: Adds a round join to the intersection of two line
 // segments, or adds a round cap to the start or end point of a stroked
 // line segment. Parameter v0 is the start/end point of the line
 // segment or segments. Parameters a1 and a2 are vectors of length
 // _linewidth/2 that point in the directions of the two directed line
 // segments. Before calling this function, set member variable _angle
-// to the angle traversed by the arc that forms the round joint or
+// to the angle traversed by the arc that forms the round join or
 // round cap; _angle is a nonnegative, 16.16 fixed-point value, and
 // is expressed in radians. To draw a round cap, set _angle to pi
 // radians, and set vectors a1 and a2 to point in opposite directions.
@@ -484,17 +484,17 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     v4.y += aout.x;
 
     // Connect the edges on the "inside" of the bend that's formed
-    // where the incoming and outgoing lines meet to form the joint
+    // where the incoming and outgoing lines meet to form the join
     FIX16 xprod = fixmpy(ain.x, aout.y, 16) - fixmpy(ain.y, aout.x, 16);
     if (xprod < 0)
     {   
-        // Stroke turns left (CCW) at joint
+        // Stroke turns left (CCW) at join
         _edge->AttachEdge(&v1, &v0);
         _edge->AttachEdge(&v0, &v3);
     }
     else
     {   
-        // Stroke turns right (CW) at joint
+        // Stroke turns right (CW) at join
         _edge->AttachEdge(&v4, &v0);
         _edge->AttachEdge(&v0, &v2);
     }
@@ -509,7 +509,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         // Add the bevel
         if (xprod < 0)
         {
-            // Stroke turns left (CCW) at joint
+            // Stroke turns left (CCW) at join
             if (_linejoin == LINEJOIN_ROUND)
             {
                 VERT16 a1 = aout, a2 = ain;
@@ -523,7 +523,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         }
         else
         {   
-            // Stroke turns right (CW) at joint
+            // Stroke turns right (CW) at join
             if (_linejoin == LINEJOIN_ROUND)
             {
                 RoundJoin(v0, ain, aout);
@@ -536,7 +536,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         return;
     } 
 
-    // This is a miter joint. Determine whether the miter length
+    // This is a miter join. Determine whether the miter length
     // exceeds the specified miter limit.
     FIX16 t;
     FIX16 numer = abs(ain.x - aout.x) + abs(ain.y - aout.y);
@@ -553,7 +553,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
             // Miter length is within miter limit, so draw full miter
             if (xprod < 0)
             {   
-                // Stroke turns left (CCW) at joint
+                // Stroke turns left (CCW) at join
                 v4.x = (v2.x + v4.x + dx)/2;
                 v4.y = (v2.y + v4.y + dy)/2;
                 _edge->AttachEdge(&_vin, &v1);
@@ -561,7 +561,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
             }
             else
             {   
-                // Stroke turns right (CW) at joint
+                // Stroke turns right (CW) at join
                 v3.x = (v1.x + v3.x + dx)/2;
                 v3.y = (v1.y + v3.y + dy)/2;
                 _edge->AttachEdge(&_vin, &v3);
@@ -581,21 +581,21 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     // Set vector vm to point from v0 to the miter point
     if (dotprod < 0)  
     {   
-        // Incoming/outgoing lines form acute angle at joint
+        // Incoming/outgoing lines form acute angle at join
         vm.x = ain.x - aout.x;
         vm.y = ain.y - aout.y;
     }
-    else  // in/out lines form oblique angle at joint
+    else  // in/out lines form oblique angle at join
     {
         if (xprod < 0)  
         {   
-            // Stroke turns left (CCW) at joint
+            // Stroke turns left (CCW) at join
             vm.x = -ain.y - aout.y;
             vm.y = ain.x + aout.x;
         }
         else  
         {   
-            // Stroke turns right (CW) at joint
+            // Stroke turns right (CW) at join
             vm.x = ain.y + aout.y;
             vm.y = -ain.x - aout.x;
         }
@@ -612,7 +612,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     {
         if (xprod < 0)
         {
-            // Stroke turns left (CCW) at joint
+            // Stroke turns left (CCW) at join
             numer = abs(2*am.x + ain.y + aout.y) + abs(2*am.y - ain.x - aout.x);
             t = fixdiv(numer, denom, 16);  // linear interpolation param
             v2.x += fixmpy(t, ain.x, 16);
@@ -623,7 +623,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         }
         else
         {
-            // Stroke turns right (CW) at joint
+            // Stroke turns right (CW) at join
             numer = abs(2*am.x - ain.y - aout.y) + abs(2*am.y + ain.x + aout.x);
             t = fixdiv(numer, denom, 16);  // linear interpolation param
             v1.x += fixmpy(t, ain.x, 16);

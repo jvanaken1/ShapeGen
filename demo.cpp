@@ -525,7 +525,7 @@ void demo03(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
     }
 }
 
-// Demo screen 4: Stroked line caps and joints
+// Demo screen 4: Stroked line caps and joins
 void demo04(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
@@ -556,7 +556,7 @@ void demo04(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
 
     // Draw title text
     sg->SetLineWidth(6.0);
-    char *str = "Stroked Line Caps and Joints";
+    char *str = "Stroked Line Caps and Joins";
     float scale = 0.73;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
@@ -585,18 +585,18 @@ void demo04(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Label columns with text
-    str = "Bevel joint";
+    str = "Bevel join";
     xystart.x = 392;
     xystart.y = 268;
     txt.DisplayText(&(*sg), xystart, scale, str);
-    str = "Round joint";
+    str = "Round join";
     xystart.x += 280;
     txt.DisplayText(&(*sg), xystart, scale, str);
-    str = "Miter joint";
+    str = "Miter join";
     xystart.x += 280;
     txt.DisplayText(&(*sg), xystart, scale, str);
 
-    // Draw stroked lines with different cap and joint styles
+    // Draw stroked lines with different cap and join styles
     SGPoint point[3] = { 
         { 40, 181 }, { 163, 44 }, { 228, 181 },
     };
@@ -2633,27 +2633,27 @@ void example13(SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& clip)
     SGPtr sg(aarend, clip);
     const float PI = 3.14159265;
     SGPoint xy[] = {
-        {  86, 192 }, {  86, 153 }, {  40, 192 }, { 140, 230 }, 
-        { 140, 184 }, { 140, 153 }, {  71,  92 }, { 117,  32 }
+        {  86, 193 }, {  86, 153 }, {  40, 193 }, { 152, 233 }, 
+        { 152, 153 }, {  71,  92 }, { 117,  32 }
     };
-    float linewidth = 6.0;
+    float linewidth = 7.0;
     char dot[] = { 2, 0 };
     char dash[] = { 5, 2, 0 };
     char dashdot[] = { 5, 2, 2, 2, 0 };
     char dashdotdot[] = { 5, 2, 2, 2, 2, 2, 0 };
-    char *pattern[] = { dot, dash, dashdot, dashdotdot };
+    char *pattern[] = { dot, dash, dashdot, dashdotdot, 0 };
 
     aarend->SetColor(RGBX(205, 92, 92));
     sg->SetLineWidth(linewidth);
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         sg->SetLineDash(pattern[i], 0, linewidth/2.0);
         sg->BeginPath();
         sg->EllipticArc(xy[0], xy[1], xy[2], 0, PI);
-        sg->PolyEllipticSpline(4, &xy[3]);
-        sg->Line(xy[7].x, xy[7].y);
+        sg->PolyBezier3(3, &xy[3]);
+        sg->Line(xy[6].x, xy[6].y);
         sg->StrokePath();
-        for (int j = 0; j < 8; ++j)
+        for (int j = 0; j < 7; ++j)
             xy[j].x += 150;
     }
 

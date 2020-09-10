@@ -215,7 +215,7 @@ class PathMgr : virtual public ShapeGen
     FIGURE *_figtmp;  // temporary figure pointer
 
     // Dashed line pattern parameters
-    FIX16 _dasharray[33];  // zero-terminated dashed-line pattern array
+    FIX16 _dasharray[DASHARRAY_MAXLEN+1];  // max length of dash array
     FIX16 _dashoffset;     // starting offset into dashed-line pattern
     FIX16 *_pdash;         // pointer to current position in dash array
     FIX16 _dashlen;        // length in pixels of the current dash/gap
