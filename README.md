@@ -1,38 +1,34 @@
 ShapeGen: C++ implementation of a 2-D polygonal shape generator
-===============================================================
+-------------
 
 _Author:_ Jerry R. VanAken  
-_Date:_ 9/12/2020
+_Date:_ 9/19/2020
 
-The core of a 2-D graphics library is the polygonal shape generator, which takes a graphical shape specified in terms of curves, arcs, and line segments, and converts this shape to a list of nonoverlapping trapezoids that can be passed to a renderer and filled on a graphics display.
+The core of a 2-D graphics library is the _polygonal shape generator_, which takes a graphical shape specified in terms of curves, arcs, and line segments, and converts this shape to a list of nonoverlapping trapezoids that can be passed to a renderer and filled on a graphics display.
 
-To form a fully functioning graphics library, the shape generator must be paired with a renderer, which draws the shapes on the graphics output device. Whereas the renderer is necessarily device-dependent and/or system-dependent, the shape generator should be free of such dependencies. Furthermore, the interface between the renderer and shape generator should be well-defined to enable the shape generator to be ported easily to a variety of renderers.
+This GitHub project contains the C++ source code for the ShapeGen class, which is a portable, lightweight polygonal shape generator. The ShapeGen class implementation is neither platform-specific nor device-dependent, and is readily ported to any computing environment for which a C++ compiler is available. 
 
-The demonstration software in this GitHub project contains example renderers that run in Linux and Windows. Both simple renderers (with no antialiasing) and antialiasing renderers are included.
+To form a fully functioning graphics library, the shape generator must be paired with a renderer, which draws the shapes on the graphics output device. Whereas the renderer is necessarily device-dependent and/or platform-specific, the shape generator should be free of such dependencies.
 
-The geometric primitives in the ShapeGen graphics library are similar to the path-construction operators in the [PostScript language](https://www.adobe.com/content/dam/acom/en/devnet/actionscript/articles/psrefman.pdf).
+The demonstration software in this GitHub project contains example renderers that run in Linux and Windows. For either operating system, the project includes examples of both _basic_ renderers (with no antialiasing) and _antialiasing_ renderers.
 
-This GitHub project contains the C++ source code for the ShapeGen class, which is a portable, lightweight polygonal shape generator that has these features:
+Developers can easily replace the example renderers in this project with custom renderers that conform to a simple, well-defined interface. The ShapeGen object performs all clipping of shapes before passing them to the renderer to be drawn.
 
-* Shape boundaries can be specified with any combination of line segments, rectangles, ellipses, elliptic arcs, and quadratic and cubic Bezier curves.
+The geometric primitives in the ShapeGen graphics library are similar to the path-construction operators in the [PostScript language](https://www.adobe.com/content/dam/acom/en/devnet/actionscript/articles/psrefman.pdf). The ShapeGen graphics library has these features:
+
+* Shape boundaries can be specified with any combination of line segments, rectangles, ellipses, elliptic arcs, and Bezier curves (both quadratic and cubic).
 
 * Shapes can be filled or stroked. 
 
 * Shapes can be filled according to either the even-odd (aka parity) fill rule, or the nonzero-winding-number fill rule.
 
-* Stroked shapes can be constructed with user-specified line widths, dashed line patterns, joint styles, and line caps.
+* Stroked shapes can be constructed with user-specified line widths, dashed line patterns, join styles, and line caps.
 
 * Both filled and stroked shapes are automatically clipped before they are rendered.
 
-* Clipping regions can be set to arbitrarily shaped areas. And arbitrarily shaped areas can be masked off from the clipping region. 
+* Clipping regions can be set to arbitrarily shaped areas. In addition, arbitrarily shaped areas can be masked off from the clipping region. 
 
-* By default, users specify shapes with integer x-y coordinates. But shapes can optionally be specified with fixed-point coordinate values if additional precision is required.
-
-* The ShapeGen class implementation is neither platform-specific nor device-dependent, and is readily ported to any computing environment for which a C++ compiler is available.
-
-* Examples of both basic renderers (with no antialiasing) and antialiasing renderers are included in this GitHub project.
-
-* Developers can easily replace the example renderers in this project with custom renderers that conform to a simple, well-defined interface.
+By default, ShapeGen library users specify shapes with integer _x-y_ coordinates. But shapes can optionally be specified with fixed-point coordinate values if additional precision is required. Thus, developers can test their custom algorithms for drawing curves and arcs free of coordinate round-off or truncation errors.
 
 ## Demo program
 
@@ -66,7 +62,7 @@ This GitHub project includes the following files and directories.
 
 * `README.md` &ndash; This README file
 
-* `userdoc.pdf` &ndash; ShapeGen User's Guide
+* `userdoc.pdf` &ndash; _ShapeGen User's Guide_
 
 * `arc.cpp` &ndash; ShapeGen member functions for adding ellipses, elliptic arcs, elliptic splines, and rounded rectangles to paths
 
@@ -125,6 +121,5 @@ This GitHub project includes the following files and directories.
 .
 
 .
-
 
 
