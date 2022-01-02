@@ -8,26 +8,33 @@
 INCDIR = C:\SDL2\include
 LIBDIR = C:\SDL2\lib\x86
 LIBFILES = $(LIBDIR)\SDL2main.lib $(LIBDIR)\SDL2.lib
-OBJFILES = demo.obj textapp.obj arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
+OBJFILES = demo.obj bmpfile.obj textapp.obj gradient.obj pattern.obj \
+           arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
 LFLAGS = /SUBSYSTEM:CONSOLE
 LDEBUG = /DEBUG
 
-all : demo.exe
+all : demo.exe bricks.bmp fleur.bmp honeycomb.bmp star.bmp
 
 demo.exe : sdlmain.obj $(OBJFILES)
 	$(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
 
-sdlmain.obj : demo.cpp demo.h shapegen.h
-	$(CC) -I$(INCDIR) $(CDEBUG) -c sdlmain.cpp
-
-demo.obj : demo.cpp demo.h shapegen.h
+demo.obj : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) $(CDEBUG) -c demo.cpp
 
-textapp.obj : textapp.cpp demo.h shapegen.h
-	$(CC) $(CDEBUG) -c textapp.cpp
+sdlmain.obj : demo.cpp shapegen.h renderer.h demo.h
+	$(CC) -I$(INCDIR) $(CDEBUG) -c sdlmain.cpp
+
+bmpfile.obj : bmpfile.cpp shapegen.h renderer.h demo.h
+	$(CC) $(CDEBUG) -c bmpfile.cpp
+
+gradient.obj : gradient.cpp shapegen.h renderer.h
+	$(CC) $(CDEBUG) -c gradient.cpp
+
+pattern.obj : pattern.cpp shapegen.h renderer.h
+	$(CC) $(CDEBUG) -c pattern.cpp
 
 arc.obj : arc.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c arc.cpp
@@ -44,11 +51,17 @@ path.obj : path.cpp shapegen.h shapepri.h
 stroke.obj : stroke.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c stroke.cpp
 
+textapp.obj : textapp.cpp shapegen.h renderer.h demo.h
+	$(CC) $(CDEBUG) -c textapp.cpp
+
 thinline.obj : thinline.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c thinline.cpp
         
 demo.h : ..\demo.h
         copy /y ..\demo.h
+
+renderer.h : ..\renderer.h
+        copy /y ..\renderer.h
 
 shapegen.h : ..\shapegen.h
         copy /y ..\shapegen.h
@@ -59,6 +72,9 @@ shapepri.h : ..\shapepri.h
 arc.cpp : ..\arc.cpp
         copy /y ..\arc.cpp
         
+bmpfile.cpp : ..\bmpfile.cpp
+        copy /y ..\bmpfile.cpp
+        
 curve.cpp : ..\curve.cpp
         copy /y ..\curve.cpp
         
@@ -67,6 +83,12 @@ demo.cpp : ..\demo.cpp
         
 edge.cpp : ..\edge.cpp
         copy /y ..\edge.cpp
+        
+pattern.cpp : ..\pattern.cpp
+        copy /y ..\pattern.cpp
+        
+gradient.cpp : ..\gradient.cpp
+        copy /y ..\gradient.cpp
         
 path.cpp : ..\path.cpp
         copy /y ..\path.cpp
@@ -79,6 +101,18 @@ textapp.cpp : ..\textapp.cpp
         
 thinline.cpp : ..\thinline.cpp
         copy /y ..\thinline.cpp
+        
+bricks.bmp : ..\bricks.bmp
+        copy /y ..\bricks.bmp
+        
+fleur.bmp : ..\fleur.bmp
+        copy /y ..\fleur.bmp
+        
+honeycomb.bmp : ..\honeycomb.bmp
+        copy /y ..\honeycomb.bmp
+        
+star.bmp : ..\star.bmp
+        copy /y ..\star.bmp
         
 clean:
         @del *.exe

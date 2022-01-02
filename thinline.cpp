@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -208,7 +208,7 @@ bool PathMgr::ThinStrokePath()
     }
 
     // Fill the stroked path and initialize current path to empty
-    _edge->TranslateEdges(_scroll.x, _scroll.y);
+    _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
     _edge->NormalizeEdges(FILLRULE_WINDING);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->FillEdgeList();

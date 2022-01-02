@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -160,7 +160,7 @@ void POOL::Reset()
 //---------------------------------------------------------------------
 //
 // Shape feeder: Breaks a shape (stored as a normalized edge list) into
-// smaller pieces to feed to a renderer.
+// smaller pieces to feed to a renderer
 //
 //---------------------------------------------------------------------
 
@@ -404,16 +404,19 @@ EDGE* Feeder::ysortlist(EDGE *plist, int length)
 //
 //---------------------------------------------------------------------
 
-EdgeMgr::EdgeMgr(Renderer *renderer) :
-    _inlist(0), _outlist(0), _cliplist(0), _rendlist(0), _savelist(0)
+EdgeMgr::EdgeMgr(Renderer *renderer)
+            : _inlist(0), _outlist(0), _cliplist(0), 
+              _rendlist(0), _savelist(0), _renderer(0)
 {
-    SetRenderer(renderer);
     _inpool = new POOL;
     _outpool = new POOL;
     _clippool = new POOL;
     _rendpool = new POOL;
     _savepool = new POOL;
-    assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && _rendpool != 0 && _savepool != 0);
+    assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && 
+           _rendpool != 0 && _savepool != 0);
+    if (renderer)
+        SetRenderer(renderer);
 }
 
 EdgeMgr::~EdgeMgr()
@@ -646,34 +649,28 @@ void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
 
 //---------------------------------------------------------------------
 //
-// Protected function: Sets the clipping region to the device clipping
-// rectangle. Only the w and h members of the input rectangle are
-// used here. The x and y values are ignored. The input width and
-// height values are integers, and must be converted to the internal
-// 16.16 fixed-point format before calling the AttachEdge function.
+// Protected function: Sets the clipping region to the dimensions of
+// the device clipping rectangle. The input width and height values
+// are both integers, and must be converted to the internal 16.16
+// fixed-point format before the AttachEdge function calls.
 //
 //---------------------------------------------------------------------
 
-void EdgeMgr::SetDeviceClipRectangle(const SGRect *rect)
+void EdgeMgr::SetDeviceClipRectangle(int width, int height)
 {
     VERT16 v1, v2;  // top and bottom ends of vertical edge
 
-    // A null rect pointer is a special value that tells us to
-    // discard any previously saved copy of the clipping region
-    if (rect == 0)
-    {
-        _savelist = 0;
-        _savepool->Reset();
-        return;
-    }
+    // Discard any previously saved copy of the clipping region
+    _savelist = 0;
+    _savepool->Reset();
 
     // Add left and right sides of rectangle to _inpool
     assert(_inlist == 0 && _inpool->GetCount() == 0);
     v1.y = 0;
-    v2.y = rect->h << 16;
+    v2.y = height << 16;
     v1.x = v2.x = 0;
     AttachEdge(&v1, &v2);  
-    v1.x = v2.x = rect->w << 16;
+    v1.x = v2.x = width << 16;
     AttachEdge(&v2, &v1);  // <-- note reverse ordering
 
     // Swap _inpool with _clippool, and reset _inpool

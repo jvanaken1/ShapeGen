@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -1950,7 +1950,7 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
         case _DRAWADOT_:
             {
                 SGPoint v0, v1, v2;
-                SGCoord radius = 65536.0*(0.125*_width + 0.5);
+                SGCoord radius = 65536*(_width/11 + 0.5f);
     
                 v0 = v1 = v2 = xy[p[1]];
                 v1.x += radius;
@@ -1971,18 +1971,19 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
 //
 // Public function: Draws the glyphs for the specified character
 // string (pointed to by parameter str). Parameter sg is a pointer to
-// a ShapeGen object. Parameter xfrm is the 2x3 transform matrix to
-// apply to the glyphs before they are displayed. Elements xfrm[0][2]
-// and xfrm[1][2] specify the x and y coordinates at which to start
-// drawing the string on the display; the starting point is located
-// at the intersection of the baseline with the left edge of the
-// displayed string. The other four xfrm elements specify the affine
-// transform (scaling, rotation, etc.) to apply to the glyphs.
-// Glyphs are drawn with the current stroke width.
+// a ShapeGen object. Parameter xform is the 6-element affine trans-
+// formation matrix to apply to the glyphs before they are displayed,
+// and is defined as in the SVG standard. Elements xform[4] and
+// xform[5] specify the x and y coordinates at which to start drawing
+// the string on the display; the starting point is located at the
+// intersection of the baseline with the left edge of the displayed
+// string. The other four xform elements specify the scaling,
+// rotation, etc., to apply to the glyphs. Glyphs are drawn with the
+// current stroke width.
 //
 //---------------------------------------------------------------------
 
-void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
+void TextApp::DisplayText(ShapeGen *sg, const float xform[], const char *str)
 {
     const int MAXLEN = 256;
     int nbits = sg->SetFixedBits(16);
@@ -1997,10 +1998,10 @@ void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
     _width = sg->SetLineWidth(0);
     sg->SetLineWidth(_width);
     assert(len < MAXLEN);
-    pos.x = xfrm[0][0]*lbear + xfrm[0][2];
-    pos.y = xfrm[1][0]*lbear + xfrm[1][2];
+    pos.x = xform[0]*lbear + xform[4];
+    pos.y = xform[1]*lbear + xform[5];
 
-    // Each iteration of this for-loop draws one char
+    // Each iteration of this for-loop draws one character
     sg->BeginPath();
     for (int i = 0; i < len; ++i)
     {
@@ -2027,8 +2028,8 @@ void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
             float xtbl = pxytbl[j].x;
             float ytbl = pxytbl[j].y;
 
-            p->xy[j].x = 65536.0*(xfrm[0][0]*xtbl - xfrm[0][1]*ytbl + pos.x);
-            p->xy[j].y = 65536.0*(xfrm[1][0]*xtbl - xfrm[1][1]*ytbl + pos.y);
+            p->xy[j].x = 65536*(xform[0]*xtbl - xform[2]*ytbl + pos.x);
+            p->xy[j].y = 65536*(xform[1]*xtbl - xform[3]*ytbl + pos.y);
         }
 
         // Interpret display list for this glyph
@@ -2036,8 +2037,8 @@ void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
 
         // Advance to x-y position of next glyph
         advance = lbear + (pxytbl[1].x - pxytbl[0].x) + rbear;
-        pos.x += xfrm[0][0]*advance;
-        pos.y += xfrm[1][0]*advance;
+        pos.x += xform[0]*advance;
+        pos.y += xform[1]*advance;
     }
     sg->StrokePath();
     sg->SetFixedBits(nbits);  // restore caller's original settings
@@ -2057,31 +2058,32 @@ void TextApp::DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str)
 
 void TextApp::DisplayText(ShapeGen *sg, SGPoint xystart, float scale, const char *str)
 {
-    float xfrm[2][3];
+    float xform[6];
 
-    xfrm[0][0] = scale;
-    xfrm[0][1] = 0;
-    xfrm[0][2] = xystart.x;
-    xfrm[1][0] = 0;
-    xfrm[1][1] = scale;
-    xfrm[1][2] = xystart.y;
-    DisplayText(sg, xfrm, str);
+    xform[0] = scale;
+    xform[1] = 0;
+    xform[2] = 0;
+    xform[3] = scale;
+    xform[4] = xystart.x;
+    xform[5] = xystart.y;
+    DisplayText(sg, xform, str);
 }
 
 //---------------------------------------------------------------------
 //
-// Public function: Calculates the x-y coordinates at the end of a
-// text string were the string to be displayed with the specified
-// transform and current text spacing factor. (Note that nothing is
-// actually drawn by this function.) Parameter xform is the 3x2
-// transform matrix. Parameter str is the text string. Parameter xyout
-// is the output pointer for the end-point coordinates. The end point
+// Public function: Calculates what the x-y coordinates would be at
+// the end of a text string if the string were to be displayed with
+// the specified transform and current text spacing factor. (Note that
+// nothing is actually drawn by this function.) Parameter xform is the
+// 6-element affine transformation matrix, and is defined as in the
+// SVG standard. Parameter str is the text string. Parameter xyout is
+// the output pointer for the end-point coordinates. The end point
 // lies at the intersection of the transformed glyph baseline with the
 // right edge of the transformed string.
 //
 //---------------------------------------------------------------------
 
-void TextApp::GetTextEndpoint(const float xfrm[][3], const char *str, XY *xyout)
+void TextApp::GetTextEndpoint(const float xform[], const char *str, XY *xyout)
 {
     const int MAXLEN = 256;
     int len = strnlen(str, MAXLEN);
@@ -2109,8 +2111,8 @@ void TextApp::GetTextEndpoint(const float xfrm[][3], const char *str, XY *xyout)
 
     // Advance to x-y position at end of last glyph
     advance += _xspace*len*(leftbearing + rightbearing);
-    xyout->x = xfrm[0][0]*advance + xfrm[0][2];
-    xyout->y = xfrm[1][0]*advance + xfrm[1][2];
+    xyout->x = xform[0]*advance + xform[4];
+    xyout->y = xform[1]*advance + xform[5];
 }
 
 //---------------------------------------------------------------------
@@ -2124,16 +2126,16 @@ void TextApp::GetTextEndpoint(const float xfrm[][3], const char *str, XY *xyout)
 float TextApp::GetTextWidth(float scale, const char *str)
 {
     XY xyout;
-    float xfrm[2][3];
+    float xform[6];
     SGPoint xystart = { 0, 0 };
 
-    xfrm[0][0] = scale;
-    xfrm[0][1] = 0;
-    xfrm[0][2] = xystart.x;
-    xfrm[1][0] = 0;
-    xfrm[1][1] = scale;
-    xfrm[1][2] = xystart.y;
-    GetTextEndpoint(xfrm, str, &xyout);
+    xform[0] = scale;
+    xform[1] = 0;
+    xform[2] = 0;
+    xform[3] = scale;
+    xform[4] = xystart.x;
+    xform[5] = xystart.y;
+    GetTextEndpoint(xform, str, &xyout);
     return xyout.x;
 }
 

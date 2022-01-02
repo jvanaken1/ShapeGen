@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -23,24 +23,23 @@
 //
 // demo.h:
 //   Header file for demo code. This header is included by the
-//   ShapeGen demo code, and by the code examples in demo.cpp. 
+//   ShapeGen demo code and code examples in demo.cpp. 
 //
 //---------------------------------------------------------------------
 
-#include "shapegen.h"
+#ifndef DEMO_H
+  #define DEMO_H
+
+#include <stdio.h>
+#include "renderer.h"
 
 const float PI = 3.14159265;
 
-// Dimensions of canvas for demo functions
+// Dimensions of window for demo functions
 const int DEMO_WIDTH  = 1280;
 const int DEMO_HEIGHT =  960;
 
-typedef unsigned int COLOR;
-
-// Macro definitions 
-#define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
-#define RGBX(r,g,b)    (COLOR)(((r)&255)|(((g)&255)<<8)|(((b)&255)<<16)|0xff000000)
-#define RGBA(r,g,b,a)  (COLOR)(((r)&255)|(((g)&255)<<8)|(((b)&255)<<16)|((a)<<24))
+// Macros
 #ifdef min
 #undef min
 #endif
@@ -56,7 +55,7 @@ typedef unsigned int COLOR;
 
 //---------------------------------------------------------------------
 //
-// Pixels and RGB values
+// Pixels and RGBA components
 //
 //---------------------------------------------------------------------
 
@@ -70,27 +69,61 @@ inline void GetRgbValues(const COLOR color, int *r, int *g, int *b)
 
 //---------------------------------------------------------------------
 //
-// A simple renderer derived from the Renderer base class. This
-// renderer fills shapes with solid colors.
+// Runs the graphics test function specified by 'testnum' (an array
+// index). Parameter rend is a basic renderer that does solid color
+// fills with no antialiasing. Parameter aarend is an enhanced
+// renderer that does antialiasing, gradient fills, and pattern
+// fills. Parameter cliprect specifies the device clipping rectangle.
 //
 //---------------------------------------------------------------------
 
-class SimpleRenderer : public Renderer
+extern int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect);
+
+//---------------------------------------------------------------------
+//
+// Class UserMessage: Sends text message to user
+//
+//---------------------------------------------------------------------
+
+class UserMessage
 {
 public:
-    virtual void SetColor(COLOR color) = 0;
+    UserMessage() {}
+    ~UserMessage() {}
+    void MessageOut(char *text, char *title, int code = 0);
 };
 
 //---------------------------------------------------------------------
 //
-// Runs the graphics test function specified by index testnum.
-// Parameter rend is a basic renderer that does no antialiasing.
-// Parameter aarend is an antialiasing renderer. Parameter cliprect
-// specifies the device clipping rectangle.
+// Class BmpReader:
+//   Reads pixel data serially from a .bmp file. Supplies image data
+//   to TiledPattern objects. Inherits from ImageReader class defined
+//   in render.h.
 //
 //---------------------------------------------------------------------
 
-extern bool runtest(int testnum, SimpleRenderer *rend, SimpleRenderer *aarend, const SGRect& cliprect);
+class BmpReader : public ImageReader
+{
+    FILE *_pFile;  // .bmp file pointer
+    UserMessage *_umsg;  // for sending error message to user
+    int _flags;    // image info flags
+    int _offset;   // file offset to start of pixel data
+    int _width;    // width of bitmap, in pixels
+    int _height;   // height of bitmap, in pixels
+    int _bpp;      // bits per pixel
+    bool _bAlpha;  // true if BMP file data has 8-bit alpha channel
+    int _row;      // current row in bitmap
+    int _col;      // current column in bitmap
+    int _pad;      // bytes of padding at end of each row
+
+public:
+    BmpReader(const char *pszFile, UserMessage *umsg);
+    ~BmpReader();
+    int GetImageInfo(int *width, int *height);
+    int ReadPixels(COLOR *buffer, int count);
+    int RewindData();
+    void ErrorMessage(char *pszError);
+};
 
 //---------------------------------------------------------------------
 //
@@ -109,7 +142,7 @@ struct GLYPH;
 class TextApp
 {
     GLYPH *_glyphtbl[128];  // glyph look-up table
-    GLYPH *_glyph;          // glyph descriptors
+    GLYPH *_glyph;          // glyph display lists
     float _width;           // current stroke width
     float _xspace;          // text spacing multiplier
 
@@ -119,10 +152,10 @@ public:
     TextApp();
     ~TextApp();
     void SetTextSpacing(float xspace);
-    void DisplayText(ShapeGen *sg, const float xfrm[][3], const char *str);
+    void DisplayText(ShapeGen *sg, const float xform[], const char *str);
     void DisplayText(ShapeGen *sg, SGPoint xystart, float scale, const char *str);
-    void GetTextEndpoint(const float xfrm[][3], const char *str, XY *xyout);
+    void GetTextEndpoint(const float xform[], const char *str, XY *xyout);
     float GetTextWidth(float scale, const char *str);
 };
 
-
+#endif // DEMO_H

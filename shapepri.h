@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -27,6 +27,9 @@
 //   and helper classes.
 //
 //---------------------------------------------------------------------
+
+#ifndef SHAPEPRI_H
+    #define SHAPEPRI_H
 
 #include <math.h>
 #include <string.h>
@@ -143,7 +146,7 @@ public:
     }
     int GetCount()
     {
-        return(count + watermark);
+        return (count + watermark);
     }
 };
 
@@ -179,7 +182,7 @@ protected:
     void NormalizeEdges(FILLRULE fillrule);
     void AttachEdge(const VERT16 *v1, const VERT16 *v2);
     void TranslateEdges(int x, int y);
-    void SetDeviceClipRectangle(const SGRect *rect);
+    void SetDeviceClipRectangle(int width, int height);
     bool SaveClipRegion();
     bool SwapClipRegion();
 };
@@ -199,7 +202,6 @@ class PathMgr : virtual public ShapeGen
 
     Renderer *_renderer;
     EdgeMgr *_edge;     // manages lists of polygonal edges
-    SGPoint _scroll;    // integer x-y window scrolling position
     SGRect _devicecliprect;  // clipping rectangle for display device
     FIX16 _flatness;    // error tolerance for flattened arcs/curves
     int _fixshift;      // to convert user coords to 16.16 fixed-point
@@ -421,3 +423,5 @@ inline int lmo(unsigned int val)
 
     return m;
 }
+
+#endif SHAPEPRI_H

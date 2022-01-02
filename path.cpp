@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -51,18 +51,18 @@ ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 //
 //---------------------------------------------------------------------
 
-PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect) :
-    _renderer(renderer), _pathlength(INITIAL_PATH_LENGTH),
-    _fpoint(0), _cpoint(0), _figure(0), _figtmp(0), _angle(0),
-    _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true)
+PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
+            : _pathlength(INITIAL_PATH_LENGTH), _angle(0),
+              _fpoint(0), _cpoint(0), _figure(0), _figtmp(0),
+              _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true),
+              _devicecliprect(cliprect)
 {
-    assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack hack
-    _edge = new EdgeMgr(renderer);
-    assert(_edge != 0);
+    assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack
     _path = new VERT16[_pathlength];
     assert(_path != 0);
-    _scroll.x = cliprect.x;
-    _scroll.y = cliprect.y;
+    _edge = new EdgeMgr(0);
+    assert(_edge != 0);
+    SetRenderer(renderer);
     InitClipRegion(cliprect.w, cliprect.h);
     SetFixedBits(0); 
     SetLineDash(0, 0, 0);
@@ -91,8 +91,10 @@ void PathMgr::SetRenderer(Renderer *renderer)
 {
     assert(renderer);
     _edge->SetRenderer(renderer);
-    ResetClipRegion();
+    ResetClipRegion();  // N.B.: new renderer can change y resolution
     renderer->SetMaxWidth(_devicecliprect.w);
+    renderer->SetScrollPosition(_devicecliprect.x, _devicecliprect.y);
+    _renderer = renderer;
 }
 
 //---------------------------------------------------------------------
@@ -107,10 +109,9 @@ void PathMgr::SetRenderer(Renderer *renderer)
 
 void PathMgr::SetScrollPosition(int x, int y)
 {
-    _scroll.x = x;
-    _scroll.y = y;
-    _edge->SetDeviceClipRectangle(0);  // discard any saved clip region
-    _edge->SetDeviceClipRectangle(&_devicecliprect);
+    _devicecliprect.x = x;
+    _devicecliprect.y = y;
+    _renderer->SetScrollPosition(x, y);  // fill pattern coordinates
 }
 
 //---------------------------------------------------------------------
@@ -168,11 +169,11 @@ void PathMgr::ExpandPath()
 
 float PathMgr::SetFlatness(float tol)
 {
-    float oldtol = _flatness/65536.0;
+    float oldtol = _flatness/65536.0f;
 
     tol = max(tol, FLATNESS_MINIMUM);
     tol = min(tol, FLATNESS_MAXIMUM);
-    _flatness = 65536.0*tol;  // convert to 16.16 fixed-point format
+    _flatness = 65536*tol;  // convert to 16.16 fixed-point format
     return oldtol;
 }
 
@@ -431,8 +432,8 @@ bool PathMgr::PathToEdges()
             vs = ve++;
         }
     }
-    if ((_scroll.x | _scroll.y) != 0)
-        _edge->TranslateEdges(_scroll.x, _scroll.y);
+    if ((_devicecliprect.x | _devicecliprect.y) != 0)
+        _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
 
     return true;
 }
@@ -495,30 +496,28 @@ bool PathMgr::SetMaskRegion(FILLRULE fillrule)
 //---------------------------------------------------------------------
 //
 // Public function: Resets the clipping region to its default setting,
-// which is the current device clipping rectangle.
+// which is the current device clipping rectangle
 //
 //---------------------------------------------------------------------
 
 void PathMgr::ResetClipRegion()
 {
-    _edge->SetDeviceClipRectangle(&_devicecliprect);
+    _edge->SetDeviceClipRectangle(_devicecliprect.w, _devicecliprect.h);
 }
 
 //---------------------------------------------------------------------
 //
-// Public function: Initializes the clipping region to its default
-// setting, which is the device clipping rectangle. 
+// Public function: Initializes the clipping region to the device
+// clipping rectangle specified (in pixels) by the width and height
+// parameters
 //
 //---------------------------------------------------------------------
 
 void PathMgr::InitClipRegion(int width, int height)
 {
-    _edge->SetDeviceClipRectangle(0);  // discard any saved clip region
-    _devicecliprect.x = 0;
-    _devicecliprect.y = 0;
     _devicecliprect.w = width;
     _devicecliprect.h = height;
-    _edge->SetDeviceClipRectangle(&_devicecliprect);
+    _edge->SetDeviceClipRectangle(width, height);
     _renderer->SetMaxWidth(width);
 }
 

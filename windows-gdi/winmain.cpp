@@ -2,7 +2,8 @@
 //
 //  winmain.cpp:
 //    This file contains all the platform-dependent functions for
-//    running the ShapeGen demo on the Win32 API in Windows
+//    running the ShapeGen demo on the Win32 API in Windows. Two
+//    sample renderers are included.
 //
 //---------------------------------------------------------------------
 
@@ -17,7 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    PSTR szCmdLine, 
                    int iCmdShow) 
 { 
-    static TCHAR szAppName[] = TEXT("Polygonal Shape Generator"); 
+    static TCHAR szAppName[] = TEXT("ShapeGen Graphics Library"); 
     HWND         hwnd; 
     MSG          msg; 
     WNDCLASS     wndclass;
@@ -58,16 +59,22 @@ int WINAPI WinMain(HINSTANCE hInstance,
     return msg.wParam; 
 }
 
-//----------------------------------------------------------------------
+// Display error message for user
+void UserMessage::MessageOut(char *text, char *title, int code)
+{
+    MessageBox(0, text, title, 0);
+}
+
+//---------------------------------------------------------------------
 //
-// A basic renderer: Fills a shape with a solid color, but does _not_
+// A basic renderer: Fills a shape with a solid color, but does _NOT_
 // do antialiasing. This class is derived from the SimpleRenderer class
 // in demo.h, which, in turn, is derived from the Renderer base class
 // in shapegen.h. This BasicRenderer class implementation is platform-
 // dependent -- it uses the FillRect function in Windows GDI to fill
 // the horizontal spans that comprise the shape.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 class BasicRenderer : public SimpleRenderer
 {
@@ -108,61 +115,166 @@ void BasicRenderer::SetColor(COLOR color)
     SelectObject(_hdc, _hBrush);
 }
 
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 //
-// An antialiasing renderer: Fills a shape with a solid color, and uses
-// antialiasing to smooth the shape's edges. This class is derived from
-// the SimpleRenderer class in demo.h, which is, in turn, derived from
-// the Renderer base class in shapegen.h. The RenderShape function uses
-// an "AA-buffer" to keep track of pixel coverage. The AA-buffer
-// dedicates a 32-bit bitmask, organized as 4 rows of 8 bits, to each
-// pixel in the current scan line. This AA4x8Renderer class
-// implementation is platform-dependent: it uses the Windows GDI
-// CreateDIBSection function to create an offscreen buffer for one
-// scanline of source pixels, and calls the AlphaBlend function to
-// blend the source pixels with the destination image.
+// An enhanced renderer: Works exclusively with full-color displays.
+// Does antialiasing, alpha blending, solid-color fills, pattern
+// fills, linear gradient fills, and radial gradient fills. The
+// RenderShape function uses an "AA-buffer" to keep track of pixel
+// coverage (for antialiasing). The AA-buffer dedicates a 32-bit
+// bitmask, organized as 4 rows of 8 bits, to each pixel in the
+// current scan line. This AA4x8Renderer class implementation is
+// platform-dependent: it calls the Windows GDI CreateDIBSection
+// function to create an offscreen buffer for one scanline of source
+// pixels, and calls the AlphaBlend function to blend the source
+// pixels into the destination image in the window's client area.
 //
-//----------------------------------------------------------------------
+//---------------------------------------------------------------------
 
-class AA4x8Renderer : public SimpleRenderer
+class AA4x8Renderer : public EnhancedRenderer
 {
     friend ShapeGen;
 
     HDC _hdc;          // device context handle for window
     HDC _hdcmem;       // device context handle for DIB
     HBITMAP _hBitmap;  // DIB handle
-    BYTE _alpha;       // source alpha
-    int *_dibits;      // DIB pixel data bits
+    COLOR *_pixbuf;    // DIB pixel data bits
+    COLOR _alpha;      // source constant alpha
     int _width;        // width (in pixels) of device clipping rect
     int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
     int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
-    int _lut[33];      // lookup table for source blend values
+    int _lut[33];      // look-up table for source alpha values
+    PaintGen *_paintgen;  // paint generator (gradients, patterns)
+    COLOR_STOP _cstop[STOPARRAY_MAXLEN+1];  // color-stop array
+    int _stopCount;    // Number of elements in color-stop array
+    float _xform[6];   // Transform matrix (gradients, patterns)
+    float *_pxform;    // Pointer to transform matrix
+    int _xscroll, _yscroll;  // Scroll position coordinates
 
     void FillSubpixelSpan(int xL, int xR, int ysub);
     void RenderAbuffer(int xmin, int xmax, int yscan);
-    void Blend(int crFill);
+    void BlendLUT(COLOR component);
+    void BlendConstantAlphaLUT();
+    COLOR PremultAlpha(COLOR color);
 
 protected:
     void RenderShape(ShapeFeeder *feeder);
     bool SetMaxWidth(int width);
-    int QueryYResolution() { return 2; };
+    int QueryYResolution() { return 2; }
+    bool SetScrollPosition(int x, int y);
 
 public:
-    AA4x8Renderer(HDC hdc) : 
-                _hdc(hdc), _hdcmem(0), _hBitmap(0), _dibits(0), 
-                _width(0), _aabuf(0), _alpha(0)
-    {
-        memset(_aarow, 0, sizeof(_aarow));
-        SetColor(RGBX(0,0,0));
-    }
-    ~AA4x8Renderer()
-    {
-        delete[] _aabuf;
-        DeleteDC(_hdcmem);
-        DeleteObject(_hBitmap);
-    }
+    AA4x8Renderer(HDC hdc);
+    ~AA4x8Renderer();
     void SetColor(COLOR color);
+    void SetPattern(const COLOR *pattern, float u0, float v0, 
+                    int w, int h, int stride, int flags);
+    void SetPattern(ImageReader *imgrdr, float u0, float v0, 
+                    int w, int h, int flags);
+    void SetLinearGradient(float x0, float y0, float x1, float y1,
+                           SPREAD_METHOD spread, int flags);
+    void SetRadialGradient(float x0, float y0, float r0,
+                           float x1, float y1, float r1,
+                           SPREAD_METHOD spread, int flags);
+    void AddColorStop(float offset, COLOR color);
+    void ResetColorStops() { _stopCount = 0; }
+    void SetTransform(const float xform[]);
+    void SetConstantAlpha(COLOR alpha) { _alpha = alpha & 255; }
 };
+
+// Premultiplies a 32-bit pixel's RGB components by its alpha value
+COLOR AA4x8Renderer::PremultAlpha(COLOR color)
+{
+    COLOR rb, ga, alfa = color >> 24;
+
+    if (alfa == 255)
+        return color;
+
+    if (alfa == 0)
+        return 0;
+
+    color |= 0xff000000;
+    rb = color & 0x00ff00ff;
+    rb *= alfa;
+    rb += (rb >> 7) & 0x01ff01ff;
+    rb &= 0xff00ff00;
+    ga = (color >> 8) & 0x00ff00ff;
+    ga *= alfa;
+    ga += (ga >> 7) & 0x01ff01ff;
+    ga &= 0xff00ff00;
+    color = ga | (rb >> 8);
+    return color;
+}
+
+AA4x8Renderer::AA4x8Renderer(HDC hdc) 
+        : _hdc(hdc), _hdcmem(0), _hBitmap(0),
+          _width(0), _pixbuf(0), _aabuf(0), _paintgen(0),
+          _stopCount(0), _pxform(0), _alpha(255),
+          _xscroll(0), _yscroll(0)
+{   
+    memset(&_lut[0], 0, sizeof(_lut));   
+    memset(&_aarow[0], 0, sizeof(_aarow));   
+    memset(&_cstop[0], 0, sizeof(_cstop));   
+    memset(&_xform[0], 0, sizeof(_xform));
+    SetColor(RGBX(0,0,0));
+}
+
+AA4x8Renderer::~AA4x8Renderer()
+{
+    DeleteDC(_hdcmem);
+    DeleteObject(_hBitmap);
+    delete[] _aabuf;
+    if (_paintgen)
+        _paintgen->~PaintGen();
+}
+
+// ShapeGen calls this function to notify the renderer when the width
+// of the device clipping rectangle changes. This function rebuilds
+// the AA-buffer and the offscreen pixel buffer to accommodate the
+// new width.
+bool AA4x8Renderer::SetMaxWidth(int width)
+{
+    // Pad out specified width to be multiple of four
+    _width = (width + 3) & ~3;
+
+    // Free any previously allocated objects
+    DeleteDC(_hdcmem);
+    _hdcmem = 0;
+    DeleteObject(_hBitmap);
+    _hBitmap = 0;
+    _pixbuf = 0;
+    delete[] _aabuf;
+    _aabuf = 0;
+
+    // Allocate the new AA-buffer
+    _aabuf = new int[_width];  
+    assert(_aabuf);
+    memset(_aabuf, 0, _width*sizeof(_aabuf[0]));  // debug aid
+    for (int i = 0; i < 4; ++i)
+        _aarow[i] = &_aabuf[i*_width/4];
+
+    // Allocate a DIB section big enough to store one scan line
+    // of pixels. For biCompression = BI_RGB, each 32-bit pixel
+    // in the DIB is an RGBQUAD struct with little-endian layout
+    // (i.e., with blue in the 8 LSBs, and alpha in the 8 MSBs).
+    BITMAPINFO bmi;
+
+    memset(&bmi.bmiHeader, 0, sizeof(bmi.bmiHeader));
+    bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+    bmi.bmiHeader.biWidth = _width;
+    bmi.bmiHeader.biHeight = 1;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    _hBitmap = CreateDIBSection(0, &bmi, DIB_RGB_COLORS, (void **)&_pixbuf, 0, 0);
+    assert(_hBitmap);
+    assert(_pixbuf);
+    memset(_pixbuf, 0, _width*sizeof(_pixbuf[0]));
+    _hdcmem = CreateCompatibleDC(_hdc);
+    assert(_hdcmem);
+    SelectObject(_hdcmem, _hBitmap);
+    return true;
+}
 
 // Fills a series of horizontal spans that comprise a shape
 void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
@@ -196,7 +308,7 @@ void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
             if (yscan != YSCAN_INVALID)
                 RenderAbuffer(xmin, xmax, yscan);
 
-            // Initialize max/min x values for new scan line
+            // Initialize xmin/xmax values for the new scan line
             xmin = xL;
             xmax = xR;
             yscan = ysub/4;
@@ -217,8 +329,8 @@ void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
 // y coordinate, ysub, is a fixed-point value with 2 fractional bits.
 void AA4x8Renderer::FillSubpixelSpan(int xL, int xR, int ysub)
 {
-    // To speed up AA-buffer accesses, we write 4 bytes at a time (we
-    // update the bitmap data for 4 adjacent pixels in parallel).
+    // To speed up AA-buffer accesses, we write 4 bytes at a time
+    // (to update the bitmap data for 4 adjacent pixels in parallel).
     // Variables iL and iR are indexes to the starting and ending
     // 4-byte blocks in the AA-buffer. Variables maskL and maskR are
     // the bitmasks for the starting and ending 4-byte blocks.
@@ -250,7 +362,7 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     int iR = (xmax + 31) >> 5;  // index just past last 4-byte block
 
     assert(iL < iR);
-    memset(&_dibits[iL], 0, (iR-iL)*sizeof(_dibits[0]));
+    memset(&_pixbuf[iL], 0, (iR-iL)*sizeof(_pixbuf[0]));
 
     // Count the coverage bits per pixel in the AA-buffer. To speed
     // things up, we'll tally the counts for four adjacent pixels at
@@ -273,30 +385,45 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
             count += val;
         }
 
-        // The 4 bytes in "count" contain the individual population
-        // counts for 4 adjacent pixels. Paint these 4 pixels.
+        // The four bytes in the 'count' variable contain the
+        // individual population counts for four horizontally
+        // adjacent pixels. Each byte in 'count' contains a
+        // count in the range 0 to 32.
         for (int j = 0; j < 4; ++j)
         {
             int index = count & 63;
 
-            _dibits[x] = _lut[index];
+            _pixbuf[x] = _lut[index];
             ++x;
             count >>= 8;
         }
     }
-    // Blit the painted source pixels from the DIB to the client rect
-    int w = (xmax+7)/8 - xmin/8;
-    BLENDFUNCTION bf = { AC_SRC_OVER, 0, _alpha, AC_SRC_ALPHA };
 
-    AlphaBlend(_hdc, xmin/8, yscan, w, 1, _hdcmem, xmin/8, 0, w, 1, bf);
-    memset(&_dibits[xmin/8], 0, w*sizeof(int));
+    // If this fill uses a paint generator, call its FillSpan function
+    int xleft = xmin/8, xright = (xmax+7)/8;
+    int len = xright - xleft;
+    COLOR *buffer = &_pixbuf[xleft];
+
+    if (_paintgen)
+        _paintgen->FillSpan(xleft, yscan, len, buffer, buffer);
+
+    // Blit the painted source pixels from the DIB to the client rect
+    BLENDFUNCTION bfun = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+
+    AlphaBlend(_hdc, xleft, yscan, len, 1, _hdcmem, xleft, 0, len, 1, bfun);
+    memset(buffer, 0, len*sizeof(_pixbuf[0]));
 }
 
-// Adds a blended color component (R, G, B, or A) to the lookup table
-inline void AA4x8Renderer::Blend(int component)
+// Loads alpha values or RGB color components into the look-up
+// table in the _lut array. The array is loaded with 33 elements
+// corresponding to all possible per-pixel alpha values (0/32,
+// 1/32, ... , 32/32) obtained from a pixel's coverage bitmask
+// in the AA-buffer. The motivation here is to substitute table
+// lookups for multiplications during fill operations.
+void AA4x8Renderer::BlendLUT(COLOR component)
 {
-    int diff = component | (component << 8);
-    int val = 15;
+    COLOR diff = component | (component << 8);
+    COLOR val = 15;
 
     for (int i = 0; i < ARRAY_LEN(_lut); ++i)
     {
@@ -305,64 +432,162 @@ inline void AA4x8Renderer::Blend(int component)
     }
 }
 
-// Initializes the lookup table array, _lut, that is used to blend
-// the fill (source) color with the background (destination) color.
-// This array contains 33 blend values corresponding to source
-// alpha values 0/32, 1/32, ... , 32/32.
+// Sets up the renderer to do solid color fills. This function
+// loads the _lut array with the premultiplied-alpha pixel values
+// for all possible per-pixel alpha values (0/32, 1/32, ... ,
+// 32/32) obtained from a pixel's coverage bitmask in the AA-buffer.
+// In the process, the pixel's color is converted from RGBA (that
+// is, 0xaabbggrr) to BGRA (0xaarrggbb) format. Note that the
+// source constant alpha is first mixed with the per-pixel alpha.
 void AA4x8Renderer::SetColor(COLOR color)
 {
-    _alpha = color >> 24;  // set source constant alpha
-    memset(&_lut[0], 0, sizeof(_lut));
-    Blend(255);
+    COLOR opacity = _alpha*(color >> 24);
+
+    if (_paintgen)
+    {
+        _paintgen->~PaintGen();
+        _paintgen = 0;
+    }
+    opacity += opacity >> 7;
+    opacity >>= 8;
+    color = (opacity << 24) | (color & 0x00ffffff);
+    BlendLUT(opacity);
+    color = PremultAlpha(color);
     for (int shift = 0; shift <= 16; shift += 8)
-        Blend((color >> shift) & 255);
+        BlendLUT((color >> shift) & 255);
 }
 
-// Notifies the renderer when the width of the device clipping
-// rectangle changes. This function rebuilds the AA-buffer and the
-// offscreen pixel buffer to accommodate the new width.
-bool AA4x8Renderer::SetMaxWidth(int width)
+// Loads the _lut array with product of source constant alpha and
+// all possible per-pixel alpha values (0/32, 1/32, ... , 32/32)
+// obtained from a pixel's coverage bitmask in the AA-buffer.
+void AA4x8Renderer::BlendConstantAlphaLUT()
 {
-    // Pad out specified width to be multiple of four
-    _width = (width + 3) & ~3;
+    memset(_lut, 0, sizeof(_lut));
+    BlendLUT(_alpha);
+}
 
-    // Free any previously allocated objects
-    delete[] _aabuf;
-    _aabuf = 0;
-    DeleteDC(_hdcmem);
-    _hdcmem = 0;
-    DeleteObject(_hBitmap);
-    _hBitmap = 0;
-    _dibits = 0;
+bool AA4x8Renderer::SetScrollPosition(int x, int y)
+{
+    _xscroll = x, _yscroll = y;
+    if (_paintgen)
+        _paintgen->SetScrollPosition(_xscroll, _yscroll);
 
-    // Allocate AA-buffer
-    _aabuf = new int[_width];  
-    assert(_aabuf);
-    memset(_aabuf, 0, _width*sizeof(_aabuf[0]));  // debug aid
-    for (int i = 0; i < 4; ++i)
-        _aarow[i] = &_aabuf[i*_width/4];
-
-    // Allocate a DIB section big enough to store one scan line
-    // of pixels. For biCompression = BI_RGB, each 32-bit pixel
-    // in the DIB is an RGBQUAD struct with little-endian layout:
-    // blue in the 8 LSBs, and alpha in the 8 MSBs.
-    BITMAPINFO bmi;
-
-    memset(&bmi.bmiHeader, 0, sizeof(bmi.bmiHeader));
-    bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-    bmi.bmiHeader.biWidth = _width;
-    bmi.bmiHeader.biHeight = 1;
-    bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 32;
-    bmi.bmiHeader.biCompression = BI_RGB;
-    _hBitmap = CreateDIBSection(0, &bmi, DIB_RGB_COLORS,(void **)&_dibits, 0, 0);
-    assert(_hBitmap);
-    assert(_dibits);
-    memset(_dibits, 0, _width*sizeof(_dibits[0]));
-    _hdcmem = CreateCompatibleDC(_hdc);
-    assert(_hdcmem);
-    SelectObject(_hdcmem, _hBitmap);
     return true;
+}
+
+// Sets up the renderer to do tiled pattern fills from an array
+// containing a 2-D image
+void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0, 
+                               int w, int h, int stride, int flags)
+{
+    if (_paintgen)
+    {
+        _paintgen->~PaintGen();
+        _paintgen = 0;
+    }
+    if (~flags & FLAG_IMAGE_BGRA32)
+    {
+        // This renderer requires BGRA (0xaarrggbb) pixel format
+        flags |= FLAG_SWAP_REDBLUE;
+    }
+    TiledPattern *pat;
+    pat = CreateTiledPattern(pattern, u0, v0, w, h, stride, flags, _pxform);
+    assert(pat);
+    _paintgen = pat;
+    _paintgen->SetScrollPosition(_xscroll, _yscroll);
+    BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+}
+
+// Sets up the renderer to do pattern fills from a bitmap file
+// containing a 2-D image
+void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0, 
+                               int w, int h, int flags)
+{
+    if (_paintgen)
+    {
+        _paintgen->~PaintGen();
+        _paintgen = 0;
+    }
+    if (~flags & FLAG_IMAGE_BGRA32)
+    {
+        // This renderer requires BGRA (0xaarrggbb) pixel format
+        flags |= FLAG_SWAP_REDBLUE;
+    }
+    TiledPattern *pat;
+    pat = CreateTiledPattern(imgrdr, u0, v0, w, h, flags, _pxform);
+    assert(pat);
+    _paintgen = pat;
+    _paintgen->SetScrollPosition(_xscroll, _yscroll);
+    BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+}
+
+// Sets up the renderer to do linear gradient fills
+void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
+                                      SPREAD_METHOD spread, int flags)
+{
+    if (_paintgen)
+    {
+        _paintgen->~PaintGen();
+        _paintgen = 0;
+    }
+    LinearGradient *lin;
+    lin = CreateLinearGradient(x0, y0, x1, y1, spread, flags, _pxform);
+    assert(lin); 
+    for (int i = 0; i < _stopCount; ++i)
+        lin->AddColorStop(_cstop[i].offset, _cstop[i].color);
+
+    _paintgen = lin;
+    _paintgen->SetScrollPosition(_xscroll, _yscroll);
+    BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+}
+
+// Sets up the renderer to do radial gradient fills
+void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
+                                      float x1, float y1, float r1,
+                                      SPREAD_METHOD spread, int flags)
+{
+    if (_paintgen)
+    {
+        _paintgen->~PaintGen();
+        _paintgen = 0;
+    }
+    RadialGradient *rad;
+    rad = CreateRadialGradient(x0, y0, r0, x1, y1, r1, spread, flags, _pxform);
+    assert(rad); 
+    for (int i = 0; i < _stopCount; ++i)
+        rad->AddColorStop(_cstop[i].offset, _cstop[i].color);
+
+    _paintgen = rad;
+    _paintgen->SetScrollPosition(_xscroll, _yscroll);
+    BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+}
+
+// Adds a gradient color stop. In the process, the 32-bit stop
+// color is converted from RGBA (that is, 0xaabbggrr) to BGRA
+// (0xaarrggbb) pixel format.
+void AA4x8Renderer::AddColorStop(float offset, COLOR color)
+{
+    if (_stopCount < STOPARRAY_MAXLEN)
+    {
+        COLOR ga = color & 0xff00ff00;
+        COLOR rb = color & 0x00ff00ff;
+
+        rb = (rb >> 16) | (rb << 16);
+        _cstop[_stopCount].color = ga | rb;
+        _cstop[_stopCount].offset = offset;
+        ++_stopCount;
+    }
+}
+
+void AA4x8Renderer::SetTransform(const float xform[])
+{
+    if (xform)
+    {
+        memcpy(&_xform[0], &xform[0], sizeof(_xform));
+        _pxform = &_xform[0];
+    }
+    else
+        _pxform = 0;
 }
 
 //----------------------------------------------------------------------
@@ -375,8 +600,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     RECT rect;
     PAINTSTRUCT ps;
-    static int testnum = -1;
-    static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT};
+    static int testnum = 0;
+    static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
     HDC hdc;
 
     switch (message)
@@ -388,8 +613,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetScrollPos(hwnd, SB_VERT, 0, true);
         return 0;
 
-    case WM_KEYDOWN:
-        ++testnum;
+    case WM_KEYDOWN: 
+        switch (wParam) 
+        { 
+            case VK_ESCAPE: 
+                testnum = 0; 
+                break; 
+            case VK_UP: 
+            case VK_LEFT: 
+                --testnum;
+                break; 
+            default: 
+                ++testnum; 
+                break;
+        }
         cliprect.x = cliprect.y = 0;
         SetScrollPos(hwnd, SB_HORZ, cliprect.x, false);
         SetScrollPos(hwnd, SB_VERT, cliprect.y, true);
@@ -420,11 +657,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             BasicRenderer rend(hdc);
             AA4x8Renderer aarend(hdc);
 
-            if (!runtest(testnum, &rend, &aarend, cliprect))
-            {
-                testnum = 0;  // we ran the last test, so start over
-                runtest(testnum, &rend, &aarend, cliprect);
-            }
+            testnum = runtest(testnum, &rend, &aarend, cliprect);
         }
         EndPaint(hwnd, &ps);
         return 0; 
@@ -435,5 +668,4 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     } 
     return DefWindowProc(hwnd, message, wParam, lParam); 
 }
-
 

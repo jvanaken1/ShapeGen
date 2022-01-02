@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -97,7 +97,7 @@ namespace {
 
 float PathMgr::SetLineWidth(float width)
 {
-    float oldwidth = _linewidth/65536.0;
+    float oldwidth = _linewidth/65536.0f;
 
     assert(width >= 0);
     _linewidth = 65536*width;  // convert to 16.16 fixed-point format
@@ -178,11 +178,11 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 
 float PathMgr::SetMiterLimit(float mlim)
 {
-    float oldmlim = _miterlimit/65536.0;
+    float oldmlim = _miterlimit/65536.0f;
 
     mlim = max(mlim, MITERLIMIT_MINIMUM);
-    _miterlimit = 65536.0*mlim;
-    _mitercheck = 65536.0*sqrt(mlim*mlim - 1.0);
+    _miterlimit = 65536*mlim;
+    _mitercheck = 65536*sqrt(mlim*mlim - 1);
     return oldmlim;
 }
 
@@ -798,7 +798,7 @@ bool PathMgr::StrokePath()
     _figtmp = 0;
 
     // Fill within the polygonal boundaries of the stroked path
-    _edge->TranslateEdges(_scroll.x, _scroll.y);
+    _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
     _edge->NormalizeEdges(FILLRULE_WINDING);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->FillEdgeList();

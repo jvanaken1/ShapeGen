@@ -4,21 +4,31 @@
 
 CC = g++
 
-OBJS = demo.o textapp.o arc.o curve.o edge.o path.o stroke.o thinline.o
+OBJS = demo.o bmpfile.o textapp.o gradient.o pattern.o \
+       arc.o curve.o edge.o path.o stroke.o thinline.o
 
 all : .PHONY demo
 
 demo : sdlmain.o $(OBJS)
 	$(CC) -o demo sdlmain.o $(OBJS) -lSDL2
 
-sdlmain.o : sdlmain.cpp demo.h shapegen.h
-	$(CC) -w -c sdlmain.cpp
-
-demo.o : demo.cpp demo.h shapegen.h
+demo.o : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) -w -c demo.cpp
 
-textapp.o : textapp.cpp demo.h shapegen.h
+sdlmain.o : sdlmain.cpp shapegen.h renderer.h
+	$(CC) -w -c sdlmain.cpp
+
+bmpfile.o : bmpfile.cpp shapegen.h renderer.h demo.h
+	$(CC) -w -c bmpfile.cpp
+
+textapp.o : textapp.cpp shapegen.h renderer.h demo.h
 	$(CC) -w -c textapp.cpp
+
+gradient.o : gradient.cpp shapegen.h renderer.h
+	$(CC) -w -c gradient.cpp
+
+pattern.o : pattern.cpp shapegen.h renderer.h
+	$(CC) -w -c pattern.cpp
 
 arc.o : arc.cpp shapegen.h shapepri.h
 	$(CC) -w -c arc.cpp
@@ -41,8 +51,9 @@ thinline.o : thinline.cpp shapegen.h shapepri.h
 .PHONY :
 	cp -u ../*.cpp .
 	cp -u ../*.h .
+	cp -u ../*.bmp .
 
-clean:
+clean :
 	rm *.o
 	rm demo
 

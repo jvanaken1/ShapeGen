@@ -4,26 +4,36 @@
 # Remember to run vcvars32.bat first to set up your build environment
 
 LIBFILES = user32.lib gdi32.lib Winmm.lib Msimg32.lib
-OBJFILES = demo.obj textapp.obj arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
+OBJFILES = demo.obj textapp.obj bmpfile.obj gradient.obj pattern.obj \
+           arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
 LFLAGS =
 LDEBUG = /DEBUG
 
-all : demo.exe
+all : demo.exe bricks.bmp fleur.bmp honeycomb.bmp star.bmp
 
 demo.exe : winmain.obj $(OBJFILES)
 	$(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
 
-winmain.obj : winmain.cpp demo.h shapegen.h
-	$(CC) $(CDEBUG) -c winmain.cpp
-
-demo.obj : demo.cpp demo.h shapegen.h
+demo.obj : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) $(CDEBUG) -c demo.cpp
 
-textapp.obj : textapp.cpp demo.h shapegen.h
+textapp.obj : textapp.cpp shapegen.h renderer.h demo.h
 	$(CC) $(CDEBUG) -c textapp.cpp
+
+bmpfile.obj : bmpfile.cpp shapegen.h renderer.h demo.h
+	$(CC) $(CDEBUG) -c bmpfile.cpp
+
+winmain.obj : winmain.cpp shapegen.h renderer.h demo.h
+	$(CC) $(CDEBUG) -c winmain.cpp
+
+pattern.obj : pattern.cpp shapegen.h renderer.h
+	$(CC) $(CDEBUG) -c pattern.cpp
+
+gradient.obj : gradient.cpp shapegen.h renderer.h
+	$(CC) $(CDEBUG) -c gradient.cpp
 
 arc.obj : arc.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c arc.cpp
@@ -52,8 +62,14 @@ shapegen.h : ..\shapegen.h
 shapepri.h : ..\shapepri.h
         copy /y ..\shapepri.h
 
+renderer.h : ..\renderer.h
+        copy /y ..\renderer.h
+
 arc.cpp : ..\arc.cpp
         copy /y ..\arc.cpp
+        
+bmpfile.cpp : ..\bmpfile.cpp
+        copy /y ..\bmpfile.cpp
         
 curve.cpp : ..\curve.cpp
         copy /y ..\curve.cpp
@@ -63,6 +79,12 @@ demo.cpp : ..\demo.cpp
         
 edge.cpp : ..\edge.cpp
         copy /y ..\edge.cpp
+        
+gradient.cpp : ..\gradient.cpp
+        copy /y ..\gradient.cpp
+        
+pattern.cpp : ..\pattern.cpp
+        copy /y ..\pattern.cpp
         
 path.cpp : ..\path.cpp
         copy /y ..\path.cpp
@@ -75,6 +97,18 @@ textapp.cpp : ..\textapp.cpp
         
 thinline.cpp : ..\thinline.cpp
         copy /y ..\thinline.cpp
+        
+bricks.bmp : ..\bricks.bmp
+        copy /y ..\bricks.bmp
+        
+fleur.bmp : ..\fleur.bmp
+        copy /y ..\fleur.bmp
+        
+honeycomb.bmp : ..\honeycomb.bmp
+        copy /y ..\honeycomb.bmp
+        
+star.bmp : ..\star.bmp
+        copy /y ..\star.bmp
         
 clean:
         @del *.exe

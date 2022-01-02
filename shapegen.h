@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -38,7 +38,7 @@
 // 32-bit fixed-point value with 16-bit fraction (16.16 fixed point) 
 typedef int FIX16;
 
-// Coordinates, points, rectangles, trapezoids, and spans
+// Coordinates, points, rectangles, and spans
 typedef int SGCoord;
 struct SGPoint { 
     SGCoord x; 
@@ -63,12 +63,12 @@ const float LINEWIDTH_DEFAULT = 4.0;
 const float MITERLIMIT_DEFAULT = 10.0;   // default miter limit
 const float MITERLIMIT_MINIMUM = 1.0;    // minimum miter limit
 
-// Flatness threshold -- required arc- or curve-to-chord tolerance 
-const float FLATNESS_DEFAULT = 0.6;      // default flatness setting
+// Flatness threshold -- required curve-to-chord tolerance 
+const float FLATNESS_DEFAULT = 0.5;      // default flatness setting
 const float FLATNESS_MINIMUM = 0.2;      // minimum flatness setting
 const float FLATNESS_MAXIMUM = 100.0;    // maximum flatness setting
 
-// Fixed-point fraction length -- bits to right of binary point 
+// SGCoord fixed-point fraction length -- bits to right of binary point 
 const int FIXBITS_DEFAULT = 0;  // default = integer (no fixed point)
 
 // Maximum length of dash-pattern array, not counting terminating 0
@@ -88,7 +88,7 @@ enum LINEJOIN {
 };
 const LINEJOIN LINEJOIN_DEFAULT = LINEJOIN_BEVEL;  // default line join
 
-// Line end (cap) attribute values for stroked paths 
+// Line end cap attribute values for stroked paths 
 enum LINEEND {
     LINEEND_FLAT,   // flat line end (butt line cap)
     LINEEND_ROUND,  // rounded line end (round cap)
@@ -101,13 +101,15 @@ const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end
 // Shape feeder: Breaks a shape into smaller pieces to feed to a
 // renderer. The ShapeGen object loads a shape into a shape feeder and
 // then hands off the feeder to the renderer. The renderer iteratively
-// calls one of the four functions below to receive the shape in
-// pieces -- as rectangles, spans, or trapezoids -- that are ready to
-// be drawn to the graphics display as filled shapes. The
-// GetNextSDLRect function dispenses rectangles in SDL2 (Simple
-// DirectMedia Layer, version 2) SDL_Rect format, and the
-// GetNextGDIRect function dispenses rectangles in Windows GDI's RECT
-// format (in spite of the somewhat misleading type cast to SGRect*).
+// calls one of the three functions below to receive the shape in
+// pieces -- as rectangles or spans -- that are ready to be drawn to
+// the graphics display as filled shapes. The GetNextSDLRect function
+// dispenses rectangles in SDL2 (Simple DirectMedia Layer, version 2)
+// SDL_Rect format. The GetNextGDIRect function dispenses rectangles
+// in Windows GDI's RECT format (in spite of the somewhat misleading
+// type cast to SGRect*). The GetNextSGSpan function supports
+// antialiasing by dispensing a subpixel span that adds a horizontal
+// row of bits to the coverage bitmaps for a row of pixels.
 //
 //---------------------------------------------------------------------
 
@@ -123,8 +125,11 @@ public:
 //
 // Renderer: Handles requests from the ShapeGen object to draw filled
 // shapes on the display. An antialiasing renderer implements its own
-// versions of the QueryYResolution and SetClipWidth functions, but a
-// simple renderer uses the rudimentary versions defined here.
+// versions of the QueryYResolution and SetMaxWidth functions, but a
+// simple renderer simply inherits the rudimentary versions defined
+// here. To enable pattern alignment, an enhanced renderer implements
+// its own version of the SetScrollPosition function, but a renderer
+// that does only solid-color fills can inherit the version below.
 //
 //---------------------------------------------------------------------
 
@@ -134,16 +139,18 @@ public:
     virtual void RenderShape(ShapeFeeder *feeder) = 0;
     virtual int QueryYResolution() { return 0; }
     virtual bool SetMaxWidth(int width) { return true; }
+    virtual bool SetScrollPosition(int x, int y) { return true; }
 };
 
 //---------------------------------------------------------------------
 //
-// 2-D Polygonal Shape Generator: Constructs paths that describe
-// polygonal shapes, and then maps these shapes onto the pixel grid.
-// The ShapeGen object relies on the Renderer object to write to the
-// pixels in the display. Consequently, all device dependencies are
-// consigned to the renderer. The ShapeGen code contains no device
-// dependencies or platform-specific code, and is highly portable. 
+// ShapeGen class: 2-D Polygonal Shape Generator. Constructs paths
+// that describe polygonal shapes, and then maps these shapes onto the
+// pixel grid. But the ShapeGen object relies on the Renderer object
+// to actually write the shapes to the pixels in the display device.
+// In other words, ShapeGen consigns all device dependencies to the
+// renderer. Thus, the ShapeGen source code contains no device depend-
+// encies or platform-specific function calls, and is highly portable. 
 //
 //---------------------------------------------------------------------
 
@@ -198,7 +205,8 @@ public:
 
     // Ellipses and elliptic arcs
     virtual void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2) = 0;
-    virtual void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, float aStart, float aSweep) = 0;
+    virtual void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, 
+                             float aStart, float aSweep) = 0;
     virtual bool EllipticSpline(const SGPoint& v1, const SGPoint& v2) = 0;
     virtual bool PolyEllipticSpline(int npts, const SGPoint xy[]) = 0;
     virtual void RoundedRectangle(const SGRect& rect, const SGPoint& round) = 0;
@@ -212,12 +220,13 @@ public:
 
 //---------------------------------------------------------------------
 //
-// ShapeGen smart pointer. Creates a ShapeGen object that is
-// automatically deleted when the SGPtr object goes out of scope.
-// Encapsulates the ShapeGen internal implementation details. The ->
-// operator is overloaded to enable an SGPtr object to be used as a
-// ShapeGen object pointer. The * operator is overloaded to enable a
-// ShapeGen object pointer to be passed as a function parameter.
+// SGPtr class: ShapeGen smart pointer. Creates a ShapeGen object that
+// is automatically deleted when the SGPtr object goes out of scope.
+// The SGPtr class encapsulates ShapeGen's internal implementation
+// details as follows: (1) SGPtr overloads the '->' operator to enable
+// an SGPtr object to be used as a ShapeGen object pointer, and (2)
+// SGPtr overloads the '*' operator to enable a ShapeGen object
+// pointer to be passed as a function parameter.
 //
 //--------------------------------------------------------------------- 
 class SGPtr 
@@ -235,13 +244,13 @@ public:
     { 
         delete(sg); 
     }
-    ShapeGen& operator*() 
-    {  
-        return *sg; 
-    }
     ShapeGen* operator->() 
     { 
         return sg; 
+    }
+    ShapeGen& operator*() 
+    {  
+        return *sg; 
     } 
 };
 
