@@ -3374,7 +3374,7 @@ void example18(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Array of pointers to all demo functions
-void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect)
+void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect) =
 {
     // Demo frames
     demo01, demo02, demo03, demo04, 
