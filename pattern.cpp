@@ -308,9 +308,9 @@ void Pattern::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAl
     UVPAIR *off[2] = { _offset[incr], _offset[incr+1] };
     
     // Each iteration of the for-loop below paints one pixel
-    for (int n = 0; n < len; ++n)
+    for (int k = 0; k < len; ++k)
     {
-        COLOR opacity = (inAlpha == 0) ? 255 : inAlpha[n];
+        COLOR opacity = (inAlpha == 0) ? 255 : inAlpha[k];
 
         if (opacity != 0)
         {
@@ -339,7 +339,7 @@ void Pattern::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAl
             rb &= 0x03fc03fc;
             color = (ga << 6) | (rb >> 2);
             color = MultiplyByOpacity(color, opacity);
-            outBuf[n] = color;
+            outBuf[k] = color;
         }
         u += _dudx;
         v += _dvdx;
