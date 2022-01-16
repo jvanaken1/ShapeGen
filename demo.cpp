@@ -1832,7 +1832,7 @@ void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     char *str = "Alpha Blending";
     SGPoint xystart;
     float scale = 1.25;
-    txt.SetTextSpacing(1.3);
+    txt.SetTextSpacing(1.15);
     float wide = txt.GetTextWidth(scale, str);
     xystart.x = (clip.w - wide)/2;
     xystart.y = 480;
@@ -3373,6 +3373,322 @@ void example18(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
+// Code example from EnhancedRenderer::AddColorStop reference topic
+void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    int i0, j0, i1, j1;
+    float x0 = 270.0, y0 = 150.0;
+    float x1 = 370.0, y1 = 150.0;
+    char dash[] = { 1, 0 };
+
+    // Add three color stops
+    aarend->AddColorStop(0, RGBX(0,255,255));      // cyan
+    aarend->AddColorStop(0.33, RGBX(240,255,22));  // yellow
+    aarend->AddColorStop(1.0, RGBX(255,100,255));  // magenta
+
+    // Set up the linear gradient
+    aarend->SetLinearGradient(x0,y0, x1,y1, SPREAD_REPEAT,
+                              FLAG_EXTEND_START | FLAG_EXTEND_END);
+
+    // Use the gradient to fill a wide, stroked horizontal line
+    i0 = x0 - 199, j0 = y0;
+    i1 = x1 + 199, j1 = y0;
+    sg->SetLineWidth(100.0);
+    sg->BeginPath();
+    sg->Move(i0, j0);
+    sg->Line(i1, j1);
+    sg->StrokePath();
+
+    // Draw a thin vertical black line through the linear 
+    // gradient's starting point at (x0,y0)
+    aarend->SetColor(RGBX(0,0,0));
+    i0 = x0, j0 = y0 - 85;
+    i1 = x0, j1 = y0 + 85;
+    sg->SetLineWidth(2.0);
+    sg->BeginPath();
+    sg->Move(i0, j0);
+    sg->Line(i1, j1);
+    sg->StrokePath();
+
+    // Draw a dashed vertical black line through the linear 
+    // gradient's ending point at (x1,y1)
+    i0 = x1, j0 = y1 - 85;
+    i1 = x1, j1 = y1 + 85;
+    sg->SetLineDash(dash, 0, 8.07);
+    sg->BeginPath();
+    sg->Move(i0, j0);
+    sg->Line(i1, j1);
+    sg->StrokePath();
+    sg->SetLineDash(0,0,0);
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "AddColorStop reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example from EnhancedRenderer::SetConstantAlpha reference topic
+void example20(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    COLOR checker[4] = { 
+        RGBX(255,255,255), RGBX(0,0,0), 
+        RGBX(0,0,0), RGBX(255,255,255),
+    };
+    SGRect bkgd = { 40, 40, 400, 200 };
+    SGRect rect = { 50, 30, 80, 220 };
+    float xform[6] = { 0.075, 0, 0, 0.075, 0, 0 };
+
+    // Draw checkerboard background pattern
+    aarend->SetTransform(xform);
+    aarend->SetPattern(checker, 0,0, 2,2, 2, 0);
+    sg->BeginPath();
+    sg->Rectangle(bkgd);
+    sg->FillPath(FILLRULE_EVENODD);
+    aarend->SetTransform(0);
+
+    // Set up color stop table
+    aarend->AddColorStop(0, RGBX(0,255,255));  // cyan
+    aarend->AddColorStop(0.7, RGBX(255,0,0));  // red
+    aarend->AddColorStop(1.0, RGBA(0,0,0,0));  // transparent
+
+    // Fill four rectangles with linear gradient
+    for (int alpha = 255; alpha > 60; alpha -= 60)
+    {
+        aarend->SetConstantAlpha(alpha);
+        aarend->SetLinearGradient(0,30, 0,140, SPREAD_REFLECT,
+                                  FLAG_EXTEND_START | FLAG_EXTEND_END);
+        sg->BeginPath();
+        sg->Rectangle(rect);
+        sg->FillPath(FILLRULE_EVENODD);
+        rect.x += 100;
+    }
+    aarend->SetConstantAlpha(255);
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "SetConstantAlpha reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example from EnhancedRenderer::SetLinearGradient reference topic
+void example21(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    SGRect bkgd = { 40, 40, 400, 300 };
+    SGRect light = { 200, 190, 80, 150 };
+    SGPoint v0 = { 240, 190 }, v1 = { 200, 190 }, v2 = { 240, 150 };
+
+    // Fill background with ocean horizon gradient colors
+    aarend->AddColorStop(0, RGBX(90,100,160));
+    aarend->AddColorStop(0.5, RGBX(250,170,110));
+    aarend->AddColorStop(0.5, RGBX(30,40,50));
+    aarend->AddColorStop(1.0, RGBX(50,155,180));
+    aarend->SetLinearGradient(0,40, 0,340, SPREAD_PAD, 0);
+    sg->BeginPath();
+    sg->Rectangle(bkgd);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Show sun rising on horizon
+    aarend->ResetColorStops();
+    aarend->AddColorStop(0, RGBX(225,205,100));
+    aarend->AddColorStop(1.0, RGBX(255,145,44));
+    aarend->SetLinearGradient(0,150, 0,190, SPREAD_PAD, 0);
+    sg->BeginPath();
+    sg->EllipticArc(v0, v1, v2, 0, PI);  // PI = 3.14159265...
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Show hazy reflection of sun on water
+    aarend->ResetColorStops();
+    aarend->AddColorStop(0, RGBA(255,160,44,16));
+    aarend->AddColorStop(1.0, RGBA(255,160,44,24));
+    aarend->SetLinearGradient(0,190, 0,193, SPREAD_REFLECT, FLAG_EXTEND_END);
+    sg->BeginPath();
+    sg->Rectangle(light);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "SetLinearGradient reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example from EnhancedRenderer::SetPattern reference topic
+void example22(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    COLOR yel = RGBX(231,213,168), gry = RGBX(163,147,128),
+          red = RGBX(211,76,73), mar = RGBX(146,74,77),
+          blu = RGBX(79,78,88);
+    COLOR tartan[7*7] = {
+        yel, gry, gry, yel, gry, gry, gry,
+        gry, red, red, gry, mar, mar, mar,
+        gry, red, red, gry, mar, mar, mar,
+        yel, gry, gry, yel, gry, gry, gry,
+        gry, blu, blu, gry, blu, blu, blu,
+        gry, blu, blu, gry, blu, blu, blu,
+        gry, blu, blu, gry, blu, blu, blu,    
+    };
+    SGPoint v0 = { 240, 180 }, v1 = { 40, 180 }, v2 = { 240, 40 };
+    float xform[6] = { 0.059, 0.059, -0.059, 0.059, 0, 0 };
+
+    aarend->SetTransform(xform);
+    aarend->SetPattern(tartan, 0,0, 7,7,7, 0);
+    sg->BeginPath();
+    sg->Ellipse(v0, v1, v2);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "SetPattern reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example from EnhancedRenderer::SetRadialGradient reference topic
+void example23(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    SGPoint v0 = { 180, 180 }, v1 = { 40, 180 }, v2 = { 180, 40 };
+
+    aarend->AddColorStop(0, RGBX(255,255,224));  // light yellow
+    aarend->AddColorStop(0.1, RGBX(255,255,224));
+    aarend->AddColorStop(0.9, RGBX(139,0,0));  // dark red
+    aarend->AddColorStop(1.0, RGBX(139,0,0));
+    aarend->SetRadialGradient(120,120,0, 180,180,140, SPREAD_PAD, FLAG_EXTEND_END);
+    sg->BeginPath();
+    sg->Ellipse(v0, v1, v2);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "SetRadialGradient reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example from EnhancedRenderer::SetTransform reference topic
+void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    SGRect rect = { 40, 40, 400, 300 };
+    SGPoint u[3] = { { 200, 160 }, { 130, 160 }, { 200, 90 } };
+    SGPoint v[3] = { { 290, 215 }, { 190, 215 }, { 290, 115 } };
+    float xform[6] = { 0.375, -0.650, 1.039, 0.600, 372.546, 231.885 };
+
+    // Fill the left rectangle with background color gray
+    aarend->SetColor(RGBX(180,180,180));
+    sg->BeginPath();
+    sg->Rectangle(rect);
+    sg->FillPath(FILLRULE_WINDING);
+
+    // Fill the left rectangle with a radial gradient
+    aarend->AddColorStop(0, RGBX(255, 215, 0));  // gold
+    aarend->AddColorStop(1.0, RGBX(135, 206, 235));  // skyblue
+    aarend->SetRadialGradient(200,160,70, 290,215,100, SPREAD_REPEAT,
+                              FLAG_EXTEND_START | FLAG_EXTEND_END);
+    sg->FillPath(FILLRULE_WINDING);
+
+    // Stroke the outline of the starting circle in black
+    aarend->SetColor(RGBX(40,40,40));
+    sg->SetLineWidth(2);
+    sg->BeginPath();
+    sg->Ellipse(u[0], u[1], u[2]);
+    sg->StrokePath();
+
+    // Stroke the outline of the ending circle in red
+    aarend->SetColor(RGBX(255,0,0));
+    sg->BeginPath();
+    sg->Ellipse(v[0], v[1], v[2]);
+    sg->StrokePath();
+
+    // Fill the right rectangle with background color gray 
+    rect.x += 420;
+    aarend->SetColor(RGBX(180,180,180));
+    sg->BeginPath();
+    sg->Rectangle(rect);
+    sg->FillPath(FILLRULE_WINDING);
+
+    // Set up a new transform for the radial gradient
+    aarend->SetTransform(xform);
+
+    // Fill the right rectangle with the transformed radial gradient
+    aarend->SetRadialGradient(200,160,70, 290,215,100, SPREAD_REPEAT,
+                              FLAG_EXTEND_START | FLAG_EXTEND_END);
+    sg->FillPath(FILLRULE_WINDING);
+
+    // Transform the coordinates of the starting and ending circles
+    for (int i = 0; i < 3; ++i)
+    {
+        float xtmp = xform[0]*u[i].x + xform[2]*u[i].y + xform[4];
+        u[i].y = xform[1]*u[i].x + xform[3]*u[i].y + xform[5];
+        u[i].x = xtmp;
+
+        xtmp = xform[0]*v[i].x + xform[2]*v[i].y + xform[4];
+        v[i].y = xform[1]*v[i].x + xform[3]*v[i].y + xform[5];
+        v[i].x = xtmp;
+    }
+
+    // Outline the transformed starting circle in black
+    aarend->SetColor(RGBX(40,40,40));
+    sg->SetLineWidth(2);
+    sg->BeginPath();
+    sg->Ellipse(u[0], u[1], u[2]);
+    sg->StrokePath();
+
+    // Outline the transformed ending circle in red
+    aarend->SetColor(RGBX(255,0,0));
+    sg->BeginPath();
+    sg->Ellipse(v[0], v[1], v[2]);
+    sg->StrokePath();
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "SetTransform reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
 // Array of pointers to all demo functions
 void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect) =
 {
@@ -3390,7 +3706,9 @@ void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect&
     example07, example08, example09,
     example10, example11, example12,
     example13, example14, example15,
-    example16, example17, example18, 
+    example16, example17, example18,
+    example19, example20, example21,
+    example22, example23, example24, 
 };
 
 //---------------------------------------------------------------------
