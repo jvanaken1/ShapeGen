@@ -318,7 +318,7 @@ void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
 
     // Draw horizontal text
     sg->SetLineWidth(6.0);
-    str = "2-D Polygonal Shape Generator";
+    str = "ShapeGen 2-D Graphics Library";
     scale = 0.75;
     width = txt.GetTextWidth(scale, str);
     xystart.x = (clip.w - width)/2;
@@ -3392,9 +3392,10 @@ void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
 
     // Use the gradient to fill a wide, stroked horizontal line
-    i0 = x0 - 199, j0 = y0;
-    i1 = x1 + 199, j1 = y0;
+    i0 = x0 - 149, j0 = y0;
+    i1 = x1 + 149, j1 = y0;
     sg->SetLineWidth(100.0);
+    sg->SetLineEnd(LINEEND_ROUND);
     sg->BeginPath();
     sg->Move(i0, j0);
     sg->Line(i1, j1);
@@ -3492,7 +3493,7 @@ void example21(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     SGPtr sg(aarend, clip);
     SGRect bkgd = { 40, 40, 400, 300 };
     SGRect light = { 200, 190, 80, 150 };
-    SGPoint v0 = { 240, 190 }, v1 = { 200, 190 }, v2 = { 240, 150 };
+    SGPoint v0 = { 240, 191 }, v1 = { 200, 191 }, v2 = { 240, 151 };
 
     // Fill background with ocean horizon gradient colors
     aarend->AddColorStop(0, RGBX(90,100,160));
@@ -3508,7 +3509,7 @@ void example21(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     aarend->ResetColorStops();
     aarend->AddColorStop(0, RGBX(225,205,100));
     aarend->AddColorStop(1.0, RGBX(255,145,44));
-    aarend->SetLinearGradient(0,150, 0,190, SPREAD_PAD, 0);
+    aarend->SetLinearGradient(0,150, 0,191, SPREAD_PAD, 0);
     sg->BeginPath();
     sg->EllipticArc(v0, v1, v2, 0, PI);  // PI = 3.14159265...
     sg->FillPath(FILLRULE_EVENODD);
@@ -3577,13 +3578,11 @@ void example22(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example23(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint v0 = { 180, 180 }, v1 = { 40, 180 }, v2 = { 180, 40 };
+    SGPoint v0 = { 200, 200 }, v1 = { 200-162, 200 }, v2 = { 200, 200-162 };
 
     aarend->AddColorStop(0, RGBX(255,255,224));  // light yellow
-    aarend->AddColorStop(0.1, RGBX(255,255,224));
-    aarend->AddColorStop(0.9, RGBX(139,0,0));  // dark red
-    aarend->AddColorStop(1.0, RGBX(139,0,0));
-    aarend->SetRadialGradient(120,120,0, 180,180,140, SPREAD_PAD, FLAG_EXTEND_END);
+    aarend->AddColorStop(1.0, RGBX(139,0,0));  // dark red
+    aarend->SetRadialGradient(140,140,19, 182,182,188, SPREAD_PAD, FLAG_EXTEND_START);
     sg->BeginPath();
     sg->Ellipse(v0, v1, v2);
     sg->FillPath(FILLRULE_EVENODD);
@@ -3606,9 +3605,9 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     SGRect rect = { 40, 40, 400, 300 };
-    SGPoint u[3] = { { 200, 160 }, { 130, 160 }, { 200, 90 } };
-    SGPoint v[3] = { { 290, 215 }, { 190, 215 }, { 290, 115 } };
-    float xform[6] = { 0.375, -0.650, 1.039, 0.600, 372.546, 231.885 };
+    SGPoint u[3] = { { 200, 160 }, { 200-70, 160 }, { 200, 160-70 } };
+    SGPoint v[3] = { { 290, 215 }, { 290-100, 215 }, { 290, 215-100 } };
+    float xform[6] = { 0.375, -0.650, 1.083, 0.625, 364.3, 227.1 };
 
     // Fill the left rectangle with background color gray
     aarend->SetColor(RGBX(180,180,180));
