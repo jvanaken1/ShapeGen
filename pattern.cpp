@@ -58,14 +58,15 @@ namespace {
     
         rb = pixel & 0x00ff00ff;
         rb *= opacity;
-        rb += (rb >> 7) & ~0xfe00fe00;
-        rb &= 0xff00ff00;
+        rb += 0x00800080;
+        rb += (rb >> 8) & 0x00ff00ff;
+        rb = (rb >> 8) & 0x00ff00ff;
         ga = (pixel >> 8) & 0x00ff00ff;
         ga *= opacity;
-        ga += (ga >> 7) & ~0xfe00fe00;
+        ga += 0x00800080;
+        ga += (ga >> 8) & 0x00ff00ff;
         ga &= 0xff00ff00;
-        pixel = ga | (rb >> 8);
-        return pixel;
+        return ga | rb;
     }
     
     // Premultiplies an array of 32-bit pixels by their alphas
@@ -86,14 +87,15 @@ namespace {
             color |= 0xff000000;
             rb = color & 0x00ff00ff;
             rb *= alfa;
-            rb += (rb >> 7) & 0x01ff01ff;
+            rb += 0x00800080;
+            rb += (rb >> 8) & 0x00ff00ff;
             rb &= 0xff00ff00;
             ga = (color >> 8) & 0x00ff00ff;
             ga *= alfa;
-            ga += (ga >> 7) & 0x01ff01ff;
+            ga += 0x00800080;
+            ga += (ga >> 8) & 0x00ff00ff;
             ga &= 0xff00ff00;
-            color = ga | (rb >> 8);
-            *pixel = color;
+            *pixel = ga | (rb >> 8);
         }
     }
 
@@ -291,9 +293,13 @@ bool Pattern::SetScrollPosition(int x, int y)
     return true;
 }
 
-// Public function: Fills the pixels in a single horizontal span
-// with a tiled pattern. The span starts at pixel (xs,ys) and
-// extends to the right for len pixels.
+// Public function: Fills the pixels in a single horizontal span with
+// a tiled pattern. The span starts at pixel (xs,ys) and extends to
+// the right for len pixels. The function writes the processed
+// pattern-fill pixels to the outBuf array. To support shape anti-
+// aliasing and source constant alpha, the inAlpha array contains
+// 8-bit alpha values to apply to the pattern-fill pixels (in addition
+// to the per-pixel alphas in the pattern).
 //
 void Pattern::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
 {

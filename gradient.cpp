@@ -84,11 +84,13 @@ int ColorStops::SetColorStop(int index, FIX16 offset, COLOR color)
         if (a != 255)
         {
             rb *= a;
-            rb += (rb >> 7) & ~0x0000fe00;
+            rb += 0x00800080;
+            rb += (rb >> 8) & 0x00ff00ff;
             rb = (rb >> 8) & 0x00ff00ff;
             ga |= 0x00ff0000;
             ga *= a;
-            ga += (ga >> 7) & ~0x0000fe00;
+            ga += 0x00800080;
+            ga += (ga >> 8) & 0x00ff00ff;
             ga = (ga >> 8) & 0x00ff00ff;
         }
     }
@@ -168,15 +170,11 @@ bool ColorStops::AddColorStop(float offset, COLOR color)
 // SPREAD_PAD spread method is used. Parameter n indicates whether to
 // retrieve the padding color for the inside of the starting circle
 // (n < 0) or the outside of the ending circle (n > 0). The opacity
-// parameter is an alpha value in the range 0 to 255. If the renderer
-// uses premultiplied alpha, all four components (r,g,b,a) of the
-// color value are multiplied by opacity (the RGB values in the
-// color-stop array have already been premultiplied by their alphas).
+// parameter is an alpha value in the range 0 to 255. The color value
+// is always in premultiplied-alpha format, so the function multiplies
+// all four components (r,g,b,a) of this value by opacity.
 COLOR ColorStops::GetPadColor(int n, COLOR opacity)
 {
-    if (opacity == 0)
-        return 0;
-    
     STOP_COLOR& stop = (n < 0) ? _stop[0] : _stop[_stopCount-1];
     COLOR rb = stop.rb, ga = stop.ga;
 
@@ -184,12 +182,14 @@ COLOR ColorStops::GetPadColor(int n, COLOR opacity)
         return (ga << 8) | rb;
 
     rb *= opacity;
-    rb += (rb >> 7) & ~0x0000fe00;
-    rb &= 0xff00ff00;
+    rb += 0x00800080;
+    rb += (rb >> 8) & 0x00ff00ff;
+    rb = (rb >> 8) & 0x00ff00ff;
     ga *= opacity;
-    ga += (ga >> 7) & ~0x0000fe00;
+    ga += 0x00800080;
+    ga += (ga >> 8) & 0x00ff00ff;
     ga &= 0xff00ff00;
-    return ga | (rb >> 8);
+    return ga | rb;
 }
 
 // Calculates the color of a pixel given (1) the color look-up
@@ -203,7 +203,11 @@ COLOR ColorStops::GetPadColor(int n, COLOR opacity)
 // value are cached in the hope that several subsequent pixels
 // might re-use the cached color stops.
 COLOR ColorStops::GetColorValue(FIX16 t, COLOR opacity)
-{
+{ 
+    float width;
+    FIX16 s1, s2;
+    COLOR ga, rb, rb1, rb2, ga1, ga2;
+
     assert(0 <= t && t <= 0x0000ffff);
     if (t < _tminStop.offset || _tmaxStop.offset < t)
     {
@@ -221,35 +225,35 @@ COLOR ColorStops::GetColorValue(FIX16 t, COLOR opacity)
 
     // Interpolate between the two cached color stops on either
     // side of t. The RGB components in the two stops have
-    // previously been premultiplied by their alphas. 
-    float width;
-    FIX16 s1, s2;
-    COLOR ga, rb;
-    COLOR ga1 = _tminStop.ga, ga2 = _tmaxStop.ga;
-    COLOR rb1 = _tminStop.rb, rb2 = _tmaxStop.rb;
-
+    // previously been premultiplied by their alphas.
+    ga1 = _tminStop.ga, ga2 = _tmaxStop.ga;
     if (!(ga1 | ga2))
-        return 0;
+        return 0;  // transparent pixel
 
+    rb1 = _tminStop.rb, rb2 = _tmaxStop.rb;
     width = _tmaxStop.offset - _tminStop.offset;
     s2 = 0x0000ffff*((t - _tminStop.offset)/width);     
     s2 >>= 8;
     s1 = 255 ^ s2;
     rb = s1*rb1 + s2*rb2;
-    rb += (rb >> 7) & ~0x0000fe00;
-    rb = (rb & 0xff00ff00) >> 8;
+    rb += 0x00800080;
+    rb += (rb >> 8) & 0x00ff00ff;
+    rb = (rb >> 8) & 0x00ff00ff;
     ga = s1*ga1 + s2*ga2;
-    ga += (ga >> 7) & ~0x0000fe00;
+    ga += 0x00800080;
+    ga += (ga >> 8) & 0x00ff00ff;
     ga &= 0xff00ff00;
     if (opacity == 255)
         return ga | rb;
     
-    // Multiply all four color components by opacity
+    // Multiply all four components (r,g,b,a) by opacity
     rb *= opacity;
-    rb += (rb >> 7) & ~0x0000fe00;
-    rb = (rb & 0xff00ff00) >> 8;
+    rb += 0x00800080;
+    rb += (rb >> 8) & 0x00ff00ff;
+    rb = (rb >> 8) & 0x00ff00ff;
     ga = opacity*(ga >> 8);
-    ga += (ga >> 7) & ~0x0000fe00;
+    ga += 0x00800080;
+    ga += (ga >> 8) & 0x00ff00ff;
     ga &= 0xff00ff00;
     return ga | rb;
 }
@@ -345,9 +349,11 @@ Linear::Linear(float x0, float y0, float x1, float y1,
 
 // Public function: Fills the pixels in a single horizontal span with
 // a linear gradient pattern. The span starts at pixel (xs,ys) and
-// extends len pixels to the right. Before each output pixel is
-// written to the outBuf array, it is multiplied by the corresponding
-// 8-bit alpha value from the inAlpha array.
+// extends 'len' pixels to the right. The function writes the processed
+// gradient-fill pixels to the outBuf array. To support shape anti-
+// aliasing and source constant alpha, the inAlpha array contains
+// 8-bit alpha values to apply to the gradient-fill pixels (in addition
+// to the per-pixel alphas in the gradient).
 void Linear::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
 {
     // Special case: x0 == x1 and y0 == y1
@@ -610,9 +616,11 @@ void Radial::TransformRadialGradient(const float xform[])
 
 // Public function: Fills the pixels in a single horizontal span with
 // a radial gradient pattern. The span starts at pixel (xs,ys) and
-// extends len pixels to the right. Before each output pixel is
-// written to the outBuf array, it is multiplied by the corresponding
-// 8-bit alpha value from the inAlpha array. The constructor previously
+// extends 'len' pixels to the right. The function writes the processed
+// gradient-fill pixels to the outBuf array. To support shape anti-
+// aliasing and source constant alpha, the inAlpha array contains
+// 8-bit alpha values to apply to the gradient-fill pixels (in addition
+// to the per-pixel alphas in the gradient). The constructor previously
 // set the values of constants _dr, _a, _inva, and _A2.
 void Radial::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
 {

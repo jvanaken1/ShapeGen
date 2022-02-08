@@ -159,13 +159,15 @@ COLOR AA4x8Renderer::PremultAlpha(COLOR color)
     color |= 0xff000000;
     rb = color & 0x00ff00ff;
     rb *= alfa;
-    rb += (rb >> 7) & 0x01ff01ff;
-    rb &= 0xff00ff00;
+    rb += 0x00800080;
+    rb += (rb >> 8) & 0x00ff00ff;
+    rb = (rb >> 8) & 0x00ff00ff;
     ga = (color >> 8) & 0x00ff00ff;
     ga *= alfa;
-    ga += (ga >> 7) & 0x01ff01ff;
+    ga += 0x00800080;
+    ga += (ga >> 8) & 0x00ff00ff;
     ga &= 0xff00ff00;
-    color = ga | (rb >> 8);
+    color = ga | rb;
     return color;
 }
 
@@ -184,13 +186,15 @@ void AA4x8Renderer::AlphaBlend(COLOR *src, COLOR *dst, int len)
         dstpix = *dst | 0xff000000;
         rb = dstpix & 0x00ff00ff;
         rb *= anot;
-        rb += (rb >> 7) & 0x01ff01ff;
-        rb &= 0xff00ff00;
+        rb += 0x00800080;
+        rb += (rb >> 8) & 0x00ff00ff;
+        rb = (rb >> 8) & 0x00ff00ff;
         ga = (dstpix >> 8) & 0x00ff00ff;
         ga *= anot;
-        ga += (ga >> 7) & 0x01ff01ff;
+        ga += 0x00800080;
+        ga += (ga >> 8) & 0x00ff00ff;
         ga &= 0xff00ff00;
-        dstpix = ga | (rb >> 8);
+        dstpix = ga | rb;
         *dst++ = dstpix + srcpix;
     }
 }
@@ -475,7 +479,8 @@ void AA4x8Renderer::SetColor(COLOR color)
         _paintgen->~PaintGen();
         _paintgen = 0;
     }
-    opacity += opacity >> 7;
+    opacity += 128;
+    opacity += opacity >> 8;
     opacity >>= 8;
     color = (opacity << 24) | (color & 0x00ffffff);
     BlendLUT(opacity);
