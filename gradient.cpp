@@ -339,6 +339,7 @@ Linear::Linear(float x0, float y0, float x1, float y1,
     // Calculation of the gradient pattern will be simplified by
     // placing the origin at (x0,y0)
     _x1 -= _x0, _y1 -= _y0;
+    _x0 -= 0.5, _y0 -= 0.5;
 
     // Calculate partial derivatives dt/dx and dt/dy
     float dist2 = _x1*_x1 + _y1*_y1;
@@ -501,6 +502,7 @@ Radial::Radial(float x0, float y0, float r0, float x1, float y1, float r1,
     // shear has been incorporated into the vector (vx,vy).
     _x1 -= _x0, _y1 -= _y0;
     _x1 += _vx*_y1, _y1 *= _vy;
+    _x0 -= 0.5, _y0 -= 0.5;
 
     // The values below are constant over this object's lifetime
     _dr = _r1 - _r0;
