@@ -3392,8 +3392,8 @@ void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
 
     // Use the gradient to fill a wide, stroked horizontal line
-    i0 = x0 - 149, j0 = y0;
-    i1 = x1 + 149, j1 = y0;
+    i0 = x0 - 150, j0 = y0;
+    i1 = x1 + 150, j1 = y0;
     sg->SetLineWidth(100.0);
     sg->SetLineEnd(LINEEND_ROUND);
     sg->BeginPath();
@@ -3401,22 +3401,23 @@ void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->Line(i1, j1);
     sg->StrokePath();
 
-    // Draw a thin vertical black line through the linear 
-    // gradient's starting point at (x0,y0)
+    // Draw a dashed vertical black line through the
+    // linear gradient's starting point at (x0,y0)
+    sg->SetLineDash(dash, 0, 8.07);
+    sg->SetLineWidth(2.0);
     aarend->SetColor(RGBX(0,0,0));
     i0 = x0, j0 = y0 - 85;
     i1 = x0, j1 = y0 + 85;
-    sg->SetLineWidth(2.0);
     sg->BeginPath();
     sg->Move(i0, j0);
     sg->Line(i1, j1);
     sg->StrokePath();
 
-    // Draw a dashed vertical black line through the linear 
-    // gradient's ending point at (x1,y1)
+    // Draw a dashed vertical red line through the 
+    // linear gradient's ending point at (x1,y1)
+    aarend->SetColor(RGBX(240,40,40));
     i0 = x1, j0 = y1 - 85;
     i1 = x1, j1 = y1 + 85;
-    sg->SetLineDash(dash, 0, 8.07);
     sg->BeginPath();
     sg->Move(i0, j0);
     sg->Line(i1, j1);
@@ -3441,16 +3442,16 @@ void example20(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     COLOR checker[4] = { 
-        RGBX(255,255,255), RGBX(0,0,0), 
-        RGBX(0,0,0), RGBX(255,255,255),
+        RGBX(90,90,90), RGBX(255,255,255), 
+        RGBX(255,255,255), RGBX(90,90,90),
     };
-    SGRect bkgd = { 40, 40, 400, 200 };
-    SGRect rect = { 50, 30, 80, 220 };
-    float xform[6] = { 0.075, 0, 0, 0.075, 0, 0 };
+    SGRect bkgd = { 40, 40, 525, 275 };
+    SGRect rect = { 53, 30, 107, 295 };
+    float xform[6] = { 0.040, 0, 0, 0.040, 0, 0 };
 
     // Draw checkerboard background pattern
     aarend->SetTransform(xform);
-    aarend->SetPattern(checker, 0,0, 2,2, 2, 0);
+    aarend->SetPattern(checker, 1.6,1.6, 2,2, 2, 0);
     sg->BeginPath();
     sg->Rectangle(bkgd);
     sg->FillPath(FILLRULE_EVENODD);
@@ -3465,14 +3466,16 @@ void example20(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     for (int alpha = 255; alpha > 60; alpha -= 60)
     {
         aarend->SetConstantAlpha(alpha);
-        aarend->SetLinearGradient(0,30, 0,140, SPREAD_REFLECT,
+        aarend->SetLinearGradient(0,30, 0,173, SPREAD_REFLECT,
                                   FLAG_EXTEND_START | FLAG_EXTEND_END);
         sg->BeginPath();
         sg->Rectangle(rect);
         sg->FillPath(FILLRULE_EVENODD);
-        rect.x += 100;
+        aarend->SetConstantAlpha(255);
+        aarend->SetColor(RGBX(188,22,244));
+        sg->StrokePath();
+        rect.x += 131;
     }
-    aarend->SetConstantAlpha(255);
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -3509,7 +3512,7 @@ void example21(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     aarend->ResetColorStops();
     aarend->AddColorStop(0, RGBX(225,205,100));
     aarend->AddColorStop(1.0, RGBX(255,145,44));
-    aarend->SetLinearGradient(0,150, 0,191, SPREAD_PAD, 0);
+    aarend->SetLinearGradient(0,150, 0,190, SPREAD_PAD, 0);
     sg->BeginPath();
     sg->EllipticArc(v0, v1, v2, 0, PI);  // PI = 3.14159265...
     sg->FillPath(FILLRULE_EVENODD);
@@ -3552,8 +3555,8 @@ void example22(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         gry, blu, blu, gry, blu, blu, blu,
         gry, blu, blu, gry, blu, blu, blu,    
     };
-    SGPoint v0 = { 240, 180 }, v1 = { 40, 180 }, v2 = { 240, 40 };
-    float xform[6] = { 0.059, 0.059, -0.059, 0.059, 0, 0 };
+    SGPoint v0 = { 260, 194 }, v1 = { 40, 194 }, v2 = { 260, 40 };
+    float xform[6] = { 0.055, 0.055, -0.055, 0.055, 0, 0 };
 
     aarend->SetTransform(xform);
     aarend->SetPattern(tartan, 0,0, 7,7,7, 0);
@@ -3608,8 +3611,9 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     SGPoint u[3] = { { 200, 160 }, { 200-70, 160 }, { 200, 160-70 } };
     SGPoint v[3] = { { 290, 215 }, { 290-100, 215 }, { 290, 215-100 } };
     float xform[6] = { 0.375, -0.650, 1.083, 0.625, 364.3, 227.1 };
+    char dash[] = { 1, 0 };
 
-    // Fill the left rectangle with background color gray
+    // Fill the two rectangles with background color gray
     aarend->SetColor(RGBX(180,180,180));
     sg->BeginPath();
     sg->Rectangle(rect);
@@ -3624,6 +3628,7 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 
     // Stroke the outline of the starting circle in black
     aarend->SetColor(RGBX(40,40,40));
+    sg->SetLineDash(dash, 0, 8.07);
     sg->SetLineWidth(2);
     sg->BeginPath();
     sg->Ellipse(u[0], u[1], u[2]);
@@ -3650,21 +3655,25 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
     sg->FillPath(FILLRULE_WINDING);
 
-    // Transform the coordinates of the starting and ending circles
+    // Transform the coordinates of the starting and ending circles.
+    // To improve resolution, save the transformed coordinates in
+    // 16.16 fixed-point format.
     for (int i = 0; i < 3; ++i)
     {
-        float xtmp = xform[0]*u[i].x + xform[2]*u[i].y + xform[4];
-        u[i].y = xform[1]*u[i].x + xform[3]*u[i].y + xform[5];
+        float xtmp = 65536*(xform[0]*u[i].x + xform[2]*u[i].y + xform[4]);
+        u[i].y = 65536*(xform[1]*u[i].x + xform[3]*u[i].y + xform[5]);
         u[i].x = xtmp;
 
-        xtmp = xform[0]*v[i].x + xform[2]*v[i].y + xform[4];
-        v[i].y = xform[1]*v[i].x + xform[3]*v[i].y + xform[5];
+        xtmp = 65536*(xform[0]*v[i].x + xform[2]*v[i].y + xform[4]);
+        v[i].y = 65536*(xform[1]*v[i].x + xform[3]*v[i].y + xform[5]);
         v[i].x = xtmp;
     }
 
+    // Tell ShapeGen that coordinates are in 16.16 fixed-point format
+    sg->SetFixedBits(16);
+
     // Outline the transformed starting circle in black
     aarend->SetColor(RGBX(40,40,40));
-    sg->SetLineWidth(2);
     sg->BeginPath();
     sg->Ellipse(u[0], u[1], u[2]);
     sg->StrokePath();
@@ -3683,6 +3692,7 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
+    sg->SetLineDash(0,0,0);
     sg->SetLineWidth(3.0);
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
