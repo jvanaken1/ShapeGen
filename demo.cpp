@@ -2152,9 +2152,9 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float x1 = x0, y1 = y0, r1 = clip.w/12;
 
     // Use a radial gradient to fill the background
-    aarend->AddColorStop(  0, RGBX(255,211,180));
-    aarend->AddColorStop(1.0, RGBX(180,211,255));
-    aarend->SetRadialGradient(x0, y0, r0, x1, y1, r1, SPREAD_REFLECT, 
+    aarend->AddColorStop(  0, RGBX(255,211,180));  // light orange
+    aarend->AddColorStop(1.0, RGBX(180,211,255));  // light blue
+    aarend->SetRadialGradient(x0,y0,r0, x1,y1,r1, SPREAD_REFLECT, 
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
@@ -2166,9 +2166,11 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->StrokePath();
 
     // Draw rainbow
+    float squash[6] = { 1.0, 0, 0, 0.7, 0, 0 };
+    SGPoint v0 = { 490, 490 }, v1 = { 490-373, 490 }, v2 = { 490, 490-261 };
+    SGPoint u0 = { 640, 490 }, u1 = { 640-604, 490 }, u2 = { 640, 490-422 };
     aarend->ResetColorStops();
-    aarend->AddColorStop(0, 0);
-    aarend->AddColorStop( 0.01, RGBX(180,96,210));
+    aarend->AddColorStop(0, RGBX(180,96,210));
     aarend->AddColorStop(1/8.0, RGBX(180,96,210));  // V
     aarend->AddColorStop(2/8.0, RGBX(46,98,207));   // I
     aarend->AddColorStop(3/8.0, RGBX(51,152,204));  // B
@@ -2176,13 +2178,13 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     aarend->AddColorStop(5/8.0, RGBX(255,255,0));   // Y  
     aarend->AddColorStop(6/8.0, RGBX(255,193,0));   // 0
     aarend->AddColorStop(7/8.0, RGBX(255,51,0));    // R
-    aarend->AddColorStop( 0.99, RGBX(255,51,0));
-    aarend->AddColorStop(1.0, 0);
+    aarend->AddColorStop(1.0, RGBX(255,51,0));
     sg->BeginPath();
-    sg->Rectangle(clip);
-    float squash[6] = { 1.0, 0, 0, 0.7, 0, 0 };
+    sg->Ellipse(v0,v1,v2);
+    sg->Ellipse(u0,u1,u2);
     aarend->SetTransform(squash);
-    aarend->SetRadialGradient(x0-150, 700, 3.5*r1, x1, 700, 5.7*r1, SPREAD_REFLECT, 0);
+    aarend->SetRadialGradient(490,700,373, 640,700,604, SPREAD_PAD, 
+                              FLAG_EXTEND_START | FLAG_EXTEND_END);
     sg->FillPath(FILLRULE_EVENODD);
 
     // Draw the title text
