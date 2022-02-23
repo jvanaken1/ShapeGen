@@ -3605,7 +3605,7 @@ void example23(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
-// Code example from EnhancedRenderer::SetTransform reference topic
+// Code example 1 from EnhancedRenderer::SetTransform reference topic
 void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
@@ -3615,7 +3615,7 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     float xform[6] = { 0.375, -0.650, 1.083, 0.625, 364.3, 227.1 };
     char dash[] = { 1, 0 };
 
-    // Fill the two rectangles with background color gray
+    // Fill the left rectangle with background color gray
     aarend->SetColor(RGBX(180,180,180));
     sg->BeginPath();
     sg->Rectangle(rect);
@@ -3689,7 +3689,83 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     //-----  Label the output of this code example -----
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "Output of code example from EnhancedRenderer::"
+    char *str = "Output of code example 1 from EnhancedRenderer::"
+                "SetTransform reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineDash(0,0,0);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example 2 from EnhancedRenderer::SetTransform reference topic
+void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+{
+    SGPtr sg(aarend, clip);
+    int w = 7, h = 7;  // width, height of test image
+    COLOR c0 = RGBX(212,212,212), c1 = RGBX(255,40,0), 
+          c2 = RGBX(0,191,255), c3 = RGBX(100,100,100);
+    COLOR pattern[] = {
+        c0,c2,c0,c2,c0,c2,c0,  // a 7x7 test image
+        c1,c0,c3,c3,c3,c0,c2,
+        c0,c0,c3,c0,c0,c0,c0,
+        c1,c0,c3,c3,c0,c0,c2,
+        c0,c0,c3,c0,c0,c0,c0,
+        c1,c0,c3,c0,c0,c0,c2,
+        c0,c1,c0,c1,c0,c1,c0,
+    };
+    SGPoint xy[][4] = {  // 3 of 4 vertices
+        { {  97,  20 }, {  20,  20 }, {  20,  97 } },
+        { { 239,  50 }, { 120,  50 }, { 120, 120 } },
+        { { 385,  70 }, { 310,  20 }, { 260,  95 } },
+        { { 510,  20 }, { 390, 100 }, { 430, 160 } },
+        { { 645, 100 }, { 605,  20 }, { 565, 100 } },
+        { { 770, 100 }, { 650,  40 }, { 670, 120 } },
+    };
+    char dash[] = { 1, 0 };
+
+    sg->SetLineWidth(2.0);
+    sg->SetLineJoin(LINEJOIN_MITER);
+    sg->SetLineDash(dash, 0, 8.0);
+    for (int i = 0; i < ARRAY_LEN(xy); ++i)
+    {
+        // Use symmetry to calculate the 4th vertex of the square,
+        // rectangle, or parallelogram that frames the test image
+        xy[i][3].x = xy[i][0].x - xy[i][1].x + xy[i][2].x;
+        xy[i][3].y = xy[i][0].y - xy[i][1].y + xy[i][2].y;
+
+        // Transform the test image to exactly fit in the frame
+        float x0 = xy[i][1].x, xP = xy[i][0].x - x0, xQ = xy[i][2].x - x0;
+        float y0 = xy[i][1].y, yP = xy[i][0].y - y0, yQ = xy[i][2].y - y0;
+        float det = xP*yQ - xQ*yP;
+        float wdet = w/det, hdet = h/det;
+        float xform[6];
+
+        xform[0] = yQ*wdet, xform[2] = -xQ*wdet;
+        xform[1] = -yP*hdet, xform[3] = xP*hdet;
+        xform[4] = wdet*(xQ*y0 - yQ*x0), xform[5] = hdet*(yP*x0 - xP*y0);
+        aarend->SetTransform(xform);
+
+        // Fill the frame with the transformed test image
+        sg->BeginPath();
+        sg->Move(xy[i][0].x, xy[i][0].y);
+        sg->PolyLine(3, &xy[i][1]);
+        sg->CloseFigure();
+        aarend->SetPattern(pattern, 0,0, w,h,w, 0);
+        sg->FillPath(FILLRULE_EVENODD);
+
+        // Outline the test image with a black dashed line
+        aarend->SetColor(RGBX(0,0,0));
+        sg->StrokePath();
+    }
+    sg->SetLineDash(0,0,0);
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example 2 from EnhancedRenderer::"
                 "SetTransform reference topic";
     SGPoint xystart = { 24, 420 };
     float scale = 0.3;
@@ -3719,7 +3795,8 @@ void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect&
     example13, example14, example15,
     example16, example17, example18,
     example19, example20, example21,
-    example22, example23, example24, 
+    example22, example23, example24,
+    example25,
 };
 
 //---------------------------------------------------------------------
