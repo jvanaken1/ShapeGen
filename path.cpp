@@ -249,8 +249,12 @@ void PathMgr::FinalizeFigure(bool bclose)
 
             if (p != _fpoint)
             {
+                if (bclose)
+                {
+                    *++p = *_fpoint;
+                    _figure->isclosed = true;
+                }
                 _cpoint = p;
-                _figure->isclosed = bclose;
                 
                 // Start a new figure in the same path
                 PathCheck(++_cpoint);
@@ -397,8 +401,9 @@ void PathMgr::Rectangle(const SGRect& rect)
 //----------------------------------------------------------------------
 //
 // Private function: Converts the points in the current path to a list
-// of polygonal edges. This function always closes the figure by adding
-// a line segment to connect the figure's start and end points. 
+// of polygonal edges. To prepare for a fill operation, this function
+// always closes the figure by adding a line segment to connect the
+// figure's start and end points. 
 //
 //----------------------------------------------------------------------
 
@@ -422,6 +427,12 @@ bool PathMgr::PathToEdges()
         VERT16 *vs = &fpt[-2];    // last point in new figure
         VERT16 *ve = &fpt[-off];  // first point in new figure
         int nlines = off - 1;     // number of lines to draw
+
+        if (fig->isclosed)
+        {
+            --vs;
+            --nlines;
+        }
 
         assert(vs != ve);  // figure has at least 2 points
         fig = &fig[-off];  // header for new figure

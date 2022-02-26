@@ -673,16 +673,12 @@ bool PathMgr::StrokePath()
         VERT16 ain, aout;  // vectors of length = _linewidth/2
         FIX16 linelen;     // length of current line segment
         VERT16 *fpt = reinterpret_cast<VERT16*>(_figtmp + 1);
-        VERT16 *vs = &fpt[-2];    // last point in new figure
-        VERT16 *ve = &fpt[-off];  // first point in new figure
-        int nlines = off - 2;
+        VERT16 *vs = &fpt[-off];  // start of 1st line segment
+        VERT16 *ve = &vs[1];    // end of 1st line segment
+        int nlines = off - 2;  // number of line segments
 
         assert(vs != ve);  // figure has at least 2 points
         _figtmp = &_figtmp[-off];  // point to header for new figure
-        if (_figtmp->isclosed)
-            ++nlines;  // add extra line to connect start/end points
-        else
-            vs = ve++;  // don't connect start/end points
 
         vs0 = vs;
         linelen = LineLength(*vs, *ve, &uin, &ain);

@@ -150,7 +150,7 @@ bool PathMgr::ThinStrokePath()
     assert(_fpoint == reinterpret_cast<VERT16*>(_figure + 1));
     while ((off = fig->offset) != 0)
     {
-        VERT16 *vs = &fpt[-2];    // last point in new figure
+        VERT16 *vs = &fpt[-2];  // last point in new figure
         VERT16 *ve = &fpt[-off];  // first point in new figure
         int nlines = off - 2;
         FIX16 dx, dy;
@@ -161,7 +161,7 @@ bool PathMgr::ThinStrokePath()
         fpt = ve;          // remember first point
         if (fig->isclosed)
         {
-            ++nlines;
+            ++ve;
             dx = vs[0].x - vs[-1].x;
             dy = vs[0].y - vs[-1].y;
             assert((dx | dy) != 0);
