@@ -99,18 +99,22 @@ float PathMgr::SetLineWidth(float width)
 {
     float oldwidth = _linewidth/65536.0f;
 
-    assert(width >= 0);
+    if (width < 0)
+    {
+        assert(width >= 0);
+        return 0;
+    }
     _linewidth = 65536*width;  // convert to 16.16 fixed-point format
     return oldwidth;
 }
 
 //---------------------------------------------------------------------
 //
-// Public function: Sets the line end (aka cap) style for stroked
-// lines. Parameter capstyle is restricted to the values LINEEND_FLAT
-// (0), LINEEND_ROUND (1), and LINEEND_SQUARE (2). If capstyle is set
-// to an illegal value, the function faults. The default line end style
-// is LINEEND_FLAT.
+// Public function: Sets the line end-cap style for stroked lines.
+// Parameter capstyle is restricted to the values LINEEND_FLAT (0),
+// LINEEND_ROUND (1), and LINEEND_SQUARE (2). If capstyle is set to
+// an illegal value, the function faults. The default line end-cap
+// style is LINEEND_FLAT.
 //
 //----------------------------------------------------------------------
 
@@ -216,16 +220,31 @@ float PathMgr::SetMiterLimit(float mlim)
 
 void PathMgr::SetLineDash(char *dash, int offset, float mult)
 {
-    memset(_dasharray, 0, sizeof(_dasharray));
-    if (dash == 0 || dash[0] == '\0')
-        return;  // solid line -- no dash pattern
+    const int ixmax = ARRAY_LEN(_dasharray) - 1;  // max array index
+    int k;
 
-    for (int i = 0; i < ARRAY_LEN(_dasharray) && dash[i] != '\0'; ++i)
+    _dasharray[0] = 0;
+    if (dash == 0 || dash[0] == '\0')
+        return;  // solid line (no dash pattern)
+
+    if (offset < 0 || mult <= 0)
     {
-        _dasharray[i] = 65536*mult*static_cast<unsigned char>(dash[i]);
-        assert(_dasharray[i] < (1 << 30));
+        assert(offset >= 0 && mult > 0);
+        return;  // bad parameter value
     }
-    _dasharray[ARRAY_LEN(_dasharray)-1] = 0;  // force terminating zero
+    for (k = 0; k < ixmax && dash[k] != '\0'; ++k)
+    {
+        const float toolong = 16384;
+        float dashlen = mult*static_cast<unsigned char>(dash[k]);
+        
+        if (dashlen >= toolong)
+        {
+            assert(dashlen < toolong);
+            break;  // excessively long dash
+        }
+        _dasharray[k] = 65536*dashlen;
+    }
+    _dasharray[k] = 0;  // terminate internal dash array
     _dashoffset = 65536*mult*offset;
 }
 

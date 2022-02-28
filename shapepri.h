@@ -267,7 +267,7 @@ public:
     int GetBoundingBox(SGRect *bbox);
 
     // Clipping and masking
-    void InitClipRegion(int width, int height); 
+    bool InitClipRegion(int width, int height); 
     void ResetClipRegion();
     bool SetClipRegion(FILLRULE fillrule);
     bool SetMaskRegion(FILLRULE fillrule);

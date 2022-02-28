@@ -91,7 +91,7 @@ namespace {
         int i, count = 0;
         EDGE **ptr = new EDGE*[length];  // pointer array for qsort
     
-        assert(ptr);
+        assert(ptr);  // out of memory?
         for (EDGE *p = plist; p; p = p->next)
             ptr[count++] = p;
     
@@ -116,7 +116,7 @@ namespace {
 POOL::POOL(int len) : blklen(len), watermark(0), index(0), count(0)
 {
     block = new EDGE[blklen];
-    assert(block);
+    assert(block);  // out of memory?
     memset(inventory, 0, ARRAY_LEN(inventory)*sizeof(EDGE*));
 }
 
@@ -130,12 +130,12 @@ POOL::~POOL()
 void POOL::AcquireBlock()
 {
     // The current block is 100 percent allocated. Acquire a new block.
-    assert(index != ARRAY_LEN(inventory));
+    assert(index < ARRAY_LEN(inventory));  // array overflow?
     inventory[index++] = block;
     count += blklen;
     blklen += blklen;
     block = new EDGE[blklen];
-    assert(block != 0);
+    assert(block != 0);  // out of memory?
     watermark = 0;
 }
 
@@ -383,7 +383,7 @@ EDGE* Feeder::ysortlist(EDGE *plist, int length)
     int i, count = 0;
     EDGE **ptr = new EDGE*[length];  // pointer array for qsort
 
-    assert(ptr);
+    assert(ptr);  // out of memory?
     for (EDGE *p = plist; p; p = p->next->next)
         ptr[count++] = p;  // add pointer to next EDGE pair in list
 
@@ -414,7 +414,7 @@ EdgeMgr::EdgeMgr(Renderer *renderer)
     _rendpool = new POOL;
     _savepool = new POOL;
     assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && 
-           _rendpool != 0 && _savepool != 0);
+           _rendpool != 0 && _savepool != 0);  // out of memory?
     if (renderer)
         SetRenderer(renderer);
 }
@@ -437,11 +437,15 @@ EdgeMgr::~EdgeMgr()
 
 void EdgeMgr::SetRenderer(Renderer *renderer)
 {
-    assert(renderer);
-    int yres = renderer->QueryYResolution();
-    _yshift = 16 - yres;
-    _ybias = FIX_BIAS >> yres;
-    _renderer = renderer;
+    if (renderer)
+    {
+        int yres = renderer->QueryYResolution();
+        _yshift = 16 - yres;
+        _ybias = FIX_BIAS >> yres;
+        _renderer = renderer;
+    }
+    else
+        assert(renderer);
 }
 
 //---------------------------------------------------------------------
@@ -449,6 +453,8 @@ void EdgeMgr::SetRenderer(Renderer *renderer)
 // Protected function: Sets the clipping region to the normalized edge
 // list in _outlist and discards the old clipping region. Returns true
 // if the new clipping region is not empty; otherwise, returns false.
+// (If the clipping region is empty, everything will get clipped, and
+// nothing can be drawn.)
 //
 //---------------------------------------------------------------------
 

@@ -1867,7 +1867,7 @@ TextApp::TextApp() : _width(0), _xspace(1.0)
 
     memset(_glyphtbl, 0, sizeof(_glyphtbl));
     _glyph = new GLYPH[ARRAY_LEN(displaylist)];
-    assert(_glyph != 0);
+    assert(_glyph != 0);  // out of memory?
     for (int i = 0; i < ARRAY_LEN(displaylist); ++i)
     {
         GLYPH *p = &_glyph[i];

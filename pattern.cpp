@@ -161,9 +161,9 @@ public:
 // Contains initialization code common to both constructors
 void Pattern::Init(float u0, float v0, int flags, const float xform[])
 {
-    // Need to convert from RGBA (0xaabbggrr) to BGRA (0xaarrggbb),
-    // or vice versa?
-    if (flags & FLAG_SWAP_REDBLUE)  // need to swap red/blue fields?
+    // Do we need to convert from RGBA (0xaabbggrr) to BGRA (0xaarrggbb),
+    // or vice versa? If so, swap the red and blue fields.
+    if (flags & FLAG_SWAP_REDBLUE)
     {
         for (int j = 0; j < _h; ++j)
         {
@@ -240,9 +240,9 @@ Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
 
     // Copy pattern image into internal 2-D array
     COLOR *pdata = new COLOR[w*h];  // for pattern image pixels
-    assert(pdata != 0);
+    assert(pdata != 0);  // out of memory?
     _pattern = new COLOR*[h];  // for pointers to pattern rows
-    assert(_pattern != 0);
+    assert(_pattern != 0);  // out of memory?
     for (int i = 0; i < h; ++i)
     {
         memcpy(pdata, &pattern[0], w*sizeof(pattern[0]));
@@ -268,9 +268,9 @@ Pattern::Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
 
     // Copy pattern image into internal 2-D array
     COLOR *p = new COLOR[w*h];  // to store pattern image pixels
-    assert(p != 0);
+    assert(p != 0);  // out of memory?
     _pattern = new COLOR*[h];  // pointers to rows of pattern
-    assert(_pattern != 0);
+    assert(_pattern != 0);  // out of memory?
     for (int i = 0; i < h; ++i)
     {
         imgrdr->ReadPixels(p, w);
@@ -359,7 +359,7 @@ TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0,
                                  const float xform[])
 {
     Pattern *pat = new Pattern(pattern, u0, v0, w, h, stride, flags, xform);
-    assert(pat != 0);
+    assert(pat != 0);  // out of memory?
 
     return pat;
 }
@@ -368,7 +368,7 @@ TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0,
                                  int w, int h, int flags, const float xform[])
 {
     Pattern *pat = new Pattern(imgrdr, u0, v0, w, h, flags, xform);
-    assert(pat != 0);
+    assert(pat != 0);  // out of memory?
 
     return pat;
 }

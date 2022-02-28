@@ -40,7 +40,7 @@
 ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 {
     ShapeGen *sg = new PathMgr(renderer, cliprect);
-    assert(sg != 0);
+    assert(sg != 0);  // out of memory?
 
     return sg;
 }
@@ -59,9 +59,9 @@ PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
 {
     assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack
     _path = new VERT16[_pathlength];
-    assert(_path != 0);
+    assert(_path != 0);  // out of memory?
     _edge = new EdgeMgr(0);
-    assert(_edge != 0);
+    assert(_edge != 0);  // out of memory?
     SetRenderer(renderer);
     InitClipRegion(cliprect.w, cliprect.h);
     SetFixedBits(0); 
@@ -89,12 +89,16 @@ PathMgr::~PathMgr()
 
 void PathMgr::SetRenderer(Renderer *renderer)
 {
-    assert(renderer);
-    _edge->SetRenderer(renderer);
-    ResetClipRegion();  // N.B.: new renderer can change y resolution
-    renderer->SetMaxWidth(_devicecliprect.w);
-    renderer->SetScrollPosition(_devicecliprect.x, _devicecliprect.y);
-    _renderer = renderer;
+    if (renderer)
+    {
+        _edge->SetRenderer(renderer);
+        ResetClipRegion();  // N.B.: new renderer can change y resolution
+        renderer->SetMaxWidth(_devicecliprect.w);
+        renderer->SetScrollPosition(_devicecliprect.x, _devicecliprect.y);
+        _renderer = renderer;
+    }
+    else
+        assert(renderer);
 }
 
 //---------------------------------------------------------------------
@@ -111,7 +115,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 {
     _devicecliprect.x = x;
     _devicecliprect.y = y;
-    _renderer->SetScrollPosition(x, y);  // fill pattern coordinates
+    _renderer->SetScrollPosition(x, y);  // to scroll fill patterns
 }
 
 //---------------------------------------------------------------------
@@ -132,7 +136,7 @@ void PathMgr::ExpandPath()
 
     _pathlength += _pathlength;
     _path = new VERT16[_pathlength];
-    assert(_path);
+    assert(_path);  // out of memory?
     memcpy(_path, oldpath, oldlen*sizeof(_path[0]));
     if (_cpoint != 0)
     {
@@ -163,7 +167,7 @@ void PathMgr::ExpandPath()
 // error tolerance) required of a curve segment before it can be
 // satisfactorily replaced by a chord (straight line segment).
 // Parameter tol specifies the required flatness and is restricted to
-// the range 1/16 to 16 pixels.
+// the range 0.2 to 100 pixels.
 //
 //----------------------------------------------------------------------
 
@@ -193,7 +197,7 @@ int PathMgr::SetFixedBits(int nbits)
 {
     int oldnbits = 16 - _fixshift;
 
-    if (0 > nbits || nbits > 16)
+    if (nbits < 0 || 16 < nbits)
     {
         assert(0 <= nbits && nbits <= 16);
         return -1;
@@ -357,13 +361,11 @@ bool PathMgr::Line(SGCoord x, SGCoord y)
 
 bool PathMgr::PolyLine(int npts, const SGPoint xy[])
 {
-    if (_cpoint == 0 || xy == 0)
+    if (_cpoint == 0 || npts < 0 || xy == 0)
     {
-        assert(_cpoint != 0);
-        assert(xy != 0);
+        assert(_cpoint != 0 && npts >= 0 && xy != 0);
         return false;
     }
-
     for (int i = 0; i < npts; ++i)
     {   
         PathCheck(++_cpoint);
@@ -524,12 +526,18 @@ void PathMgr::ResetClipRegion()
 //
 //---------------------------------------------------------------------
 
-void PathMgr::InitClipRegion(int width, int height)
+bool PathMgr::InitClipRegion(int width, int height)
 {
+    if (width <= 0 || height <= 0)
+    {
+        assert(width > 0 && height > 0);
+        return false;
+    }
     _devicecliprect.w = width;
     _devicecliprect.h = height;
     _edge->SetDeviceClipRectangle(width, height);
     _renderer->SetMaxWidth(width);
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -608,6 +616,11 @@ int PathMgr::GetBoundingBox(SGRect *bbox)
     VERT16 *point;
     int offset, count = 0;
     
+    if (!bbox)
+    {
+        assert(bbox != 0);
+        return 0;
+    }
     if (_cpoint == 0)
     {
         // Current figure is empty

@@ -182,7 +182,7 @@ public:
     virtual int GetBoundingBox(SGRect *bbox) = 0;
 
     // Clipping and masking
-    virtual void InitClipRegion(int width, int height) = 0;
+    virtual bool InitClipRegion(int width, int height) = 0;
     virtual void ResetClipRegion() = 0;
     virtual bool SetClipRegion(FILLRULE fillrule) = 0;
     virtual bool SetMaskRegion(FILLRULE fillrule) = 0;

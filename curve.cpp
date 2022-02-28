@@ -174,10 +174,9 @@ bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
 {
     const SGPoint *pxy = xy;
 
-    if (_cpoint == 0 || xy == 0)
+    if (_cpoint == 0 || npts < 0 || xy == 0)
     {
-        assert(_cpoint != 0);
-        assert(xy != 0);
+        assert(_cpoint != 0 && npts >= 0 && xy != 0);
         return false;
     }
     for (int i = 0; i < npts; i += 2)
@@ -312,10 +311,9 @@ bool PathMgr::PolyBezier3(int npts, const SGPoint xy[])
 {
     const SGPoint *pxy = xy;
 
-    if (_cpoint == 0 || xy == 0)
+    if (_cpoint == 0 || npts < 0 || xy == 0)
     {
-        assert(_cpoint != 0);
-        assert(xy != 0);
+        assert(_cpoint != 0 && npts >= 0 && xy != 0);
         return false;
     }
     for (int i = 0; i < npts; i += 3)

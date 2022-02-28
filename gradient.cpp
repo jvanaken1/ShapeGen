@@ -208,7 +208,7 @@ COLOR ColorStops::GetColorValue(FIX16 t, COLOR opacity)
     FIX16 s1, s2;
     COLOR ga, rb, rb1, rb2, ga1, ga2;
 
-    assert(0 <= t && t <= 0x0000ffff);
+    assert((t >> 16) == 0 && (opacity >> 8) == 0);
     if (t < _tminStop.offset || _tmaxStop.offset < t)
     {
         // A color-stop cache miss has occurred. Update the two
@@ -260,11 +260,11 @@ COLOR ColorStops::GetColorValue(FIX16 t, COLOR opacity)
 
 //---------------------------------------------------------------------
 //
-// Linear class -- Paint generator for linear gradient fills
+// LinearGrad class -- Paint generator for linear gradient fills
 //
 //---------------------------------------------------------------------
 
-class Linear : public LinearGradient
+class LinearGrad : public LinearGradient
 {
     ColorStops *_cstops;    // color-stop manager object
     float _x0, _y0;         // starting point (t = 0)
@@ -282,10 +282,10 @@ class Linear : public LinearGradient
     float _dtdy;  // partial derivative dt/dy
 
 public:
-    Linear() { assert(0); }
-    Linear(float x0, float y0, float x1, float y1,
-           SPREAD_METHOD spread, int flags, const float xform[]);
-    ~Linear() {}
+    LinearGrad() { assert(0); }
+    LinearGrad(float x0, float y0, float x1, float y1,
+               SPREAD_METHOD spread, int flags, const float xform[]);
+    ~LinearGrad() {}
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool AddColorStop(float offset, COLOR color)
     {
@@ -299,13 +299,13 @@ public:
 };
 
 // Constructor: Defines a new linear-gradient fill pattern
-Linear::Linear(float x0, float y0, float x1, float y1,
-               SPREAD_METHOD spread, int flags, const float xform[])
-               : _x0(x0), _y0(y0), _x1(x1), _y1(y1),
-                 _xscroll(0), _yscroll(0)
+LinearGrad::LinearGrad(float x0, float y0, float x1, float y1,
+                       SPREAD_METHOD spread, int flags, const float xform[])
+                       : _x0(x0), _y0(y0), _x1(x1), _y1(y1),
+                       _xscroll(0), _yscroll(0)
 {
     _cstops = new ColorStops();
-    assert(_cstops);
+    assert(_cstops);  // out of memory?
     _bExtStart = (flags & FLAG_EXTEND_START) != 0;
     _bExtEnd = (flags & FLAG_EXTEND_END) != 0;
     switch (spread)
@@ -355,7 +355,7 @@ Linear::Linear(float x0, float y0, float x1, float y1,
 // aliasing and source constant alpha, the inAlpha array contains
 // 8-bit alpha values to apply to the gradient-fill pixels (in addition
 // to the per-pixel alphas in the gradient).
-void Linear::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
+void LinearGrad::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
 {
     // Special case: x0 == x1 and y0 == y1
     if (_bSpecial)
@@ -415,19 +415,19 @@ LinearGradient* CreateLinearGradient(float x0, float y0, float x1, float y1,
                                      SPREAD_METHOD spread, int flags,
                                      const float xform[])
 {
-    Linear *lin = new Linear(x0, y0, x1, y1, spread, flags, xform);
-    assert(lin != 0);
+    LinearGrad *lin = new LinearGrad(x0, y0, x1, y1, spread, flags, xform);
+    assert(lin != 0);  // out of memory?
 
     return lin;
 }
 
 //---------------------------------------------------------------------
 //
-// Radial class -- Paint generator for radial gradient fills
+// RadialGrad class -- Paint generator for radial gradient fills
 //
 //---------------------------------------------------------------------
 
-class Radial : public RadialGradient
+class RadialGrad : public RadialGradient
 {
     ColorStops *_cstops;    // color-stop manager object
     float _x0, _y0, _r0;    // starting circle
@@ -450,10 +450,10 @@ class Radial : public RadialGradient
     void TransformRadialGradient(const float xform[]);
 
 public:
-    Radial() { assert(0); }
-    Radial(float x0, float y0, float r0, float x1, float y1, float r1,
-           SPREAD_METHOD spread, int flags, const float xform[]);
-    ~Radial() {}
+    RadialGrad() { assert(0); }
+    RadialGrad(float x0, float y0, float r0, float x1, float y1, float r1,
+               SPREAD_METHOD spread, int flags, const float xform[]);
+    ~RadialGrad() {}
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool AddColorStop(float offset, COLOR color)
     {
@@ -467,14 +467,14 @@ public:
 };
 
 // Constructor: Defines a new radial-gradient fill pattern
-Radial::Radial(float x0, float y0, float r0, float x1, float y1, float r1,
-               SPREAD_METHOD spread, int flags, const float xform[])
-               : _x0(x0), _y0(y0), _r0(r0), _x1(x1), _y1(y1), _r1(r1),
-                 _xscroll(0), _yscroll(0), _vx(0), _vy(0)
+RadialGrad::RadialGrad(float x0, float y0, float r0, float x1, float y1, float r1,
+                       SPREAD_METHOD spread, int flags, const float xform[])
+                       : _x0(x0), _y0(y0), _r0(r0), _x1(x1), _y1(y1), _r1(r1),
+                       _xscroll(0), _yscroll(0), _vx(0), _vy(0)
 {
     assert((r0 >= 0) && (r1 >= 0) && ((r0 != 0) || (r1 != 0)));
     _cstops = new ColorStops();
-    assert(_cstops);
+    assert(_cstops);  // out of memory?
     _bExtStart = (flags & FLAG_EXTEND_START) != 0;
     _bExtEnd = (flags & FLAG_EXTEND_END) != 0;
     switch (spread)
@@ -515,7 +515,7 @@ Radial::Radial(float x0, float y0, float r0, float x1, float y1, float r1,
 // If the user provides an affine transformation matrix, this
 // function is called by the constructor to apply the specified
 // transformation to the radial gradient parameters.
-void Radial::TransformRadialGradient(const float xform[])
+void RadialGrad::TransformRadialGradient(const float xform[])
 {
     float px, py, qx, qy, tmp, rmax, rmin, ratio;
 
@@ -624,7 +624,7 @@ void Radial::TransformRadialGradient(const float xform[])
 // 8-bit alpha values to apply to the gradient-fill pixels (in addition
 // to the per-pixel alphas in the gradient). The constructor previously
 // set the values of constants _dr, _a, _inva, and _A2.
-void Radial::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
+void RadialGrad::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
 {
     float xp, yp, b0, b, phi, A0, A1;
 
@@ -740,8 +740,8 @@ RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
                                      SPREAD_METHOD spread, int flags,
                                      const float xform[])
 {
-    Radial *rad = new Radial(x0, y0, r0, x1, y1, r1, spread, flags, xform);
-    assert(rad != 0);
+    RadialGrad *rad = new RadialGrad(x0, y0, r0, x1, y1, r1, spread, flags, xform);
+    assert(rad != 0);  // out of memory?
 
     return rad;
 }
