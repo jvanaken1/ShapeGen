@@ -214,23 +214,27 @@ float PathMgr::SetMiterLimit(float mlim)
 // the dash array is 32 elements, not counting the terminating zero.
 // The default line pattern is a solid line. This default can always
 // be restored by calling SetLineDash with the dash parameter set to
-// zero or pointing to an empty string.
+// zero or pointing to an empty string. The function returns true if
+// it successfully updates the dash pattern. Otherwise, it returns
+// false (after faulting if NDEBUG is undefined).
 //
 //---------------------------------------------------------------------
 
-void PathMgr::SetLineDash(char *dash, int offset, float mult)
+bool PathMgr::SetLineDash(char *dash, int offset, float mult)
 {
     const int ixmax = ARRAY_LEN(_dasharray) - 1;  // max array index
+    bool retval = true;
     int k;
-
-    _dasharray[0] = 0;
+    
     if (dash == 0 || dash[0] == '\0')
-        return;  // solid line (no dash pattern)
-
+    {   
+        _dasharray[0] = 0;
+        return true;  // solid line (no dash pattern)
+    }
     if (offset < 0 || mult <= 0)
     {
         assert(offset >= 0 && mult > 0);
-        return;  // bad parameter value
+        return false;  // bad parameter value
     }
     for (k = 0; k < ixmax && dash[k] != '\0'; ++k)
     {
@@ -240,12 +244,14 @@ void PathMgr::SetLineDash(char *dash, int offset, float mult)
         if (dashlen >= toolong)
         {
             assert(dashlen < toolong);
+            retval = false;
             break;  // excessively long dash
         }
         _dasharray[k] = 65536*dashlen;
     }
     _dasharray[k] = 0;  // terminate internal dash array
     _dashoffset = 65536*mult*offset;
+    return retval;
 }
 
 //---------------------------------------------------------------------

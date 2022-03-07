@@ -172,9 +172,9 @@ class EdgeMgr
     void SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR);
 
 protected:
-    EdgeMgr(Renderer *renderer);
+    EdgeMgr();
     ~EdgeMgr();
-    void SetRenderer(Renderer *renderer);
+    bool SetRenderer(Renderer *renderer);
     bool SetClipList();
     void ReverseEdges();
     void ClipEdges(FILLRULE fillrule);
@@ -250,7 +250,7 @@ protected:
 public:
 
     // Set rendering object
-    void SetRenderer(Renderer *renderer);
+    bool SetRenderer(Renderer *renderer);
 
     // Basic path construction
     void BeginPath();
@@ -292,7 +292,7 @@ public:
     float SetMiterLimit(float mlim);
     LINEEND SetLineEnd(LINEEND capstyle);
     LINEJOIN SetLineJoin(LINEJOIN joinstyle);
-    void SetLineDash(char *dash, int offset, float mult);
+    bool SetLineDash(char *dash, int offset, float mult);
 
 private:
     // Stroked path internal functions

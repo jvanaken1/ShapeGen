@@ -60,7 +60,7 @@ PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
     assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack
     _path = new VERT16[_pathlength];
     assert(_path != 0);  // out of memory?
-    _edge = new EdgeMgr(0);
+    _edge = new EdgeMgr();
     assert(_edge != 0);  // out of memory?
     SetRenderer(renderer);
     InitClipRegion(cliprect.w, cliprect.h);
@@ -87,18 +87,16 @@ PathMgr::~PathMgr()
 //
 //---------------------------------------------------------------------
 
-void PathMgr::SetRenderer(Renderer *renderer)
+bool PathMgr::SetRenderer(Renderer *renderer)
 {
-    if (renderer)
-    {
-        _edge->SetRenderer(renderer);
-        ResetClipRegion();  // N.B.: new renderer can change y resolution
-        renderer->SetMaxWidth(_devicecliprect.w);
-        renderer->SetScrollPosition(_devicecliprect.x, _devicecliprect.y);
-        _renderer = renderer;
-    }
-    else
-        assert(renderer);
+    if (_edge->SetRenderer(renderer) == false)
+        return false;
+    
+    ResetClipRegion();  // N.B.: new renderer can change y resolution
+    renderer->SetMaxWidth(_devicecliprect.w);
+    renderer->SetScrollPosition(_devicecliprect.x, _devicecliprect.y);
+    _renderer = renderer;
+    return true;
 }
 
 //---------------------------------------------------------------------

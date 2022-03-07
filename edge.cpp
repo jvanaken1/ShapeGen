@@ -404,7 +404,7 @@ EDGE* Feeder::ysortlist(EDGE *plist, int length)
 //
 //---------------------------------------------------------------------
 
-EdgeMgr::EdgeMgr(Renderer *renderer)
+EdgeMgr::EdgeMgr()
             : _inlist(0), _outlist(0), _cliplist(0), 
               _rendlist(0), _savelist(0), _renderer(0)
 {
@@ -415,8 +415,6 @@ EdgeMgr::EdgeMgr(Renderer *renderer)
     _savepool = new POOL;
     assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && 
            _rendpool != 0 && _savepool != 0);  // out of memory?
-    if (renderer)
-        SetRenderer(renderer);
 }
 
 EdgeMgr::~EdgeMgr()
@@ -435,17 +433,18 @@ EdgeMgr::~EdgeMgr()
 //
 //---------------------------------------------------------------------
 
-void EdgeMgr::SetRenderer(Renderer *renderer)
+bool EdgeMgr::SetRenderer(Renderer *renderer)
 {
-    if (renderer)
+    if (renderer == 0)
     {
-        int yres = renderer->QueryYResolution();
-        _yshift = 16 - yres;
-        _ybias = FIX_BIAS >> yres;
-        _renderer = renderer;
-    }
-    else
         assert(renderer);
+        return false;
+    }
+    int yres = renderer->QueryYResolution();
+    _yshift = 16 - yres;
+    _ybias = FIX_BIAS >> yres;
+    _renderer = renderer;
+    return true;
 }
 
 //---------------------------------------------------------------------

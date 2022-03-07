@@ -1630,7 +1630,6 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
-    const float PI = 3.14159265;
     const float sin30 = sin(PI/6);
     const float cos30 = cos(PI/6);
     SGCoord x1 = 0, y1 = -190<<16;
@@ -2351,7 +2350,6 @@ void demo17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     }
 }
 
-
 // Code example from UG topic "Creating a ShapeGen object"
 void MySub(ShapeGen *sg, SGRect& rect)
 {
@@ -2391,13 +2389,13 @@ void MyTest(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint xy[][4] = {
-        { {  20,  80 }, {  20,  20 }, {  80,  20 } },
-        { { 110, 100 }, { 110,  40 }, { 210,  40 } },
-        { { 240,  80 }, { 280,  20 }, { 340,  60 } },
-        { { 400, 160 }, { 360, 100 }, { 480,  20 } },
-        { { 540, 100 }, { 580,  20 }, { 620, 100 } },
-        { { 660, 120 }, { 640,  40 }, { 760, 100 } },
+    SGPoint xy[][4] = {  // the first three of four vertices
+        { {  155,   29 }, {   29,   29 }, {   29,  155 }, },
+        { {  353,   85 }, {  185,   85 }, {  185,  183 }, },
+        { {  564,  100 }, {  458,   29 }, {  385,  136 }, },
+        { {  743,   29 }, {  571,  143 }, {  628,  229 }, },
+        { {  935,  143 }, {  878,   29 }, {  821,  143 }, },
+        { { 1114,  143 }, {  943,   57 }, {  971,  171 }, },
     };
 
     sg->SetLineJoin(LINEJOIN_MITER);
@@ -2406,8 +2404,8 @@ void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     {
         SGPoint v0, v1, v2;
 
-        // Use symmetry to calculate the fourth point of the
-        // square, rectangle, or parallelogram
+        // Use symmetry to calculate the fourth vertex of the
+        // enclosing square, rectangle, or parallelogram
         xy[i][3].x = xy[i][0].x - xy[i][1].x + xy[i][2].x;
         xy[i][3].y = xy[i][0].y - xy[i][1].y + xy[i][2].y;
         sg->SetLineWidth(2.0);
@@ -2415,7 +2413,9 @@ void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
-        aarend->SetColor(RGBX(100,100,100));
+        aarend->SetColor(RGBX(237,235,233));
+        sg->FillPath(FILLRULE_EVENODD);
+        aarend->SetColor(RGBX(170,175,180));
         sg->StrokePath();
 
         // The center v0 of the ellipse is simply the center of
@@ -2423,8 +2423,8 @@ void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         v0.x = (xy[i][0].x + xy[i][2].x)/2;
         v0.y = (xy[i][0].y + xy[i][2].y)/2;
 
-        // The conjugate diameter end points are simply the
-        // midpoints of two adjacent sides of the enclosing
+        // Conjugate diameter end points v1 and v2 are simply
+        // the midpoints of two adjacent sides of the enclosing
         // square, rectangle, or parallelogram
         v1.x = (xy[i][0].x + xy[i][1].x)/2;
         v1.y = (xy[i][0].y + xy[i][1].y)/2;
@@ -2432,15 +2432,13 @@ void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         v2.y = (xy[i][1].y + xy[i][2].y)/2;
         sg->BeginPath();
         sg->Ellipse(v0, v1, v2);
-        aarend->SetColor(RGBX(220,250,220));
+        aarend->SetColor(RGBX(220,250,230));
         sg->FillPath(FILLRULE_EVENODD);
-        sg->SetLineWidth(1.7);
-        aarend->SetColor(RGBX(0,0,0));
+        aarend->SetColor(RGBX(75,75,75));
         sg->StrokePath();
 
         // Draw a pair of red lines connecting the ellipse
         // center with the two conjugate diameter end points
-        sg->SetLineWidth(3.0);
         sg->BeginPath();
         sg->Move(v1.x, v1.y);
         sg->Line(v0.x, v0.y);
@@ -2466,7 +2464,6 @@ void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    const float PI = 3.14159265;
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 15.3, 18.7
     };
@@ -2478,12 +2475,12 @@ void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     // Define three corner points of each square, rectangle,
     // or parallelogram. We'll calculate the fourth point.
     SGPoint xy[][4] = {
-        { {  20,  80 }, {  20,  20 }, {  80,  20 } },
-        { { 110, 100 }, { 110,  40 }, { 210,  40 } },
-        { { 240,  80 }, { 280,  20 }, { 340,  60 } },
-        { { 400, 160 }, { 360, 100 }, { 480,  20 } },
-        { { 540, 100 }, { 580,  20 }, { 620, 100 } },
-        { { 660, 120 }, { 640,  40 }, { 760, 100 } },
+        { {  155,   29 }, {   29,   29 }, {   29,  155 }, },
+        { {  353,   85 }, {  185,   85 }, {  185,  183 }, },
+        { {  564,  100 }, {  458,   29 }, {  385,  136 }, },
+        { {  743,   29 }, {  571,  143 }, {  628,  229 }, },
+        { {  935,  143 }, {  878,   29 }, {  821,  143 }, },
+        { { 1114,  143 }, {  943,   57 }, {  971,  171 }, },
     };
 
     sg->SetLineJoin(LINEJOIN_MITER);
@@ -2500,6 +2497,8 @@ void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
+        aarend->SetColor(RGBX(237,235,233));
+        sg->FillPath(FILLRULE_EVENODD);
         aarend->SetColor(RGBX(150,160,170));
         sg->SetLineWidth(2.0);
         sg->StrokePath();
@@ -2521,7 +2520,7 @@ void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         // parallelogram
         for (int j = 0; j < 8; ++j)
         {
-            float asweep = 2.0*PI*percent[j]/100.0;
+            float asweep = 2.0*PI*percent[j]/100.0;  // PI = 3.14159...
 
             sg->BeginPath();
             sg->EllipticArc(v0, v1, v2, astart, asweep);
@@ -2529,8 +2528,7 @@ void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
             sg->CloseFigure();
             aarend->SetColor(color[j]);
             sg->FillPath(FILLRULE_EVENODD);
-            aarend->SetColor(RGBX(80,80,80));
-            sg->SetLineWidth(1.0);
+            aarend->SetColor(RGBX(100,100,100));
             sg->StrokePath();
             astart += asweep;
         }
@@ -2553,10 +2551,10 @@ void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 void example01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint v0 = { 100, 200 }, v1 = { 200, 75 }, v2 = { 230, 270 };
+    SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
 
     // Draw quadratic Bezier spline in red
-    aarend->SetColor(RGBX(255,120,100));
+    aarend->SetColor(RGBX(135,206,250));
     sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
@@ -2589,11 +2587,11 @@ void example01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint v0 = { 100, 200 }, v1 = { 150, 30 }, 
-            v2 = { 260, 200 }, v3 = { 330, 30 };
+    SGPoint v0 = { 140, 308 }, v1 = { 210, 70 },
+            v2 = { 364, 308 }, v3 = { 461, 70 };
 
     // Draw cubic Bezier spline in red
-    aarend->SetColor(RGBX(255,120,100));
+    aarend->SetColor(RGBX(255,160,122));
     sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
@@ -2627,38 +2625,45 @@ void example02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint u[4] = { { 100, 275 }, { 100, 75 }, { 300, 75 }, };
-    SGPoint du[3] = { { 244, 34 }, { 270, 74 }, { 308, -38 }, };
-    SGPoint v0, v1, v2;
+    SGPoint xy[2][4] = {
+        { { 100, 275 }, { 100,  75 }, { 300,  75 }, },
+        { { 354, 309 }, { 380, 139 }, { 618,  37 }, },
+    };
 
     sg->SetLineWidth(2.0);
     for (int i = 0; i < 2; ++i)
     {
-        u[3].x = u[0].x - u[1].x + u[2].x;
-        u[3].y = u[0].y - u[1].y + u[2].y;
-        v0.x = (u[0].x + u[2].x)/2;
-        v0.y = (u[0].y + u[2].y)/2;
-        v1.x = (u[0].x + u[1].x)/2;
-        v1.y = (u[0].y + u[1].y)/2;
-        v2.x = (u[1].x + u[2].x)/2;
-        v2.y = (u[1].y + u[2].y)/2;
+        SGPoint v0, v1, v2;
+
+        // Use symmetry to calculate the fourth vertex of the
+        // enclosing square or parallelogram
+        xy[i][3].x = xy[i][0].x - xy[i][1].x + xy[i][2].x;
+        xy[i][3].y = xy[i][0].y - xy[i][1].y + xy[i][2].y;
+        
+        // Calculate ellipse center and two conjugate diameter
+        // end points
+        v0.x = (xy[i][0].x + xy[i][2].x)/2;
+        v0.y = (xy[i][0].y + xy[i][2].y)/2;
+        v1.x = (xy[i][0].x + xy[i][1].x)/2;
+        v1.y = (xy[i][0].y + xy[i][1].y)/2;
+        v2.x = (xy[i][1].x + xy[i][2].x)/2;
+        v2.y = (xy[i][1].y + xy[i][2].y)/2;
+
+        // Render parallelogram and inscribed ellipse
         sg->BeginPath();
-        sg->Move(u[0].x, u[0].y);
-        sg->PolyLine(3, &u[1]);
-        sg->CloseFigure();
         sg->Ellipse(v0, v1, v2);
-        aarend->SetColor(RGBX(200,200,240));
+        aarend->SetColor(RGBX(240,225,220));
+        sg->FillPath(FILLRULE_EVENODD);
+        sg->Move(xy[i][0].x, xy[i][0].y);
+        sg->PolyLine(3, &xy[i][1]);
+        sg->CloseFigure();
+        aarend->SetColor(RGBX(200,215,240));
         sg->FillPath(FILLRULE_EVENODD);
         sg->Move(v1.x, v1.y);
         sg->Line(v0.x, v0.y);
         sg->Line(v2.x, v2.y);
-        aarend->SetColor(RGBX(0,0,0));
+        aarend->SetColor(RGBX(90,90,90));
         sg->StrokePath();
-        for (int j = 0; j < 3; ++j)
-        {
-            u[j].x += du[j].x;
-            u[j].y += du[j].y;
-        }
     }
 
     //-----  Label the output of this code example -----
@@ -2678,20 +2683,19 @@ void example03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    const float PI = 3.14159265;
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 15.3, 18.7
     };
-    COLOR color[] = 
-    {
+    COLOR color[] = {
         RGBX(240,200,200), RGBX(200,240,220), RGBX(220,200,240), RGBX(220,240,200),
         RGBX(240,200,220), RGBX(200,240,200), RGBX(240,220,200), RGBX(200,220,240), 
     };
-    SGPoint v0[] = { { 200, 175 }, { 476, 173 } };
-    SGPoint v1[] = { { 200,  75 }, { 489,  93 } };
-    SGPoint v2[] = { { 300, 175 }, { 595, 117 } };
+    SGPoint v[2][4] = {
+        { { 240, 210 }, { 240,  90 }, { 360, 210 }, },
+        { { 581, 207 }, { 601,  91 }, { 724, 140 }, },
+    };
 
-    sg->SetLineWidth(1.7);
+    sg->SetLineWidth(2.4);
     for (int i = 0; i < 2; ++i)
     {
         float astart = 0;
@@ -2701,12 +2705,12 @@ void example04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
             float asweep = 2.0*PI*percent[j]/100.0;
 
             sg->BeginPath();
-            sg->EllipticArc(v0[i], v1[i], v2[i], astart, asweep);
-            sg->Line(v0[i].x, v0[i].y);
+            sg->EllipticArc(v[i][0], v[i][1], v[i][2], astart, asweep);
+            sg->Line(v[i][0].x, v[i][0].y);
             aarend->SetColor(color[j]);
             sg->CloseFigure();
             sg->FillPath(FILLRULE_EVENODD);
-            aarend->SetColor(RGBX(80, 80, 80));
+            aarend->SetColor(RGBX(100,100,100));
             sg->StrokePath();
             astart += asweep;
         }
@@ -2729,8 +2733,8 @@ void example04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint v0 = { 100, 200 }, v1 = { 200, 75 }, v2 = { 230, 270 };
-
+    SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
+    
     // Draw elliptic spline in green
     aarend->SetColor(RGBX(40,220,80));
     sg->SetLineWidth(12.0);
@@ -2766,22 +2770,23 @@ void example06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     SGPoint xy[] = {
-        { 104, 62 }, { 247, 196 }, { 261, 129 },
-        { 80, 190 }, { 127, 234 }, { 165, 43 }
+        { 130, 97 }, { 308, 265 }, { 326, 181 },
+        { 100, 257 }, { 158, 312 }, { 206, 73 }
     };
-    float linewidth = 20.0;
+    float linewidth = 28.0;
+    COLOR ltblue = RGBX(135, 206, 235);
     SGRect bbox;
 
-    // Fill shape in blue 
+    // Fill the shape with solid light blue 
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
-    aarend->SetColor(RGBX(200,220,240));
+    aarend->SetColor(ltblue);
     sg->FillPath(FILLRULE_EVENODD);
 
     // Get bounding box and outline it in black
     sg->GetBoundingBox(&bbox);
-    sg->SetLineWidth(1.0);
+    sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->BeginPath();
     sg->Rectangle(bbox);
@@ -2790,21 +2795,21 @@ void example06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 
     // Move the shape to the right
     for (int i = 0; i < 6; ++i)
-        xy[i].x += 270;
+        xy[i].x += 335;
 
-    // Stroke the figure in blue
+    // Stroke the shape in light blue
     sg->SetLineJoin(LINEJOIN_ROUND);
     sg->SetLineWidth(linewidth);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
     sg->CloseFigure();
-    aarend->SetColor(RGBX(200,220,240));
+    aarend->SetColor(ltblue);
     sg->StrokePath();
 
     // Get the bounding box and outline it in black
     sg->GetBoundingBox(&bbox);
-    sg->SetLineWidth(1.0);
+    sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->BeginPath();
     sg->Rectangle(bbox);
@@ -2817,7 +2822,7 @@ void example06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     bbox.w += linewidth;
     bbox.h += linewidth;
 
-    // Outline the modified bounding box in red
+    // Outline the expanded bounding box in red
     sg->BeginPath();
     sg->Rectangle(bbox);
     aarend->SetColor(RGBX(255,80,80));
@@ -2841,20 +2846,19 @@ void example07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     SGPoint xy[] = {
-        { 40, 140 }, { 70, 30 }, { 115, 120 }, { 160, 210 }, 
-        { 195, 120 }, { 230, 30 }, { 274, 150 }
+        { 84, 224 }, { 125, 70 }, { 189, 196 }, { 251, 322 },
+        { 301, 196 }, { 350, 70 }, { 411, 237 },
     };
-    SGPoint v0, v1, v2;
-
-    // Stroke three connected quadratic Bezier splines in green
-    aarend->SetColor(RGBX(160,200,160));
+    
+    // Stroke the three connected quadratic Bezier splines in green
+    aarend->SetColor(RGBX(170,200,170));
     sg->SetLineWidth(14.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyBezier2(6, &xy[1]);
     sg->StrokePath();
 
-    // Outline spline skeleton in black; mark knots & control points
+    // Outline the spline skeleton in black
     aarend->SetColor(RGBX(60,60,60));
     sg->SetLineWidth(1.25);
     sg->BeginPath();
@@ -2862,9 +2866,10 @@ void example07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->PolyLine(6, &xy[1]);
     for (int i = 0; i < 7; ++i)
     {
-        v0 = v1 = v2 = xy[i];
-        v1.x -= 3;
-        v2.y -= 3;
+        // Mark the knots and control points
+        SGPoint v0 = xy[i], v1 = v0, v2 = v0;
+        v1.x += 3;
+        v2.y += 3;
         sg->Ellipse(v0, v1, v2);
     }
     sg->StrokePath();
@@ -2887,34 +2892,32 @@ void example08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     SGPoint xy[] = {
-        { 30, 250 }, { 60, 120 }, { 130, 270 }, { 195, 145 }, { 260, 20 },
-        { 140, 20 }, { 230, 135 }, { 320, 250 }, { 380, 190 }, { 380, 110 } 
+        { 50, 270 }, { 130, 130 }, { 150, 310 }, { 235, 185 }, { 320, 60 },
+        { 180, 60 }, { 270, 175 }, { 360, 290 }, { 450, 230 }, { 408, 150 } 
     };
-    SGPoint v0, v1, v2;
-    int i;
 
-    // Stroke three connected cubic Bezier splines in yellow
+    // Stroke the three connected cubic Bezier splines in yellow
     aarend->SetColor(RGBX(230,200,80));
-    sg->SetLineWidth(12.0);
+    sg->SetLineWidth(14.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyBezier3(9, &xy[1]);
     sg->StrokePath();
 
-    // Draw spline handles in black
+    // Draw the spline handles in black
     aarend->SetColor(RGBX(0,0,0));
     sg->SetLineWidth(1.25);
     sg->BeginPath();
-    for (i = 0; i < 9; i += 3)
+    for (int i = 0; i < 9; i += 3)
     {
         sg->Move(xy[i].x, xy[i].y);
         sg->Line(xy[i+1].x, xy[i+1].y);
         sg->Move(xy[i+2].x, xy[i+2].y);
         sg->Line(xy[i+3].x, xy[i+3].y);
     }
-    for (i = 0; i < 10; ++i)
+    for (int j = 0; j < 10; ++j)
     {
-        v0 = v1 = v2 = xy[i];
+        SGPoint v0 = xy[j], v1 = v0, v2 = v0;
         v1.x -= 3;
         v2.y -= 3;
         sg->Ellipse(v0, v1, v2);
@@ -2939,12 +2942,11 @@ void example09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     SGPoint xy[] = {
-        { 40, 140 }, { 70, 30 }, { 115, 120 }, { 160, 210 }, 
-        { 195, 120 }, { 230, 30 }, { 274, 150 }
+        { 84, 224 }, { 125, 70 }, { 189, 196 }, { 251, 322 },
+        { 301, 196 }, { 350, 70 }, { 411, 237 },
     };
-    SGPoint v0, v1, v2;
 
-    // Stroke three connected elliptic splines in blue
+    // Stroke the three connected elliptic splines in blue
     aarend->SetColor(RGBX(180,180,230));
     sg->SetLineWidth(16.0);
     sg->BeginPath();
@@ -2952,7 +2954,7 @@ void example09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->PolyEllipticSpline(6, &xy[1]);
     sg->StrokePath();
 
-    // Outline spline skeleton in black; mark knots & control points
+    // Outline the spline skeleton in black
     aarend->SetColor(RGBX(0,0,0));
     sg->SetLineWidth(1.25);
     sg->BeginPath();
@@ -2960,7 +2962,8 @@ void example09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->PolyLine(6, &xy[1]);
     for (int i = 0; i < 7; ++i)
     {
-        v0 = v1 = v2 = xy[i];
+        // Mark the knots and control points
+        SGPoint v0 = xy[i], v1 = v0, v2 = v0;
         v1.x -= 3;
         v2.y -= 3;
         sg->Ellipse(v0, v1, v2);
@@ -2984,25 +2987,26 @@ void example09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
-    SGRect rect = { 100, 75, 300, 225 };
+    SGRect rect = { 100, 75, 350, 265 };
 
+    // Construction of the outer rectangle proceeds in the
+    // clockwise direction (as seen on the display)
     sg->BeginPath();
     sg->Rectangle(rect);
 
     // Make the second rectangle smaller than the first
-    rect.x += 15;
-    rect.y += 15;
-    rect.w -= 95;
-    rect.h -= 75;
+    rect.x += 22;
+    rect.y += 22;
+    rect.w -= 111;
+    rect.h -= 88;
 
-    // Modify the parameters so that construction
-    // of the second rectangle proceeds in the
-    // CCW direction 
+    // Modify the second rectangle's parameters so that its
+    // construction proceeds in the counterclockwise direction 
     rect.y += rect.h;
     rect.h = -rect.h;
     sg->Rectangle(rect);
-    rend->SetColor(RGBX(200,200,240));
-    sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule
+    rend->SetColor(RGBX(180,220,240));
+    sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule!
     sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
     rend->SetColor(RGBX(0,0,0));
@@ -3026,29 +3030,29 @@ void example10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
-    SGRect rect = { 100, 75, 300, 225 };
-    SGPoint round = { 30, 30 };
+    SGRect rect = { 100, 75, 350, 265 };
+    SGPoint round = { 35, 35 };
 
-    // Construct outer rounded rectangle 
+    // Construction of the outer rounded rectangle proceeds
+    // in the clockwise direction (as seen on the display)
     sg->BeginPath();
     sg->RoundedRectangle(rect, round);
 
     // Make the second rectangle smaller than the first
-    rect.x += 15;
-    rect.y += 15;
-    rect.w -= 95;
-    rect.h -= 75;
-    round.x = round.y -= 10;
+    rect.x += 22;
+    rect.y += 22;
+    rect.w -= 111;
+    rect.h -= 88;
+    round.x = round.y -= 12;
 
-    // Modify the parameters so that construction
-    // of the inner rounded rectangle proceeds
-    // in the CCW direction
+    // Modify the second rectangle's parameters so that its
+    // construction proceeds in the counterclockwise direction
     rect.y += rect.h;
     rect.h = -rect.h; 
     round.y = -round.y;
     sg->RoundedRectangle(rect, round);
-    rend->SetColor(RGBX(200,200,240));
-    sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule
+    rend->SetColor(RGBX(255,222,173));
+    sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule!
 
     // Switch to antialiasing renderer and stroke boundaries
     sg->SetRenderer(aarend);
@@ -3072,23 +3076,24 @@ void example11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 // Code example from ShapeGen::SetClipRegion reference topic
 void example12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-    const float PI = 3.14159265;
+    SGPtr sg(aarend, clip);
     const float t = 0.8*PI;
     const float sint = sin(t);
     const float cost = cos(t);
-    const int xc = 160, yc = 150;
-    int xr = -105, yr = 0;
-    SGRect rect = { 50, 50, 200, 200 };
+    const int xc = 212, yc = 199;
+    const SGRect rect = { 50, 50, 298, 298 };
+    int xr = -158, yr = 0;
 
-    // Draw a square filled with a light blue color
+    // Set the clipping region to a 298x298-pixel square
     sg->BeginPath();
     sg->Rectangle(rect);
-    rend->SetColor(RGBX(220,240,255));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->SetClipRegion(FILLRULE_EVENODD);
 
-    // Switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    // Do background fill with solid light blue
+    sg->BeginPath();
+    sg->Rectangle(clip);
+    aarend->SetColor(RGBX(200, 222, 255));
+    sg->FillPath(FILLRULE_EVENODD);
 
     // Set the clipping region to a star-shaped area inside the square
     sg->BeginPath();
@@ -3102,14 +3107,14 @@ void example12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     }
     sg->SetClipRegion(FILLRULE_WINDING);
 
-    // Draw a series of horizontal, red lines through the square
-    aarend->SetColor(RGBX(238,50,50));
-    sg->SetLineWidth(1.0);
+    // Draw a series of horizontal red lines through the square
+    aarend->SetColor(RGBX(255,100,100));
+    sg->SetLineWidth(4.0);
     sg->BeginPath();
-    for (int y = 50; y < 254; y += 4)
+    for (int y = rect.y+2; y <= rect.y+rect.h; y += 7)
     {
-        sg->Move(50, y);
-        sg->Line(250, y);
+        sg->Move(rect.x, y);
+        sg->Line(rect.x+rect.w, y);
     }
     sg->StrokePath();
 
@@ -3120,9 +3125,9 @@ void example12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
                 "SetClipRegion reference topic in userdoc.pdf";
     SGPoint xystart = { 24, 420 };
     float scale = 0.3;
+    sg->ResetClipRegion();
     txt.SetTextSpacing(1.1);
     sg->SetLineWidth(3.0);
-    sg->ResetClipRegion();
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
@@ -3131,12 +3136,11 @@ void example12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    const float PI = 3.14159265;
     SGPoint xy[] = {
-        {  86, 193 }, {  86, 153 }, {  40, 193 }, { 152, 233 }, 
-        { 152, 153 }, {  71,  92 }, { 117,  32 }
+        { 127, 251 }, { 127, 203 }, { 72, 251 }, { 206, 299 },
+        { 206, 203 }, { 109, 130 }, { 164, 58 },
     };
-    float linewidth = 7.0;
+    float linewidth = 8.43;
     char dot[] = { 2, 0 };
     char dash[] = { 5, 2, 0 };
     char dashdot[] = { 5, 2, 2, 2, 0 };
@@ -3145,16 +3149,17 @@ void example13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 
     aarend->SetColor(RGBX(205, 92, 92));
     sg->SetLineWidth(linewidth);
+    sg->SetLineJoin(LINEJOIN_MITER);
     for (int i = 0; i < 5; ++i)
     {
         sg->SetLineDash(pattern[i], 0, linewidth/2.0);
         sg->BeginPath();
-        sg->EllipticArc(xy[0], xy[1], xy[2], 0, PI);
+        sg->EllipticArc(xy[0], xy[1], xy[2], 0, PI);  // PI = 3.14159...
         sg->PolyBezier3(3, &xy[3]);
         sg->Line(xy[6].x, xy[6].y);
         sg->StrokePath();
         for (int j = 0; j < 7; ++j)
-            xy[j].x += 150;
+            xy[j].x += 170;
     }
 
     //-----  Label the output of this code example -----
@@ -3176,22 +3181,22 @@ void example14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
-    SGPoint vert[] = { { 70, 240 }, { 170, 95 }, { 220, 270 } };
+    SGPoint vert[] = { { 84, 288 }, { 204, 114 }, { 264, 324 } };
 
     for (int i = 0; i < 3; ++i)
     {
         sg->BeginPath();
         sg->Move(vert[0].x, vert[0].y);
         sg->PolyLine(2, &vert[1]);
-        sg->SetLineWidth(40.0);
+        sg->SetLineWidth(48.0);
         sg->SetLineEnd(cap[i]);
-        aarend->SetColor(RGBX(200,200,240));
+        aarend->SetColor(RGBX(135,206,235));
         sg->StrokePath();
-        sg->SetLineWidth(1.7);
+        sg->SetLineWidth(2.0);
         aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         for (int j = 0; j < 3; ++j)
-            vert[j].x += 230;
+            vert[j].x += 295;
     }
 
     //-----  Label the output of this code example -----
@@ -3212,23 +3217,23 @@ void example15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
-    SGPoint vert[] = { { 70, 240 }, { 170, 95 }, { 220, 270 } };
+    SGPoint vert[] = { { 84, 288 }, { 204, 114 }, { 264, 324 } };
 
     for (int i = 0; i < 3; ++i)
     {
         sg->BeginPath();
         sg->Move(vert[0].x, vert[0].y);
         sg->PolyLine(2, &vert[1]);
-        sg->SetLineWidth(40.0);
+        sg->SetLineWidth(48.0);
         sg->SetLineJoin(join[i]);
         sg->CloseFigure();
-        aarend->SetColor(RGBX(200,200,240));
+        aarend->SetColor(RGBX(255,165,0));
         sg->StrokePath();
-        sg->SetLineWidth(1.7);
+        sg->SetLineWidth(2.0);
         aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         for (int j = 0; j < 3; ++j)
-            vert[j].x += 230;
+            vert[j].x += 295;
     }
 
     //-----  Label the output of this code example -----
@@ -3247,25 +3252,21 @@ void example15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 // Code example from ShapeGen::SetMaskRegion reference topic
 void example16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
-    const float PI = 3.14159265;
+    SGPtr sg(aarend, clip);
     const float t = 0.8*PI;
     const float sint = sin(t);
     const float cost = cos(t);
-    const int xc = 160, yc = 150;
-    int xr = -105, yr = 0;
-    SGRect rect = { 50, 50, 200, 200 };
+    const int xc = 212, yc = 199;
+    const SGRect rect = { 50, 50, 298, 298 };
+    int xr = -158, yr = 0;
 
-    // Draw a square filled with a light blue color
+    // Fill the rectangle with solid light blue
     sg->BeginPath();
     sg->Rectangle(rect);
-    rend->SetColor(RGBX(220,240,255));
+    aarend->SetColor(RGBX(200, 222, 255));
     sg->FillPath(FILLRULE_EVENODD);
 
-    // Switch to antialiasing renderer
-    sg->SetRenderer(aarend);
-
-    // Mask off a star-shaped area inside the square
+    // Mask off a star-shaped area from the clipping region
     sg->BeginPath();
     sg->Move(xc + xr, yc + yr);
     for (int i = 0; i < 4; ++i)
@@ -3278,13 +3279,13 @@ void example16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->SetMaskRegion(FILLRULE_WINDING);
 
     // Draw a series of horizontal, red lines through the square
-    aarend->SetColor(RGBX(234,50,50));
-    sg->SetLineWidth(1.0);
+    aarend->SetColor(RGBX(255,100,100));
+    sg->SetLineWidth(4.0);
     sg->BeginPath();
-    for (int y = 50; y < 254; y += 4)
+    for (int y = rect.y+2; y <= rect.y+rect.h; y += 7)
     {
-        sg->Move(50, y);
-        sg->Line(250, y);
+        sg->Move(rect.x, y);
+        sg->Line(rect.x+rect.w, y);
     }
     sg->StrokePath();
 
@@ -3305,7 +3306,7 @@ void example16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGPoint vert[] = { { 100, 250 }, { 170, 95 }, { 210, 270 } };
+    SGPoint vert[] = { { 120, 300 }, { 204, 114 }, { 252, 324 } };
 
     sg->SetLineEnd(LINEEND_SQUARE); 
     sg->SetLineJoin(LINEJOIN_MITER); 
@@ -3315,15 +3316,15 @@ void example17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         sg->BeginPath();
         sg->Move(vert[0].x, vert[0].y);
         sg->PolyLine(2, &vert[1]);
-        sg->SetLineWidth(40.0);
-        aarend->SetColor(RGBX(200, 200, 240));
+        sg->SetLineWidth(48.0);
+        aarend->SetColor(RGBX(173,215,87));
         sg->StrokePath();
-        sg->SetLineWidth(1.7);
+        sg->SetLineWidth(2.0);
         aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
         sg->SetMiterLimit(1.4);
         for (int j = 0; j < 3; ++j)
-            vert[j].x += 210;
+            vert[j].x += 255;
     }
 
     //-----  Label the output of this code example -----
@@ -3346,19 +3347,19 @@ void example18(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     SGRect rect = { 100, 110, 400, 240 };
     SGPoint v0 = { 360, 170 }, v1 = { 360+160, 170 }, v2 = { 360, 170+110 };
 
-    // Use the basic renderer to fill a green rectangle
+    // Use the basic renderer to fill a cyan rectangle
     sg->BeginPath();
     sg->Rectangle(rect);
-    rend->SetColor(RGBX(0,200,0));  // green (opaque)
+    rend->SetColor(RGBX(0,255,255));  // cyan (100% opaque)
     sg->FillPath(FILLRULE_EVENODD);
 
-    // Switch to the antialiased renderer
+    // Switch to the enhanced renderer
     sg->SetRenderer(aarend);
 
-    // Alpha-blend a magenta, stroked ellipse over the rectangle
+    // Alpha-blend a stroked magenta ellipse over the rectangle
     sg->BeginPath();
     sg->Ellipse(v0, v1, v2);
-    aarend->SetColor(RGBA(200,0,200,100));  // magenta + alpha
+    aarend->SetColor(RGBA(255,0,255,128));  // magenta (50% opaque)
     sg->SetLineWidth(60.0);
     sg->StrokePath();
 
@@ -3380,8 +3381,8 @@ void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 {
     SGPtr sg(aarend, clip);
     int i0, j0, i1, j1;
-    float x0 = 270.0, y0 = 150.0;
-    float x1 = 370.0, y1 = 150.0;
+    float x0 = 300.0, y0 = 190.0;
+    float x1 = 400.0, y1 = 190.0;
     char dash[] = { 1, 0 };
 
     // Add three color stops
@@ -3707,7 +3708,7 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     int w = 7, h = 7;  // width, height of test image
     COLOR c0 = RGBX(212,212,212), c1 = RGBX(255,40,0), 
           c2 = RGBX(0,191,255), c3 = RGBX(100,100,100);
-    COLOR pattern[] = {
+    COLOR image[] = {
         c0,c2,c0,c2,c0,c2,c0,  // a 7x7 test image
         c1,c0,c3,c3,c3,c0,c2,
         c0,c0,c3,c0,c0,c0,c0,
@@ -3717,18 +3718,18 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         c0,c1,c0,c1,c0,c1,c0,
     };
     SGPoint xy[][4] = {  // 3 of 4 vertices
-        { {  97,  20 }, {  20,  20 }, {  20,  97 } },
-        { { 239,  50 }, { 120,  50 }, { 120, 120 } },
-        { { 385,  70 }, { 310,  20 }, { 260,  95 } },
-        { { 510,  20 }, { 390, 100 }, { 430, 160 } },
-        { { 645, 100 }, { 605,  20 }, { 565, 100 } },
-        { { 770, 100 }, { 650,  40 }, { 670, 120 } },
+        { {  155,   29 }, {   29,   29 }, {   29,  155 }, },
+        { {  353,   85 }, {  185,   85 }, {  185,  183 }, },
+        { {  564,  100 }, {  458,   29 }, {  385,  136 }, },
+        { {  743,   29 }, {  571,  143 }, {  628,  229 }, },
+        { {  935,  143 }, {  878,   29 }, {  821,  143 }, },
+        { { 1114,  143 }, {  943,   57 }, {  971,  171 }, },
     };
-    char dash[] = { 1, 0 };
+    char dash[] = { 9, 0 };
 
     sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
-    sg->SetLineDash(dash, 0, 8.0);
+    sg->SetLineDash(dash, 3, 1.0);
     for (int i = 0; i < ARRAY_LEN(xy); ++i)
     {
         // Use symmetry to calculate the 4th vertex of the square,
@@ -3753,7 +3754,7 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
-        aarend->SetPattern(pattern, 0,0, w,h,w, 0);
+        aarend->SetPattern(image, 0,0, w,h,w, 0);
         sg->FillPath(FILLRULE_EVENODD);
 
         // Outline the test image with a black dashed line

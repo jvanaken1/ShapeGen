@@ -124,12 +124,13 @@ public:
 //---------------------------------------------------------------------
 //
 // Renderer: Handles requests from the ShapeGen object to draw filled
-// shapes on the display. An antialiasing renderer implements its own
-// versions of the QueryYResolution and SetMaxWidth functions, but a
-// simple renderer simply inherits the rudimentary versions defined
-// here. To enable pattern alignment, an enhanced renderer implements
-// its own version of the SetScrollPosition function, but a renderer
-// that does only solid-color fills can inherit the version below.
+// shapes on the display. To support antialiasing, an enhanced
+// renderer implements its own versions of the QueryYResolution and
+// SetMaxWidth functions, but a basic renderer simply inherits the
+// rudimentary versions defined here. To enable pattern alignment, an
+// enhanced renderer implements its own version of the
+// SetScrollPosition function, but a renderer that does only solid-
+// color fills can inherit the version below.
 //
 //---------------------------------------------------------------------
 
@@ -165,7 +166,7 @@ public:
     }
 
     // Renderer object
-    virtual void SetRenderer(Renderer *renderer) = 0;
+    virtual bool SetRenderer(Renderer *renderer) = 0;
 
     // Basic path construction
     virtual void BeginPath() = 0;
@@ -201,7 +202,7 @@ public:
     virtual float SetMiterLimit(float mlim) = 0;
     virtual LINEEND SetLineEnd(LINEEND capstyle) = 0;
     virtual LINEJOIN SetLineJoin(LINEJOIN joinstyle) = 0;
-    virtual void SetLineDash(char *dash, int offset, float mult) = 0;
+    virtual bool SetLineDash(char *dash, int offset, float mult) = 0;
 
     // Ellipses and elliptic arcs
     virtual void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2) = 0;
