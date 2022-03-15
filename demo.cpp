@@ -3733,23 +3733,29 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     for (int i = 0; i < ARRAY_LEN(xy); ++i)
     {
         // Use symmetry to calculate the 4th vertex of the square,
-        // rectangle, or parallelogram that frames the test image
-        xy[i][3].x = xy[i][0].x - xy[i][1].x + xy[i][2].x;
-        xy[i][3].y = xy[i][0].y - xy[i][1].y + xy[i][2].y;
+        // rectangle, or parallelogram that is to be filled
+        float x0 = xy[i][0].x, y0 = xy[i][0].y;
+        float x1 = xy[i][1].x, y1 = xy[i][1].y;
+        float x2 = xy[i][2].x, y2 = xy[i][2].y;
 
-        // Transform the test image to exactly fit in the frame
-        float x0 = xy[i][1].x, xP = xy[i][0].x - x0, xQ = xy[i][2].x - x0;
-        float y0 = xy[i][1].y, yP = xy[i][0].y - y0, yQ = xy[i][2].y - y0;
+        xy[i][3].x = x0 - x1 + x2;
+        xy[i][3].y = y0 - y1 + y2;
+
+        // Construct the matrix that will transform points in the
+        // square, rectangle, or parallelogram to the test image
+        float xP = x0 - x1, yP = y0 - y1;
+        float xQ = x2 - x1, yQ = y2 - y1;
         float det = xP*yQ - xQ*yP;
         float wdet = w/det, hdet = h/det;
         float xform[6];
 
-        xform[0] = yQ*wdet, xform[2] = -xQ*wdet;
-        xform[1] = -yP*hdet, xform[3] = xP*hdet;
-        xform[4] = wdet*(xQ*y0 - yQ*x0), xform[5] = hdet*(yP*x0 - xP*y0);
+        xform[0] = wdet*yQ, xform[2] = -wdet*xQ;
+        xform[1] = -hdet*yP, xform[3] = hdet*xP;
+        xform[4] = wdet*(xQ*y1 - yQ*x1), xform[5] = hdet*(yP*x1 - xP*y1);
         aarend->SetTransform(xform);
 
-        // Fill the frame with the transformed test image
+        // Map the test image onto the square, rectangle, or
+        // parallelogram that is to be filled
         sg->BeginPath();
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
@@ -3757,11 +3763,11 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         aarend->SetPattern(image, 0,0, w,h,w, 0);
         sg->FillPath(FILLRULE_EVENODD);
 
-        // Outline the test image with a black dashed line
+        // Outline the square, rectangle, or parallelogram with a
+        // black dashed line
         aarend->SetColor(RGBX(0,0,0));
         sg->StrokePath();
     }
-    sg->SetLineDash(0,0,0);
 
     //-----  Label the output of this code example -----
     TextApp txt;
