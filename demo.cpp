@@ -3610,10 +3610,10 @@ void example23(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
-    SGRect rect = { 40, 40, 400, 300 };
-    SGPoint u[3] = { { 200, 160 }, { 200-70, 160 }, { 200, 160-70 } };
-    SGPoint v[3] = { { 290, 215 }, { 290-100, 215 }, { 290, 215-100 } };
     float xform[6] = { 0.375, -0.650, 1.083, 0.625, 364.3, 227.1 };
+    SGPoint sc[3] = { { 200, 160 }, { 200-70, 160 }, { 200, 160-70 } };
+    SGPoint ec[3] = { { 290, 215 }, { 290-100, 215 }, { 290, 215-100 } };
+    SGRect rect = { 40, 40, 400, 300 };
     char dash[] = { 1, 0 };
 
     // Fill the left rectangle with background color gray
@@ -3634,13 +3634,13 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->SetLineDash(dash, 0, 8.07);
     sg->SetLineWidth(2);
     sg->BeginPath();
-    sg->Ellipse(u[0], u[1], u[2]);
+    sg->Ellipse(sc[0], sc[1], sc[2]);
     sg->StrokePath();
 
     // Stroke the outline of the ending circle in red
     aarend->SetColor(RGBX(255,0,0));
     sg->BeginPath();
-    sg->Ellipse(v[0], v[1], v[2]);
+    sg->Ellipse(ec[0], ec[1], ec[2]);
     sg->StrokePath();
 
     // Fill the right rectangle with background color gray 
@@ -3659,32 +3659,32 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->FillPath(FILLRULE_WINDING);
 
     // Transform the coordinates of the starting and ending circles.
-    // To improve resolution, save the transformed coordinates in
+    // To improve resolution, convert the transformed coordinates to
     // 16.16 fixed-point format.
     for (int i = 0; i < 3; ++i)
     {
-        float xtmp = 65536*(xform[0]*u[i].x + xform[2]*u[i].y + xform[4]);
-        u[i].y = 65536*(xform[1]*u[i].x + xform[3]*u[i].y + xform[5]);
-        u[i].x = xtmp;
+        float xtmp = 65536*(xform[0]*sc[i].x + xform[2]*sc[i].y + xform[4]);
+        sc[i].y = 65536*(xform[1]*sc[i].x + xform[3]*sc[i].y + xform[5]);
+        sc[i].x = xtmp;
 
-        xtmp = 65536*(xform[0]*v[i].x + xform[2]*v[i].y + xform[4]);
-        v[i].y = 65536*(xform[1]*v[i].x + xform[3]*v[i].y + xform[5]);
-        v[i].x = xtmp;
+        xtmp = 65536*(xform[0]*ec[i].x + xform[2]*ec[i].y + xform[4]);
+        ec[i].y = 65536*(xform[1]*ec[i].x + xform[3]*ec[i].y + xform[5]);
+        ec[i].x = xtmp;
     }
 
-    // Tell ShapeGen that coordinates are in 16.16 fixed-point format
+    // Tell ShapeGen the coordinates are in 16.16 fixed-point format
     sg->SetFixedBits(16);
 
     // Outline the transformed starting circle in black
     aarend->SetColor(RGBX(40,40,40));
     sg->BeginPath();
-    sg->Ellipse(u[0], u[1], u[2]);
+    sg->Ellipse(sc[0], sc[1], sc[2]);
     sg->StrokePath();
 
     // Outline the transformed ending circle in red
     aarend->SetColor(RGBX(255,0,0));
     sg->BeginPath();
-    sg->Ellipse(v[0], v[1], v[2]);
+    sg->Ellipse(ec[0], ec[1], ec[2]);
     sg->StrokePath();
 
     //-----  Label the output of this code example -----
@@ -3717,7 +3717,7 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         c1,c0,c3,c0,c0,c0,c2,
         c0,c1,c0,c1,c0,c1,c0,
     };
-    SGPoint xy[][4] = {  // 3 of 4 vertices
+    SGPoint vert[][4] = {  // 3 of 4 vertices
         { {  155,   29 }, {   29,   29 }, {   29,  155 }, },
         { {  353,   85 }, {  185,   85 }, {  185,  183 }, },
         { {  564,  100 }, {  458,   29 }, {  385,  136 }, },
@@ -3730,16 +3730,16 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->SetLineDash(dash, 3, 1.0);
-    for (int i = 0; i < ARRAY_LEN(xy); ++i)
+    for (int i = 0; i < ARRAY_LEN(vert); ++i)
     {
         // Use symmetry to calculate the 4th vertex of the square,
         // rectangle, or parallelogram that is to be filled
-        float x0 = xy[i][0].x, y0 = xy[i][0].y;
-        float x1 = xy[i][1].x, y1 = xy[i][1].y;
-        float x2 = xy[i][2].x, y2 = xy[i][2].y;
+        float x0 = vert[i][0].x, y0 = vert[i][0].y;
+        float x1 = vert[i][1].x, y1 = vert[i][1].y;
+        float x2 = vert[i][2].x, y2 = vert[i][2].y;
 
-        xy[i][3].x = x0 - x1 + x2;
-        xy[i][3].y = y0 - y1 + y2;
+        vert[i][3].x = x0 - x1 + x2;
+        vert[i][3].y = y0 - y1 + y2;
 
         // Construct the matrix that will transform points in the
         // square, rectangle, or parallelogram to the test image
@@ -3757,8 +3757,8 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
         // Map the test image onto the square, rectangle, or
         // parallelogram that is to be filled
         sg->BeginPath();
-        sg->Move(xy[i][0].x, xy[i][0].y);
-        sg->PolyLine(3, &xy[i][1]);
+        sg->Move(vert[i][0].x, vert[i][0].y);
+        sg->PolyLine(3, &vert[i][1]);
         sg->CloseFigure();
         aarend->SetPattern(image, 0,0, w,h,w, 0);
         sg->FillPath(FILLRULE_EVENODD);
