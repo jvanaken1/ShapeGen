@@ -7,7 +7,7 @@
 
 INCDIR = C:\SDL2\include
 LIBDIR = C:\SDL2\lib\x86
-LIBFILES = $(LIBDIR)\SDL2main.lib $(LIBDIR)\SDL2.lib
+LIBFILES = $(LIBDIR)\SDL2main.lib $(LIBDIR)\SDL2.lib shell32.lib
 OBJFILES = demo.obj bmpfile.obj textapp.obj gradient.obj pattern.obj \
            arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
 CC = cl.exe
