@@ -255,7 +255,7 @@ char *dasharray[] = {
 //----------------------------------------------------------------------
 
 // Demo frame 1: ShapeGen logo
-void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)  // page 1
+void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(rend, clip);
     TextApp txt;
@@ -284,7 +284,7 @@ void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     int i;
 
     // Use the basic renderer to do a background color fill
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -321,7 +321,7 @@ void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     str = "ShapeGen 2-D Graphics Library";
     scale = 0.75;
     width = txt.GetTextWidth(scale, str);
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -329,12 +329,12 @@ void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     str = "At the core of a 2-D graphics system";
     scale = 0.54;
     width = txt.GetTextWidth(scale, str);
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 780;
     txt.DisplayText(&(*sg), xystart, scale, str);
     str = "A portable, lightweight C++ implementation";
     width = txt.GetTextWidth(scale, str);
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y += 64;
     txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(3.0);
@@ -377,7 +377,7 @@ void demo02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use the basic renderer to do a background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -397,7 +397,7 @@ void demo02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 136;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -490,7 +490,7 @@ void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use the basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -510,7 +510,7 @@ void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -570,7 +570,6 @@ void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(len-1, &xy[1]);
-    ///////////////////sg->CloseFigure();
     sg->SetMaskRegion(FILLRULE_WINDING);
 
     // Set up star-shaped clipping region on left
@@ -579,7 +578,6 @@ void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->Rectangle(rect[1]);
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(len-1, &xy[1]);
-    ///////////////////////sg->CloseFigure();
     sg->SetClipRegion(FILLRULE_WINDING);
 
     // Paint linear gradient inside new clipping region
@@ -614,7 +612,7 @@ void demo04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -634,7 +632,7 @@ void demo04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -726,7 +724,7 @@ void demo05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     
     // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -845,7 +843,7 @@ void demo06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use basic renderer to do a background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -865,7 +863,7 @@ void demo06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -1041,7 +1039,7 @@ void demo07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use the basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1061,7 +1059,7 @@ void demo07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -1153,7 +1151,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
 
     // Use basic renderer to do background fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1173,7 +1171,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     float scale = 0.75;
     float len = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - len)/2;
+    xystart.x = (DEMO_WIDTH - len)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -1318,7 +1316,7 @@ void demo09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1338,7 +1336,7 @@ void demo09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float len = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - len)/2;
+    xystart.x = (DEMO_WIDTH - len)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -1471,7 +1469,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use the basic renderer to do a background fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1491,7 +1489,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 170;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -1640,7 +1638,7 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1660,7 +1658,7 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.75;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 130;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -1710,7 +1708,7 @@ void demo12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1730,7 +1728,7 @@ void demo12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     txt.SetTextSpacing(1.22);
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 155;
 
     sg->SetLineWidth(14.0);
@@ -1788,7 +1786,7 @@ void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Use basic renderer to do background color fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
@@ -1803,7 +1801,7 @@ void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->StrokePath();  
 
     // Draw four overlapping, partially transparent ellipses
-    SGCoord cx = clip.w/2, cy = clip.h/2 - 75;
+    SGCoord cx = DEMO_WIDTH/2, cy = DEMO_HEIGHT/2 - 75;
     SGPoint v[][3] = {
        { { cx, cy }, { cx+322, cy+278 }, { cx-198, cy+170 } },
        { { cx, cy }, { cx-322, cy+278 }, { cx+198, cy+170 } },
@@ -1833,7 +1831,7 @@ void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 1.25;
     txt.SetTextSpacing(1.15);
     float wide = txt.GetTextWidth(scale, str);
-    xystart.x = (clip.w - wide)/2;
+    xystart.x = (DEMO_WIDTH - wide)/2;
     xystart.y = 480;
     aarend->SetColor(RGBX(122,62,183));
     sg->SetLineWidth(14.0);
@@ -1852,7 +1850,7 @@ void demo14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 
     // Fill the background with a checkerboard pattern
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     COLOR checker[4] = { 
         RGBX(230,236,251), RGBX(220,228,249), 
         RGBX(220,228,249), RGBX(210,220,247),
@@ -2028,7 +2026,7 @@ void demo14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 1.0;
     txt.SetTextSpacing(1.0);
     float wide = txt.GetTextWidth(scale, str);
-    xystart.x = (clip.w - wide)/2;
+    xystart.x = (DEMO_WIDTH - wide)/2;
     xystart.y = 165;
     aarend->SetColor(RGBX(31,49,66));
     sg->SetLineWidth(12.0);
@@ -2044,7 +2042,7 @@ void demo15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     SGPtr sg(aarend, clip);
     TextApp txt;
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
 
     // Clip everything to a frame with rounded corners
     sg->BeginPath();
@@ -2128,7 +2126,7 @@ void demo15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     txt.SetTextSpacing(1.2);
     float wide = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - wide)/2;
+    xystart.x = (DEMO_WIDTH - wide)/2;
     xystart.y = 175;
     sg->SetLineWidth(12.0);
     txt.DisplayText(&(*sg), xystart, scale, str);
@@ -2146,9 +2144,9 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     SGPtr sg(aarend, clip);
     TextApp txt;
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
-    float x0 = clip.w/2, y0 = clip.h/2, r0 = 0;
-    float x1 = x0, y1 = y0, r1 = clip.w/12;
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
+    float x0 = DEMO_WIDTH/2, y0 = DEMO_HEIGHT/2, r0 = 0;
+    float x1 = x0, y1 = y0, r1 = DEMO_WIDTH/12;
 
     // Use a radial gradient to fill the background
     aarend->AddColorStop(  0, RGBX(255,211,180));  // light orange
@@ -2192,7 +2190,7 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 1.12;
     txt.SetTextSpacing(1.05);
     float wide = txt.GetTextWidth(scale, str);
-    xystart.x = (clip.w - wide)/2;
+    xystart.x = (DEMO_WIDTH - wide)/2;
     xystart.y = 400;
     aarend->SetColor(RGBX(122,62,183));
     sg->SetLineWidth(13.0);
@@ -2219,7 +2217,7 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     aarend->AddColorStop(0.8, RGBX(150,33,11));
     aarend->AddColorStop(1.0, RGBX(255,126,106));
 
-    SGCoord cx = clip.w/2, cy = clip.h/2;
+    SGCoord cx = DEMO_WIDTH/2, cy = DEMO_HEIGHT/2;
     SGRect rr0 = { cx-613, cy+203, 398, 250 };
     float xform[6] = { 1.0, 0, 0, 1.7, 0, 0 };
     float sina = sin(2*PI/15), cosa = cos(2*PI/15);
@@ -2287,7 +2285,7 @@ void demo17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 {
     SGPtr sg(aarend, clip);
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
 
     // Fill background with linear gradient pattern
     aarend->AddColorStop(0, RGBX(91,33,110));
@@ -2304,7 +2302,7 @@ void demo17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->StrokePath();
 
     // Use radial gradient to darken central region
-    float xform[] = { 1.0, 0, 0, 0.75, clip.w/2.0f, clip.h/2.0f };
+    float xform[] = { 1.0, 0, 0, 0.75, DEMO_WIDTH/2.0f, DEMO_HEIGHT/2.0f };
     aarend->SetTransform(xform);
     aarend->ResetColorStops();
     aarend->AddColorStop(0, RGBA(30,0,0,110));
@@ -2319,7 +2317,7 @@ void demo17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.8;
     float width = txt.GetTextWidth(scale, str);
     SGPoint xystart;
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     xystart.y = 245;
     sg->SetLineWidth(11.0);
     aarend->SetColor(RGBX(12,2,40));
@@ -2342,7 +2340,7 @@ void demo17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->SetLineWidth(3.8);
     xystart.y = 365;
     width = txt.GetTextWidth(scale, s[1]);
-    xystart.x = (clip.w - width)/2;
+    xystart.x = (DEMO_WIDTH - width)/2;
     for (int i = 0; i < ARRAY_LEN(s); ++i)
     {
         txt.DisplayText(&(*sg), xystart, scale, s[i]);

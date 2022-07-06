@@ -84,7 +84,8 @@ enum FILLRULE {
 enum LINEJOIN {
     LINEJOIN_BEVEL,  // beveled join between two line segments
     LINEJOIN_ROUND,  // rounded join between two line segments
-    LINEJOIN_MITER   // mitered join between two line segments
+    LINEJOIN_MITER,  // mitered join between two line segments
+    LINEJOIN_SVG_MITER  // default join in SVG spec at W3.org
 };
 const LINEJOIN LINEJOIN_DEFAULT = LINEJOIN_BEVEL;  // default line join
 

@@ -153,9 +153,10 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 
     switch (joinstyle)
     {
-    case LINEJOIN_MITER:
-    case LINEJOIN_ROUND:
     case LINEJOIN_BEVEL:
+    case LINEJOIN_ROUND:
+    case LINEJOIN_MITER:
+    case LINEJOIN_SVG_MITER:
         _linejoin = joinstyle;
         break;
     default:
@@ -524,14 +525,14 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         _edge->AttachEdge(&v0, &v2);
     }
 
-    // Check for beveled line join
-    if (_linejoin != LINEJOIN_MITER)
+    // Check for bevel or round line join
+    if (_linejoin == LINEJOIN_BEVEL || _linejoin == LINEJOIN_ROUND)
     {
         // Construct the line segment that enters the line join
         _edge->AttachEdge(&_vin, &v1);
         _edge->AttachEdge(&v2, &_vout);
 
-        // Add the bevel
+        // Construct the bevel or round join
         if (xprod < 0)
         {
             // Stroke turns left (CCW) at join
@@ -550,15 +551,13 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         {   
             // Stroke turns right (CW) at join
             if (_linejoin == LINEJOIN_ROUND)
-            {
                 RoundJoin(v0, ain, aout);
-            }
             else
                 _edge->AttachEdge(&v1, &v3);  // bevel
         }
         _vin = v3;
         _vout = v4;
-        return;
+        return;  // bevel or round join completed
     } 
 
     // This is a miter join. Determine whether the miter length
@@ -572,10 +571,10 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         t = fixdiv(numer, denom, 16);  // linear interpolation param
         if (t <= _mitercheck)
         {
+            // Miter length is within miter limit, so draw full miter
             FIX16 dx = fixmpy(t, ain.x - aout.x, 16);
             FIX16 dy = fixmpy(t, ain.y - aout.y, 16);
 
-            // Miter length is within miter limit, so draw full miter
             if (xprod < 0)
             {   
                 // Stroke turns left (CCW) at join
@@ -594,11 +593,27 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
             }
             _vin = v3;
             _vout = v4;
-            return;
+            return;  // full miter join completed
         }
     }
 
-    // Miter limit exceeded: we'll have to snip off miter point
+    // Miter limit exceeded -- we need to snip off the miter point
+    if (_linejoin == LINEJOIN_SVG_MITER)
+    {
+        // Ugh! -- this is SVG's weird default line join
+        _edge->AttachEdge(&_vin, &v1);
+        _edge->AttachEdge(&v2, &_vout);
+        if (xprod < 0)
+            _edge->AttachEdge(&v4, &v2);
+        else
+            _edge->AttachEdge(&v1, &v3);
+    
+        _vin = v3;
+        _vout = v4;
+        return;  // the dirty deed is done
+    }
+
+    // LINEJOIN_MITER: This miter join will be properly clipped
     VERT16 am, vm, vz = { 0, 0 };
     VERT30 unused;
     FIX16 dotprod = fixmpy(ain.x, aout.x, 16) + fixmpy(ain.y, aout.y, 16);

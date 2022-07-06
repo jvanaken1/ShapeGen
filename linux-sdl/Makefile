@@ -4,16 +4,23 @@
 
 CC = g++
 
-OBJS = demo.o bmpfile.o textapp.o gradient.o pattern.o \
+OBJS = sdlmain.o bmpfile.o textapp.o gradient.o pattern.o \
        arc.o curve.o edge.o path.o stroke.o thinline.o
+BMPS = bricks.bmp fleur.bmp honeycomb.bmp star.bmp                   
 
-all : .PHONY demo
+all : .PHONY svgview $(BMPS) demo
 
-demo : sdlmain.o $(OBJS)
-	$(CC) -o demo sdlmain.o $(OBJS) -lSDL2
+demo : demo.o $(OBJS)
+	$(CC) -o demo demo.o $(OBJS) -lSDL2
+
+svgview : svgview.o $(OBJS)
+	$(CC) -o svgview svgview.o $(OBJS) -lSDL2
 
 demo.o : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) -w -c demo.cpp
+
+svgview.o : svgview.cpp shapegen.h renderer.h demo.h nanosvg.h
+	$(CC) -w -c svgview.cpp
 
 sdlmain.o : sdlmain.cpp shapegen.h renderer.h
 	$(CC) -w -c sdlmain.cpp
@@ -56,4 +63,5 @@ thinline.o : thinline.cpp shapegen.h shapepri.h
 clean :
 	rm *.o
 	rm demo
+	rm svgview
 

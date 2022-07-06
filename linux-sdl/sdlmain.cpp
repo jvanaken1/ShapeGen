@@ -14,13 +14,23 @@
 #include "demo.h"
 
 // Display error message for user
-void UserMessage::MessageOut(char *text, char *title, int code)
+void UserMessage::ShowMessage(char *text, char *title, int msgcode)
 {
-    for (int i = 0; i < 8; ++i) printf("*********");
-    printf("\n** %s\n", title);
-    printf("**   %s\n", text);
-    for (int i = 0; i < 8; ++i) printf("*********");
-    printf("\n");
+    int code;
+    switch (msgcode)
+    {
+    case MESSAGECODE_INFORMATION:
+        code = SDL_MESSAGEBOX_INFORMATION;
+        break;
+    case MESSAGECODE_WARNING:
+        code = SDL_MESSAGEBOX_WARNING;
+        break;
+    case MESSAGECODE_ERROR:
+    default:
+        code = SDL_MESSAGEBOX_ERROR;
+        break;
+    }
+    SDL_ShowSimpleMessageBox(code, title, text, 0);
 } 
 
 //---------------------------------------------------------------------
@@ -628,17 +638,20 @@ void AA4x8Renderer::SetTransform(const float xform[])
 //
 //---------------------------------------------------------------------
 
+int _argc_ = 0;
+char **_argv_ = 0;
+
 int main(int argc, char *argv[])
 {
     SDL_Window *window = 0;
-    SDL_Surface* winsurf = 0;
-    SDL_Event evt;
-    bool redraw = true;
-    bool quit = false;
+    SDL_Surface *winsurf = 0;
     int testnum = 0;
     SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT};
+    bool quit = false;
 
     printf("Starting SDL2 app...\n");
+    _argc_ = argc;
+    _argv_ = argv;
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         printf("ERROR-- %s\n", SDL_GetError());
@@ -646,100 +659,129 @@ int main(int argc, char *argv[])
     }
     window = SDL_CreateWindow("ShapeGen graphics demo",
                               SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                              DEMO_WIDTH, DEMO_HEIGHT, 0);
+                              DEMO_WIDTH, DEMO_HEIGHT, SDL_WINDOW_RESIZABLE);
     if (window == 0)
     {
         printf("ERROR-- %s\n", SDL_GetError());
+        SDL_Quit();
         return -1;
     }
     winsurf = SDL_GetWindowSurface(window);
     if (winsurf == 0)
     {
-        SDL_DestroyWindow(window);
         printf("ERROR-- %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return -1;
     }
-    while (quit == false)
+    for (;;)  // begin main loop
     {
-        while (SDL_PollEvent(&evt) != 0)
+        bool redraw = true;
+        SDL_Event evt;
+        
+        SDL_WaitEvent(&evt);
+        if (evt.type == SDL_QUIT)
         {
-            if (evt.type == SDL_QUIT)
-            {
-                quit = true;
-                break;
-            }
-            else if (evt.type == SDL_KEYDOWN)
-            {
-                int flags = KMOD_ALT | KMOD_SHIFT | KMOD_CTRL;
-                bool mod = ((SDL_GetModState() & flags) != 0);
+            quit = true;
+        }
+        else if (evt.type == SDL_KEYDOWN)
+        {
+            int flags = KMOD_ALT | KMOD_SHIFT | KMOD_CTRL;
+            bool mod = ((SDL_GetModState() & flags) != 0);
 
-                redraw = true;
-                switch (evt.key.keysym.sym)
+            switch (evt.key.keysym.sym)
+            {
+            case SDLK_LEFT:
+                if (mod)
+                    cliprect.x -= 5;
+                else
                 {
-                case SDLK_LEFT:
-                    if (mod)
-                        cliprect.x -= 5;
-                    else
-                    {
-                        --testnum;
-                        cliprect.x = cliprect.y = 0;
-                    }
-                    break;
-                case SDLK_UP:
-                    if (mod)
-                        cliprect.y -= 5;
-                    else
-                        cliprect.x = cliprect.y = 0;
-                    break;
-                case SDLK_RIGHT:
-                    if (mod)
-                        cliprect.x += 5;
-                    else
-                    {
-                        ++testnum;
-                        cliprect.x = cliprect.y = 0;
-                    }
-                    break;
-                case SDLK_DOWN:
-                    if (mod)
-                        cliprect.y += 5;
-                    else
-                        cliprect.x = cliprect.y = 0;
-                    break;
-                case SDLK_ESCAPE:
-                    if (mod)
-                        quit = true;
-                    else
-                        testnum = 0;
-                    break;
-                case SDLK_RSHIFT:
-                case SDLK_LSHIFT:
-                case SDLK_RCTRL:
-                case SDLK_LCTRL:
-                case SDLK_RALT:
-                case SDLK_LALT:
-                    redraw = false;
-                    break;
-                default:
+                    --testnum;
+                    cliprect.x = cliprect.y = 0;
+                }
+                break;
+            case SDLK_UP:
+                if (mod)
+                    cliprect.y -= 5;
+                else
+                    cliprect.x = cliprect.y = 0;
+                break;
+            case SDLK_RIGHT:
+                if (mod)
+                    cliprect.x += 5;
+                else
+                {
                     ++testnum;
                     cliprect.x = cliprect.y = 0;
-                    break;
                 }
-            }
-            if (redraw == true)
-            {
-                BasicRenderer rend(winsurf);
-                AA4x8Renderer aarend(winsurf);
-    
-                SDL_FillRect(winsurf, 0, SDL_MapRGB(winsurf->format, 255, 255, 255));
-                testnum = runtest(testnum, &rend, &aarend, cliprect);
-                SDL_UpdateWindowSurface(window);
+                break;
+            case SDLK_DOWN:
+                if (mod)
+                    cliprect.y += 5;
+                else
+                    cliprect.x = cliprect.y = 0;
+                break;
+            case SDLK_ESCAPE:
+                if (mod)
+                    quit = true;
+                else
+                    testnum = 0;
+                break;
+            case SDLK_RSHIFT:
+            case SDLK_LSHIFT:
+            case SDLK_RCTRL:
+            case SDLK_LCTRL:
+            case SDLK_RALT:
+            case SDLK_LALT:
                 redraw = false;
+                break;
+            default:
+                ++testnum;
+                cliprect.x = cliprect.y = 0;
+                break;
             }
         }
+        else if (evt.type == SDL_WINDOWEVENT)
+        {
+            switch (evt.window.event)
+            {
+            case SDL_WINDOWEVENT_SHOWN:
+                break;
+            case SDL_WINDOWEVENT_RESIZED:
+                SDL_GetWindowSize(window, &cliprect.w, &cliprect.h);
+                winsurf = SDL_GetWindowSurface(window);
+                if (winsurf == 0)
+                {
+                    printf("ERROR-- %s\n", SDL_GetError());
+                    quit = true;
+                }
+                break;
+            default:
+                redraw = false;
+                break;
+            }
+        }
+        else
+            redraw = false;
+
+        if (quit)
+        {   
+            printf("Quitting SDL2 app...\n");
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            break;  // exit main loop
+        }
+        if (redraw)
+        {
+            BasicRenderer rend(winsurf);
+            AA4x8Renderer aarend(winsurf);
+
+            SDL_FillRect(winsurf, 0, SDL_MapRGB(winsurf->format, 255, 255, 255));
+            testnum = runtest(testnum, &rend, &aarend, cliprect);
+            SDL_UpdateWindowSurface(window);
+            if (testnum < 0)
+                quit = true;
+        }
     }
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    printf("Quitting SDL2 app...\n");
     return 0;
 }

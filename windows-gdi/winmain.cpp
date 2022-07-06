@@ -11,6 +11,9 @@
 #include <assert.h>
 #include "demo.h"
 
+int _argc_ = 0;
+char **_argv_ = 0;
+
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 int WINAPI WinMain(HINSTANCE hInstance, 
@@ -42,6 +45,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    MB_ICONERROR); 
         return 0; 
     }
+    _argc_ = __argc;
+    _argv_ = __argv;
     hwnd = CreateWindow(szAppName, 
                         TEXT("ShapeGen Graphics Demo"), 
                         WS_OVERLAPPEDWINDOW | WS_VSCROLL, 
@@ -60,9 +65,23 @@ int WINAPI WinMain(HINSTANCE hInstance,
 }
 
 // Display error message for user
-void UserMessage::MessageOut(char *text, char *title, int code)
+void UserMessage::ShowMessage(char *text, char *title, int msgcode)
 {
-    MessageBox(0, text, title, 0);
+    int code;
+    switch (msgcode)
+    {
+    case MESSAGECODE_INFORMATION:
+        code = MB_ICONINFORMATION;
+        break;
+    case MESSAGECODE_WARNING:
+        code = MB_ICONWARNING;
+        break;
+    case MESSAGECODE_ERROR:
+    default:
+        code = MB_ICONERROR;
+        break;
+    }
+    MessageBox(0, text, title, code);
 }
 
 //---------------------------------------------------------------------
@@ -598,7 +617,6 @@ void AA4x8Renderer::SetTransform(const float xform[])
 // Win32 window procedure: Processes the next message for this window
 //
 //----------------------------------------------------------------------
-
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 {
     RECT rect;
@@ -615,7 +633,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetScrollRange(hwnd, SB_VERT, 0, cliprect.h, false);
         SetScrollPos(hwnd, SB_VERT, 0, true);
         return 0;
-
+    
     case WM_KEYDOWN: 
         switch (wParam) 
         { 
@@ -633,6 +651,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         cliprect.x = cliprect.y = 0;
         SetScrollPos(hwnd, SB_HORZ, cliprect.x, false);
         SetScrollPos(hwnd, SB_VERT, cliprect.y, true);
+        InvalidateRect(hwnd, NULL, true);
+        return 0;
+
+    case WM_SIZE:
+        cliprect.w = LOWORD(lParam);
+        cliprect.h = HIWORD(lParam);
         InvalidateRect(hwnd, NULL, true);
         return 0;
 
@@ -656,11 +680,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_PAINT: 
         hdc = BeginPaint(hwnd, &ps);
+        if (cliprect.w > 0 && cliprect.h > 0)
         {
             BasicRenderer rend(hdc);
             AA4x8Renderer aarend(hdc);
 
             testnum = runtest(testnum, &rend, &aarend, cliprect);
+            if (testnum < 0)
+                PostQuitMessage(0);
         }
         EndPaint(hwnd, &ps);
         return 0; 
@@ -671,4 +698,5 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     } 
     return DefWindowProc(hwnd, message, wParam, lParam); 
 }
+
 

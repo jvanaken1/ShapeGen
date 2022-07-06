@@ -22,10 +22,12 @@
 //---------------------------------------------------------------------
 //
 // bmpfile.cpp:
-//   This file contains the code for a bitmap file reader (for image
-//   files with .bmp filename extension). The BmpReader class inherits
-//   from the base class ImageReader that defined to supply image data
-//   to TiledPattern objects, defined in render.h.
+//   This file implements a rudimentary BMP file reader -- i.e., it
+//   reads image files with a .bmp filename extension. This reader can
+//   handle the simple BMP files used by the ShapeGen demo program.
+//   The BmpReader class inherits from the base class ImageReader,
+//   which is defined in render.h, and is provided to supply image
+//   data to TiledPattern objects for use in pattern-fill operations.
 //
 //---------------------------------------------------------------------
 
@@ -303,7 +305,7 @@ BmpReader::~BmpReader()
 void BmpReader::ErrorMessage(char *pszError)
 {
     if (_umsg)
-        _umsg->MessageOut(pszError, "Error", 0);
+        _umsg->ShowMessage(pszError, "BMP file reader - Error", MESSAGECODE_ERROR);
 }
 
 // Returns the image info flags, and writes the image width and
