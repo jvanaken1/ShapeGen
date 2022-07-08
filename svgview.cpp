@@ -38,14 +38,14 @@
 int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect)
 {
     SGPtr sg(aarend, cliprect);
-	NSVGimage* image;
+    NSVGimage* image;
     float scale, scale16;
     UserMessage umsg;
 
     if (_argc_ < 2)
     {
-        umsg.ShowMessage("List one or more SVG filenames on command line", 
-                        "SVG viewer - Usage info", MESSAGECODE_INFORMATION);
+        umsg.ShowMessage("List one or more SVG filenames on command line",
+                         "SVG viewer - Usage info", MESSAGECODE_INFORMATION);
         return -1;
     }
     if (testnum < 0)
@@ -54,9 +54,9 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
         testnum = 0;
 
     // Load SVG file, construct image data
-	image = nsvgParseFromFile(_argv_[testnum + 1], "px", 96);
+    image = nsvgParseFromFile(_argv_[testnum + 1], "px", 96);
     if (image == 0 || image->width == 0 || image->height == 0)
-    {  
+    {
         // Send file error message to user
         char sbuf[256];
         sprintf(sbuf, "Unable to %s file \"%s\"\n",
@@ -66,31 +66,31 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
         aarend->SetColor(RGBX(0,0,0));
         sg->Rectangle(cliprect);
         sg->FillPath(FILLRULE_EVENODD);
-        return (_argc_ < 3) ? -1 : testnum;
+        return(_argc_ < 3) ? -1 : testnum;
     }
 
     // Calculate scaling for image
-	if (image->hasViewport == 0 ||
+    if (image->hasViewport == 0 ||
         cliprect.w < image->width || cliprect.h < image->height)
     {
         // Either no viewport is defined in SVG file, or the viewport
         // has to be shrunk to display the full image in the window
-    	float xscale = (cliprect.w > 0) ? cliprect.w/image->width : 0;
+        float xscale = (cliprect.w > 0) ? cliprect.w/image->width : 0;
         float yscale = (cliprect.h > 0) ? cliprect.h/image->height : 0;
         scale = (xscale < yscale) ? xscale : yscale;
     }
     else
         scale = 1;  // we'll honor the viewport defined in the SVG file
-    
+
     scale16 = 65536*scale;  // to scale 16.16 fixed-point SGCoord values
     sg->SetFixedBits(16);
 
-	// Render the image data
-    for (NSVGshape *shape = image->shapes; shape != NULL; shape = shape->next) 
+    // Render the image data
+    for (NSVGshape *shape = image->shapes; shape != NULL; shape = shape->next)
     {
         // Construct the path -- push shape coordinates onto path stack
         sg->BeginPath();
-        for (NSVGpath *path = shape->paths; path != NULL; path = path->next) 
+        for (NSVGpath *path = shape->paths; path != NULL; path = path->next)
         {
             float* p = &path->pts[0];
             SGPoint v[4];
@@ -98,20 +98,20 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             // if primitive == cubic bezier, then...
             v[0].x = scale16*p[0], v[0].y = scale16*p[1];
             sg->Move(v[0].x, v[0].y);
-			for (int i = 0; i < path->npts-1; i += 3) 
+            for (int i = 0; i < path->npts-1; i += 3)
             {
-				p = &path->pts[i*2];
-                v[1].x = scale16*p[2] + cliprect.x; 
+                p = &path->pts[i*2];
+                v[1].x = scale16*p[2] + cliprect.x;
                 v[1].y = scale16*p[3] + cliprect.y;
-                v[2].x = scale16*p[4] + cliprect.x; 
+                v[2].x = scale16*p[4] + cliprect.x;
                 v[2].y = scale16*p[5] + cliprect.y;
-                v[3].x = scale16*p[6] + cliprect.x; 
+                v[3].x = scale16*p[6] + cliprect.x;
                 v[3].y = scale16*p[7] + cliprect.y;
-				sg->Bezier3(v[1], v[2], v[3]);
-			}
+                sg->Bezier3(v[1], v[2], v[3]);
+            }
             if (path->closed)
                 sg->CloseFigure();
-		}
+        }
 
         // If fill paint is specified, fill the path
         int alpha = shape->opacity*255.99;
@@ -133,7 +133,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
                     NSVGgradientStop* stop = grad->stops;
                     SPREAD_METHOD spread;
                     float xform[6];
-                    
+
                     aarend->ResetColorStops();
                     for (int i = 0; i < grad->nstops; ++i)
                     {
@@ -157,10 +157,10 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
                         xform[i] = scale*grad->xform[i];
                     aarend->SetTransform(xform);
                     if (shape->fill.type == NSVG_PAINT_LINEAR_GRADIENT)
-                        aarend->SetLinearGradient(0,0, 0,1, spread, 
+                        aarend->SetLinearGradient(0,0, 0,1, spread,
                                                   FLAG_EXTEND_START | FLAG_EXTEND_END);
                     else
-                        aarend->SetRadialGradient(grad->fx,grad->fy,grad->fr, 0,0,1, spread, 
+                        aarend->SetRadialGradient(grad->fx,grad->fy,grad->fr, 0,0,1, spread,
                                                   FLAG_EXTEND_START | FLAG_EXTEND_END);
                 }
                 break;
@@ -217,7 +217,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
                 assert(dashCount <= 8);
                 for (int i = 0; i < dashCount; ++i)
                     dashArray[i] = 10*shape->strokeDashArray[i];
-                
+
                 dashArray[dashCount] = 0;
                 sg->SetLineDash(dashArray, shape->strokeDashOffset, scale/10);
             }
@@ -265,10 +265,10 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
                             xform[i] = scale*grad->xform[i];
                         aarend->SetTransform(xform);
                         if (shape->stroke.type == NSVG_PAINT_LINEAR_GRADIENT)
-                            aarend->SetLinearGradient(0,0, 0,1, spread, 
+                            aarend->SetLinearGradient(0,0, 0,1, spread,
                                                       FLAG_EXTEND_START | FLAG_EXTEND_END);
                         else
-                            aarend->SetRadialGradient(grad->fx,grad->fy,0, 0,0,1, 
+                            aarend->SetRadialGradient(grad->fx,grad->fy,0, 0,0,1,
                                                       spread, FLAG_EXTEND_START | FLAG_EXTEND_END);
                     }
                     break;
@@ -279,8 +279,8 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             }
             sg->StrokePath();
         }
-	}
-	// Delete
-	nsvgDelete(image);
+    }
+    // Delete
+    nsvgDelete(image);
     return testnum;
 }
