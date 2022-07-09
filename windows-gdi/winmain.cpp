@@ -49,7 +49,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     _argv_ = __argv;
     hwnd = CreateWindow(szAppName,
                         TEXT("ShapeGen Graphics Demo"),
-                        WS_OVERLAPPEDWINDOW | WS_VSCROLL,
+                        WS_OVERLAPPEDWINDOW,
                         CW_USEDEFAULT, CW_USEDEFAULT,
                         DEMO_WIDTH+33, DEMO_HEIGHT+56,
                         NULL, NULL, hInstance, NULL);
@@ -620,7 +620,7 @@ void AA4x8Renderer::SetTransform(const float xform[])
 //----------------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    RECT rect;
+    bool mod;
     PAINTSTRUCT ps;
     static int testnum = 0;
     static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
@@ -629,29 +629,53 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-        SetScrollRange(hwnd, SB_HORZ, 0, cliprect.w, false);
-        SetScrollPos(hwnd, SB_HORZ, 0, false);
-        SetScrollRange(hwnd, SB_VERT, 0, cliprect.h, false);
-        SetScrollPos(hwnd, SB_VERT, 0, true);
         return 0;
 
     case WM_KEYDOWN:
+        mod = (GetKeyState(VK_SHIFT) | GetKeyState(VK_CONTROL)) < 0;
         switch (wParam)
         {
-            case VK_ESCAPE:
-                testnum = 0;
-                break;
-            case VK_UP:
-            case VK_LEFT:
+        case VK_LEFT:
+            if (mod)
+                cliprect.x -= 5;
+            else
+            {
                 --testnum;
-                break;
-            default:
+                cliprect.x = cliprect.y = 0;
+            }
+            break;
+        case VK_UP:
+            if (mod)
+                cliprect.y -= 5;
+            else
+                cliprect.x = cliprect.y = 0;
+            break;
+        case VK_RIGHT:
+            if (mod)
+                cliprect.x += 5;
+            else
+            {
                 ++testnum;
-                break;
+                cliprect.x = cliprect.y = 0;
+            }
+            break;
+        case VK_DOWN:
+            if (mod)
+                cliprect.y += 5;
+            else
+                cliprect.x = cliprect.y = 0;
+            break;
+        case VK_ESCAPE:
+            testnum = 0;
+            break;
+        case VK_SHIFT:
+        case VK_CONTROL:
+            return 0;
+        default:
+            ++testnum;
+            cliprect.x = cliprect.y = 0;
+            break;
         }
-        cliprect.x = cliprect.y = 0;
-        SetScrollPos(hwnd, SB_HORZ, cliprect.x, false);
-        SetScrollPos(hwnd, SB_VERT, cliprect.y, true);
         InvalidateRect(hwnd, NULL, true);
         return 0;
 
@@ -659,24 +683,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         cliprect.w = LOWORD(lParam);
         cliprect.h = HIWORD(lParam);
         InvalidateRect(hwnd, NULL, true);
-        return 0;
-
-    case WM_HSCROLL:
-        if (LOWORD(wParam) == SB_THUMBTRACK)
-        {
-            cliprect.x = HIWORD(wParam);
-            SetScrollPos(hwnd, SB_HORZ, cliprect.x, true);
-            InvalidateRect(hwnd, NULL, true);
-        }
-        return 0;
-
-    case WM_VSCROLL:
-        if (LOWORD(wParam) == SB_THUMBTRACK)
-        {
-            cliprect.y = HIWORD(wParam);
-            SetScrollPos(hwnd, SB_VERT, cliprect.y, true);
-            InvalidateRect(hwnd, NULL, true);
-        }
         return 0;
 
     case WM_PAINT:
