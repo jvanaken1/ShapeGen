@@ -16,22 +16,23 @@
 // Display error message for user
 void UserMessage::ShowMessage(char *text, char *title, int msgcode)
 {
-    int code;
+    int sdlcode;  // SDL MessageBox code
+
     switch (msgcode)
     {
     case MESSAGECODE_INFORMATION:
-        code = SDL_MESSAGEBOX_INFORMATION;
+        sdlcode = SDL_MESSAGEBOX_INFORMATION;
         break;
     case MESSAGECODE_WARNING:
-        code = SDL_MESSAGEBOX_WARNING;
+        sdlcode = SDL_MESSAGEBOX_WARNING;
         break;
     case MESSAGECODE_ERROR:
     default:
-        code = SDL_MESSAGEBOX_ERROR;
+        sdlcode = SDL_MESSAGEBOX_ERROR;
         break;
     }
-    SDL_ShowSimpleMessageBox(code, title, text, 0);
-} 
+    SDL_ShowSimpleMessageBox(sdlcode, title, text, 0);
+}
 
 //---------------------------------------------------------------------
 //
@@ -140,9 +141,9 @@ public:
     AA4x8Renderer(SDL_Surface* winsurf);
     ~AA4x8Renderer();
     void SetColor(COLOR color);
-    void SetPattern(const COLOR *pattern, float u0, float v0, 
+    void SetPattern(const COLOR *pattern, float u0, float v0,
                     int w, int h, int stride, int flags);
-    void SetPattern(ImageReader *imgrdr, float u0, float v0, 
+    void SetPattern(ImageReader *imgrdr, float u0, float v0,
                     int w, int h, int flags);
     void SetLinearGradient(float x0, float y0, float x1, float y1,
                            SPREAD_METHOD spread, int flags);
@@ -189,8 +190,8 @@ void AA4x8Renderer::AlphaBlend(COLOR *src, COLOR *dst, int len)
 {
     while (len--)
     {
-        COLOR srcpix, dstpix, rb, ga, anot; 
-        
+        COLOR srcpix, dstpix, rb, ga, anot;
+
         srcpix = *src++;
         anot = ~srcpix >> 24;
         dstpix = *dst | 0xff000000;
@@ -219,7 +220,7 @@ bool AA4x8Renderer::IsMatchingFormat(SDL_Surface* surf)
            (surf->format->Bmask == 0x000000ff);
 }
 
-AA4x8Renderer::AA4x8Renderer(SDL_Surface* winsurf) 
+AA4x8Renderer::AA4x8Renderer(SDL_Surface* winsurf)
                   : _winsurf(winsurf), _blendsurf(0), _tempsurf(0),
                     _width(0), _pixbuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _alpha(255),
@@ -227,9 +228,9 @@ AA4x8Renderer::AA4x8Renderer(SDL_Surface* winsurf)
 {
     _bFormatsMatch = IsMatchingFormat(_winsurf);
     SDL_SetSurfaceBlendMode(_winsurf, SDL_BLENDMODE_NONE);
-    memset(&_lut[0], 0, sizeof(_lut));   
-    memset(&_aarow[0], 0, sizeof(_aarow));   
-    memset(&_cstop[0], 0, sizeof(_cstop));   
+    memset(&_lut[0], 0, sizeof(_lut));
+    memset(&_aarow[0], 0, sizeof(_aarow));
+    memset(&_cstop[0], 0, sizeof(_cstop));
     memset(&_xform[0], 0, sizeof(_xform));
     SetColor(RGBX(0,0,0));
 }
@@ -262,14 +263,14 @@ bool AA4x8Renderer::SetMaxWidth(int width)
     _aabuf = 0;
 
     // Allocate the new AA-buffer
-    _aabuf = new int[_width];  
+    _aabuf = new int[_width];
     assert(_aabuf);
     memset(_aabuf, 0, _width*sizeof(_aabuf[0]));  // debug aid
     for (int i = 0; i < 4; ++i)
         _aarow[i] = &_aabuf[i*_width/4];
 
     // Allocate offscreen buffer to store one scan line of BGRA pixels
-    _blendsurf = SDL_CreateRGBSurface(0, _width, 1, 32, 
+    _blendsurf = SDL_CreateRGBSurface(0, _width, 1, 32,
                                      0x00ff0000,   // Rmask
                                      0x0000ff00,   // Gmask
                                      0x000000ff,   // Bmask
@@ -282,7 +283,7 @@ bool AA4x8Renderer::SetMaxWidth(int width)
     }
     if (_bFormatsMatch == false)
     {
-        _tempsurf = SDL_CreateRGBSurface(0, _width, 1, 32, 
+        _tempsurf = SDL_CreateRGBSurface(0, _width, 1, 32,
                                          0x00ff0000,   // Rmask
                                          0x0000ff00,   // Gmask
                                          0x000000ff,   // Bmask
@@ -345,7 +346,7 @@ void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
     }
 
     // Flush the AA-buffer to render the final scan line
-    if (yscan != YSCAN_INVALID)    
+    if (yscan != YSCAN_INVALID)
         RenderAbuffer(xmin, xmax, yscan);
 }
 
@@ -397,13 +398,13 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     // source pixel buffer.
     for (int i = iL; i < iR; ++i)
     {
-        int count = 0;        
+        int count = 0;
         int x = 4*i;
 
         for (int j = 0; j < 4; ++j)
         {
             int val = _aarow[j][i];
-    
+
             _aarow[j][i] = 0;  // <-- clears this AA-buffer element
             val = (val & 0x55555555) + ((val >> 1) & 0x55555555);
             val = (val & 0x33333333) + ((val >> 2) & 0x33333333);
@@ -438,7 +439,7 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     // format makes things here more complicated than they should be.
     if (_bFormatsMatch)
     {
-        COLOR *dest = reinterpret_cast<COLOR*>(_winsurf->pixels) + xleft + 
+        COLOR *dest = reinterpret_cast<COLOR*>(_winsurf->pixels) + xleft +
                       yscan*_winsurf->pitch/sizeof(COLOR);
         AlphaBlend(buffer, dest, len);
     }
@@ -519,7 +520,7 @@ bool AA4x8Renderer::SetScrollPosition(int x, int y)
 
 // Sets up the renderer to do tiled pattern fills from an array
 // containing a 2-D image
-void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0, 
+void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
                                int w, int h, int stride, int flags)
 {
     if (_paintgen)
@@ -542,7 +543,7 @@ void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
 
 // Sets up the renderer to do pattern fills from a bitmap file
 // containing a 2-D image
-void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0, 
+void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
                                int w, int h, int flags)
 {
     if (_paintgen)
@@ -574,7 +575,7 @@ void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
     }
     LinearGradient *lin;
     lin = CreateLinearGradient(x0, y0, x1, y1, spread, flags, _pxform);
-    assert(lin); 
+    assert(lin);
     for (int i = 0; i < _stopCount; ++i)
         lin->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
@@ -595,7 +596,7 @@ void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
     }
     RadialGradient *rad;
     rad = CreateRadialGradient(x0, y0, r0, x1, y1, r1, spread, flags, _pxform);
-    assert(rad); 
+    assert(rad);
     for (int i = 0; i < _stopCount; ++i)
         rad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
@@ -678,7 +679,7 @@ int main(int argc, char *argv[])
     {
         bool redraw = true;
         SDL_Event evt;
-        
+
         SDL_WaitEvent(&evt);
         if (evt.type == SDL_QUIT)
         {
@@ -765,7 +766,7 @@ int main(int argc, char *argv[])
             redraw = false;
 
         if (quit)
-        {   
+        {
             printf("Quitting SDL2 app...\n");
             SDL_DestroyWindow(window);
             SDL_Quit();

@@ -16,72 +16,73 @@ char **_argv_ = 0;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int WINAPI WinMain(HINSTANCE hInstance, 
-                   HINSTANCE hPrevInstance, 
-                   PSTR szCmdLine, 
-                   int iCmdShow) 
-{ 
-    static TCHAR szAppName[] = TEXT("ShapeGen Graphics Library"); 
-    HWND         hwnd; 
-    MSG          msg; 
+int WINAPI WinMain(HINSTANCE hInstance,
+                   HINSTANCE hPrevInstance,
+                   PSTR szCmdLine,
+                   int iCmdShow)
+{
+    static TCHAR szAppName[] = TEXT("ShapeGen Graphics Library");
+    HWND         hwnd;
+    MSG          msg;
     WNDCLASS     wndclass;
 
-    wndclass.style         = CS_HREDRAW | CS_VREDRAW; 
-    wndclass.lpfnWndProc   = WndProc; 
-    wndclass.cbClsExtra    = 0; 
-    wndclass.cbWndExtra    = 0; 
-    wndclass.hInstance     = hInstance; 
-    wndclass.hIcon         = LoadIcon(NULL, IDI_APPLICATION); 
-    wndclass.hCursor       = LoadCursor(NULL, IDC_ARROW); 
-    wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH); 
-    wndclass.lpszMenuName  = NULL; 
-    wndclass.lpszClassName = szAppName; 
+    wndclass.style         = CS_HREDRAW | CS_VREDRAW;
+    wndclass.lpfnWndProc   = WndProc;
+    wndclass.cbClsExtra    = 0;
+    wndclass.cbWndExtra    = 0;
+    wndclass.hInstance     = hInstance;
+    wndclass.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+    wndclass.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    wndclass.lpszMenuName  = NULL;
+    wndclass.lpszClassName = szAppName;
 
     if (!RegisterClass(&wndclass))
     {
-        MessageBox(NULL, 
-                   TEXT("This program requires Windows NT!"), 
-                   szAppName, 
-                   MB_ICONERROR); 
-        return 0; 
+        MessageBox(NULL,
+                   TEXT("This program requires Windows NT!"),
+                   szAppName,
+                   MB_ICONERROR);
+        return 0;
     }
     _argc_ = __argc;
     _argv_ = __argv;
-    hwnd = CreateWindow(szAppName, 
-                        TEXT("ShapeGen Graphics Demo"), 
-                        WS_OVERLAPPEDWINDOW | WS_VSCROLL, 
-                        CW_USEDEFAULT, CW_USEDEFAULT, 
-                        DEMO_WIDTH+33, DEMO_HEIGHT+56, 
-                        NULL, NULL, hInstance, NULL); 
+    hwnd = CreateWindow(szAppName,
+                        TEXT("ShapeGen Graphics Demo"),
+                        WS_OVERLAPPEDWINDOW | WS_VSCROLL,
+                        CW_USEDEFAULT, CW_USEDEFAULT,
+                        DEMO_WIDTH+33, DEMO_HEIGHT+56,
+                        NULL, NULL, hInstance, NULL);
 
-    ShowWindow(hwnd, iCmdShow); 
+    ShowWindow(hwnd, iCmdShow);
     UpdateWindow(hwnd);
     while (GetMessage(&msg, NULL, 0, 0))
     {
-        TranslateMessage(&msg); 
-        DispatchMessage(&msg); 
-    } 
-    return msg.wParam; 
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    return msg.wParam;
 }
 
 // Display error message for user
 void UserMessage::ShowMessage(char *text, char *title, int msgcode)
 {
-    int code;
+    int wincode;  // Windows MessageBox code
+
     switch (msgcode)
     {
     case MESSAGECODE_INFORMATION:
-        code = MB_ICONINFORMATION;
+        wincode = MB_ICONINFORMATION;
         break;
     case MESSAGECODE_WARNING:
-        code = MB_ICONWARNING;
+        wincode = MB_ICONWARNING;
         break;
     case MESSAGECODE_ERROR:
     default:
-        code = MB_ICONERROR;
+        wincode = MB_ICONERROR;
         break;
     }
-    MessageBox(0, text, title, code);
+    MessageBox(0, text, title, wincode);
 }
 
 //---------------------------------------------------------------------
@@ -186,9 +187,9 @@ public:
     AA4x8Renderer(HDC hdc);
     ~AA4x8Renderer();
     void SetColor(COLOR color);
-    void SetPattern(const COLOR *pattern, float u0, float v0, 
+    void SetPattern(const COLOR *pattern, float u0, float v0,
                     int w, int h, int stride, int flags);
-    void SetPattern(ImageReader *imgrdr, float u0, float v0, 
+    void SetPattern(ImageReader *imgrdr, float u0, float v0,
                     int w, int h, int flags);
     void SetLinearGradient(float x0, float y0, float x1, float y1,
                            SPREAD_METHOD spread, int flags);
@@ -227,15 +228,15 @@ COLOR AA4x8Renderer::PremultAlpha(COLOR color)
     return color;
 }
 
-AA4x8Renderer::AA4x8Renderer(HDC hdc) 
+AA4x8Renderer::AA4x8Renderer(HDC hdc)
         : _hdc(hdc), _hdcmem(0), _hBitmap(0),
           _width(0), _pixbuf(0), _aabuf(0), _paintgen(0),
           _stopCount(0), _pxform(0), _alpha(255),
           _xscroll(0), _yscroll(0)
-{   
-    memset(&_lut[0], 0, sizeof(_lut));   
-    memset(&_aarow[0], 0, sizeof(_aarow));   
-    memset(&_cstop[0], 0, sizeof(_cstop));   
+{
+    memset(&_lut[0], 0, sizeof(_lut));
+    memset(&_aarow[0], 0, sizeof(_aarow));
+    memset(&_cstop[0], 0, sizeof(_cstop));
     memset(&_xform[0], 0, sizeof(_xform));
     SetColor(RGBX(0,0,0));
 }
@@ -268,7 +269,7 @@ bool AA4x8Renderer::SetMaxWidth(int width)
     _aabuf = 0;
 
     // Allocate the new AA-buffer
-    _aabuf = new int[_width];  
+    _aabuf = new int[_width];
     assert(_aabuf);
     memset(_aabuf, 0, _width*sizeof(_aabuf[0]));  // debug aid
     for (int i = 0; i < 4; ++i)
@@ -340,7 +341,7 @@ void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
     }
 
     // Flush the AA-buffer to render the final scan line
-    if (yscan != YSCAN_INVALID)    
+    if (yscan != YSCAN_INVALID)
         RenderAbuffer(xmin, xmax, yscan);
 }
 
@@ -392,13 +393,13 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     // source pixel buffer.
     for (int i = iL; i < iR; ++i)
     {
-        int count = 0;        
+        int count = 0;
         int x = 4*i;
 
         for (int j = 0; j < 4; ++j)
         {
             int val = _aarow[j][i];
-    
+
             _aarow[j][i] = 0;  // <-- clears this AA-buffer element
             val = (val & 0x55555555) + ((val >> 1) & 0x55555555);
             val = (val & 0x33333333) + ((val >> 2) & 0x33333333);
@@ -499,7 +500,7 @@ bool AA4x8Renderer::SetScrollPosition(int x, int y)
 
 // Sets up the renderer to do tiled pattern fills from an array
 // containing a 2-D image
-void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0, 
+void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
                                int w, int h, int stride, int flags)
 {
     if (_paintgen)
@@ -522,7 +523,7 @@ void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
 
 // Sets up the renderer to do pattern fills from a bitmap file
 // containing a 2-D image
-void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0, 
+void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
                                int w, int h, int flags)
 {
     if (_paintgen)
@@ -554,7 +555,7 @@ void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
     }
     LinearGradient *lin;
     lin = CreateLinearGradient(x0, y0, x1, y1, spread, flags, _pxform);
-    assert(lin); 
+    assert(lin);
     for (int i = 0; i < _stopCount; ++i)
         lin->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
@@ -575,7 +576,7 @@ void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
     }
     RadialGradient *rad;
     rad = CreateRadialGradient(x0, y0, r0, x1, y1, r1, spread, flags, _pxform);
-    assert(rad); 
+    assert(rad);
     for (int i = 0; i < _stopCount; ++i)
         rad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
@@ -617,7 +618,7 @@ void AA4x8Renderer::SetTransform(const float xform[])
 // Win32 window procedure: Processes the next message for this window
 //
 //----------------------------------------------------------------------
-LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
+LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     RECT rect;
     PAINTSTRUCT ps;
@@ -633,19 +634,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetScrollRange(hwnd, SB_VERT, 0, cliprect.h, false);
         SetScrollPos(hwnd, SB_VERT, 0, true);
         return 0;
-    
-    case WM_KEYDOWN: 
-        switch (wParam) 
-        { 
-            case VK_ESCAPE: 
-                testnum = 0; 
-                break; 
-            case VK_UP: 
-            case VK_LEFT: 
+
+    case WM_KEYDOWN:
+        switch (wParam)
+        {
+            case VK_ESCAPE:
+                testnum = 0;
+                break;
+            case VK_UP:
+            case VK_LEFT:
                 --testnum;
-                break; 
-            default: 
-                ++testnum; 
+                break;
+            default:
+                ++testnum;
                 break;
         }
         cliprect.x = cliprect.y = 0;
@@ -678,7 +679,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         return 0;
 
-    case WM_PAINT: 
+    case WM_PAINT:
         hdc = BeginPaint(hwnd, &ps);
         if (cliprect.w > 0 && cliprect.h > 0)
         {
@@ -690,13 +691,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 PostQuitMessage(0);
         }
         EndPaint(hwnd, &ps);
-        return 0; 
+        return 0;
 
-    case WM_DESTROY: 
-        PostQuitMessage(0); 
-        return 0; 
-    } 
-    return DefWindowProc(hwnd, message, wParam, lParam); 
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    }
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
 
