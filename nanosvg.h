@@ -313,7 +313,6 @@ static void nsvg__parseElement(char* s, NSVGparser* par)
             attr[nattr++] = value;
         }
     }
-    assert(nattr < NSVG_XML_MAX_ATTRIBS);  ////// DEBUG!!!
 
     // List terminator
     attr[nattr++] = 0;
@@ -723,7 +722,6 @@ static NSVGattrib* nsvg__getAttr(NSVGparser* p)
 
 static void nsvg__pushAttr(NSVGparser* p)
 {
-    assert(p->attrHead < NSVG_MAX_ATTR-1);  ////// DEBUG!!!!
     if (p->attrHead < NSVG_MAX_ATTR-1) {
         p->attrHead++;
         memcpy(&p->attr[p->attrHead], &p->attr[p->attrHead-1], sizeof(NSVGattrib));

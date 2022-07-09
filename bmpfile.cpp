@@ -219,7 +219,7 @@ BmpReader::BmpReader(const char *pszFile)
         }
         _width = info.biWidth;
         _height = info.biHeight;
-        if (_width <= 0 || _height == 0)
+        if (_width <= 0 || _height <= 0)
         {
             pszError = "has bad value in info header";
             break;
@@ -326,9 +326,9 @@ void BmpReader::ErrorMessage(char *pszError)
 // values are both zero.
 int BmpReader::GetImageInfo(int *width, int *height)
 {
-   *width  = _width;
-   *height = _height;
-   return _flags;
+    *width  = _width;
+    *height = _height;
+    return _flags;
 }
 
 // Reads a block of pixel data from a .bmp file and writes it to a
