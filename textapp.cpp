@@ -27,8 +27,8 @@
 //   consists of font data for the printable ASCII characters. The
 //   font is stroke-based and is constructed using a combination of
 //   line segments, ellipses, elliptic arcs, and elliptic splines.
-//   The TextApp class member functions are implemented near the end 
-//   of this file. 
+//   The TextApp class member functions are implemented near the end
+//   of this file.
 //
 //---------------------------------------------------------------------
 
@@ -79,11 +79,11 @@ const float rightbearing = 8.0;
 //
 // Font metrics (specified in pixels):
 //   - Glyph-relative x-y origin is located at intersection of baseline
-//     with left edge of bounding box       
-//   - Ascender line is at y = 66            
-//   - Descender line is at y = -26          
+//     with left edge of bounding box
+//   - Ascender line is at y = 66
+//   - Descender line is at y = -26
 //   - Caps height is 60
-//   - x height is 42   
+//   - x height is 42
 //   - M width is 64
 //
 //---------------------------------------------------------------------
@@ -92,7 +92,7 @@ const XY xytbl[] = {
 
     // glyph ' ' (blank space)
     {  0.000,  0.000 },  // 0 bounding box min
-    { 28.000, 60.000 },  // 1 bounding box max
+    { 16.000, 60.000 },  // 1 bounding box max
 
     // glyph '!'
     {  0.000,  0.000 },  // 0 bounding box min
@@ -233,7 +233,7 @@ const XY xytbl[] = {
     {  0.000, 22.000 },  // 4
     { 32.000, 22.000 },  // 5
 
-    // glyph '.' 
+    // glyph '.'
     {  0.000,  0.000 },  // 0 bounding box min
     {  4.000,  0.000 },  // 1 bounding box max
     {  2.000,  0.000 },  // 2
@@ -1105,25 +1105,25 @@ char *displaylist[] = {
 // glyph '$'
 
     "$"  "\x11"         // 17 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\xc\x3"
     MOVE "\xf"
     LINE "\x10"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph '%'
 
     "%"  "\xa"         // 10 points for this glyph
     MOVE "\x2"
-    LINE "\x3" 
-    ELLIPSE "\x4\x5\x6" 
+    LINE "\x3"
+    ELLIPSE "\x4\x5\x6"
     ELLIPSE "\x7\x8\x9"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph '&'
 
     "&"  "\x17"         // 23 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\x14\x3"
     ,                  // end of display list for this glyph
 
@@ -1343,29 +1343,29 @@ char *displaylist[] = {
 
     "B"  "\xf"         // 15 points for this glyph
     MOVE "\x2"
-    LINE "\x3" 
-    POLYELLIPTICSPLINE "\x4\x4" 
-    POLYLINE "\x2\x8" 
-    POLYELLIPTICSPLINE "\x4\xa" 
-    LINE "\xe" 
-    CLOSEFIGURE         
-    ,                  // end of display list for this glyph        
+    LINE "\x3"
+    POLYELLIPTICSPLINE "\x4\x4"
+    POLYLINE "\x2\x8"
+    POLYELLIPTICSPLINE "\x4\xa"
+    LINE "\xe"
+    CLOSEFIGURE
+    ,                  // end of display list for this glyph
 
 // glyph 'C'
 
     "C"  "\x5"         // 5 points for this glyph
     ENDFIGURE
-    ELLIPTICARC "\x2\x3\x4\xf0\x60" 
+    ELLIPTICARC "\x2\x3\x4\xf0\x60"
     ,                  // end of display list for this glyph
 
 // glyph 'D'
 
     "D"  "\x9"         // 9 points for this glyph
     MOVE "\x2"
-    LINE "\x3" 
-    POLYELLIPTICSPLINE "\x4\x4" 
-    LINE "\x8" 
-    CLOSEFIGURE         
+    LINE "\x3"
+    POLYELLIPTICSPLINE "\x4\x4"
+    LINE "\x8"
+    CLOSEFIGURE
     ,                  // end of display list for this glyph
 
 // glyph 'E'
@@ -1373,7 +1373,7 @@ char *displaylist[] = {
     "E"  "\x8"         // 8 points for this glyph
     MOVE "\x2"
     POLYLINE "\x3\x3"
-    MOVE "\x6" 
+    MOVE "\x6"
     LINE "\x7"
     ,                  // end of display list for this glyph
 
@@ -1382,9 +1382,9 @@ char *displaylist[] = {
     "F"  "\x7"         // 7 points for this glyph
     MOVE "\x2"
     POLYLINE "\x2\x3"
-    MOVE "\x5" 
+    MOVE "\x5"
     LINE "\x6"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'G'
 
@@ -1398,28 +1398,28 @@ char *displaylist[] = {
 // glyph 'H'
 
     "H"  "\x8"         // 8 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
-    MOVE "\x4" 
+    MOVE "\x4"
     LINE "\x5"
-    MOVE "\x6" 
+    MOVE "\x6"
     LINE "\x7"
     ,                  // end of display list for this glyph
 
 // glyph 'I'
 
     "I"  "\x4"         // 4 points for this glyph
-    MOVE "\x2" 
-    LINE "\x3" 
-    ,                  // end of display list for this glyph        
+    MOVE "\x2"
+    LINE "\x3"
+    ,                  // end of display list for this glyph
 
 // glyph 'J'
 
     "J"  "\x8"         // 8 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\x4\x3"
-    LINE "\x7" 
-    ,                  // end of display list for this glyph        
+    LINE "\x7"
+    ,                  // end of display list for this glyph
 
 // glyph 'K'
 
@@ -1427,21 +1427,21 @@ char *displaylist[] = {
     MOVE "\x2"
     POLYELLIPTICSPLINE "\x4\x3"
     MOVE "\x7"
-    LINE "\x8" 
-    ,                  // end of display list for this glyph        
+    LINE "\x8"
+    ,                  // end of display list for this glyph
 
 // glyph 'L'
 
     "L"  "\x5"         // 5 points for this glyph
     MOVE "\x2"
-    POLYLINE "\x2\x3" 
-    ,                  // end of display list for this glyph        
+    POLYLINE "\x2\x3"
+    ,                  // end of display list for this glyph
 
 // glyph 'M'
 
     "M"  "\x7"         // 7 points for this glyph
     MOVE "\x2"
-    POLYLINE "\x4\x3" 
+    POLYLINE "\x4\x3"
     ,                  // end of display list for this glyph
 
 // glyph 'N'
@@ -1449,13 +1449,13 @@ char *displaylist[] = {
     "N"  "\x6"         // 6 points for this glyph
     MOVE "\x2"
     POLYLINE "\x3\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'O'
 
-    "O"  "\x5"         // 5 points for this glyph 
-    ELLIPSE "\x2\x3\x4" 
-    ,                  // end of display list for this glyph        
+    "O"  "\x5"         // 5 points for this glyph
+    ELLIPSE "\x2\x3\x4"
+    ,                  // end of display list for this glyph
 
 // glyph 'P'
 
@@ -1464,15 +1464,15 @@ char *displaylist[] = {
     POLYLINE "\x2\x3"
     POLYELLIPTICSPLINE "\x4\x5"
     LINE "\x9"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'Q'
 
-    "Q"  "\x8"         // 8 points for this glyph 
+    "Q"  "\x8"         // 8 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
     POLYELLIPTICSPLINE "\x2\x6"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'R'
 
@@ -1483,14 +1483,14 @@ char *displaylist[] = {
     LINE "\x9"
     MOVE "\xa"
     POLYELLIPTICSPLINE "\x2\xb"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'S'
 
     "S"  "\xf"         // 15 points for this glyph
-    MOVE "\x2" 
-    POLYELLIPTICSPLINE "\xc\x3" 
-    ,                  // end of display list for this glyph        
+    MOVE "\x2"
+    POLYELLIPTICSPLINE "\xc\x3"
+    ,                  // end of display list for this glyph
 
 // glyph 'T'
 
@@ -1498,31 +1498,31 @@ char *displaylist[] = {
     MOVE "\x2"
     LINE "\x3"
     MOVE "\x4"
-    LINE "\x5" 
-    ,                  // end of display list for this glyph        
+    LINE "\x5"
+    ,                  // end of display list for this glyph
 
 // glyph 'U'
 
     "U"  "\x9"         // 9 points for this glyph
     MOVE "\x2"
-    LINE "\x3" 
+    LINE "\x3"
     POLYELLIPTICSPLINE "\x4\x4"
-    LINE "\x8" 
-    ,                  // end of display list for this glyph        
+    LINE "\x8"
+    ,                  // end of display list for this glyph
 
 // glyph 'V'
 
     "V"  "\x5"         // 5 points for this glyph
     MOVE "\x2"
     POLYLINE "\x2\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'W'
 
     "W"  "\x7"         // 7 points for this glyph
     MOVE "\x2"
     POLYLINE "\x4\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'X'
 
@@ -1531,7 +1531,7 @@ char *displaylist[] = {
     LINE "\x3"
     MOVE "\x4"
     LINE "\x5"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'Y'
 
@@ -1540,109 +1540,109 @@ char *displaylist[] = {
     POLYLINE "\x2\x3"
     MOVE "\x5"
     LINE "\x6"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'Z'
 
     "Z"  "\x6"         // 6 points for this glyph
     MOVE "\x2"
     POLYLINE "\x3\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph '['
 
     "["  "\x6"         // 6 points for this glyph
     MOVE "\x2"
-    POLYLINE "\x3\x3" 
-    ,                  // end of display list for this glyph        
+    POLYLINE "\x3\x3"
+    ,                  // end of display list for this glyph
 
 // glyph '\\'
 
     "\\"  "\x4"         // 4 points for this glyph
     MOVE "\x2"
     LINE "\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph ']'
 
     "]"  "\x6"         // 6 points for this glyph
     MOVE "\x2"
-    POLYLINE "\x3\x3" 
-    ,                  // end of display list for this glyph        
+    POLYLINE "\x3\x3"
+    ,                  // end of display list for this glyph
 
 // glyph '^'
 
     "^"  "\x5"         // 5 points for this glyph
     MOVE "\x2"
-    POLYLINE "\x2\x3" 
-    ,                  // end of display list for this glyph        
+    POLYLINE "\x2\x3"
+    ,                  // end of display list for this glyph
 
 // glyph '_'
 
     "_"  "\x4"         // 4 points for this glyph
     MOVE "\x2"
-    LINE "\x3" 
-    ,                  // end of display list for this glyph        
+    LINE "\x3"
+    ,                  // end of display list for this glyph
 
 // glyph '`'
 
     "`"  "\x4"         // 4 points for this glyph
     MOVE "\x2"
-    LINE "\x3" 
-    ,                  // end of display list for this glyph        
+    LINE "\x3"
+    ,                  // end of display list for this glyph
 
 // glyph 'a'
 
-    "a"  "\x7"         // 7 points for this glyph 
+    "a"  "\x7"         // 7 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
-    LINE "\x6" 
-    ,                  // end of display list for this glyph        
+    LINE "\x6"
+    ,                  // end of display list for this glyph
 
 // glyph 'b'
 
-    "b"  "\x7"         // 7 points for this glyph 
+    "b"  "\x7"         // 7 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
-    LINE "\x6" 
-    ,                  // end of display list for this glyph        
+    LINE "\x6"
+    ,                  // end of display list for this glyph
 
 // glyph 'c'
 
     "c"  "\x5"         // 5 points for this glyph
-    ENDFIGURE 
+    ENDFIGURE
     ELLIPTICARC "\x2\x3\x4\xf0\x60"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'd'
 
-    "d"  "\x7"         // 7 points for this glyph 
+    "d"  "\x7"         // 7 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
-    LINE "\x6" 
-    ,                  // end of display list for this glyph        
+    LINE "\x6"
+    ,                  // end of display list for this glyph
 
 // glyph 'e'
 
-    "e"  "\xc"         // 12 points for this glyph 
+    "e"  "\xc"         // 12 points for this glyph
     MOVE "\x2"
     LINE "\x3"
     POLYELLIPTICSPLINE "\x8\x4"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'f'
 
-    "f"  "\xa"         // 10 points for this glyph 
-    MOVE "\x2" 
+    "f"  "\xa"         // 10 points for this glyph
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\x4\x3"
-    LINE "\x7" 
+    LINE "\x7"
     MOVE "\x8"
     LINE "\x9"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'g'
 
-    "g"  "\xb"         // 11 points for this glyph 
+    "g"  "\xb"         // 11 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
     LINE "\x6"
@@ -1652,19 +1652,19 @@ char *displaylist[] = {
 // glyph 'h'
 
     "h"  "\xa"         // 10 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
     MOVE "\x4"
-    POLYELLIPTICSPLINE "\x4\x5" 
+    POLYELLIPTICSPLINE "\x4\x5"
     LINE "\x9"
     ,                  // end of display list for this glyph
 
 // glyph 'i'
 
     "i"  "\x5"         // 5 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
-    DRAWADOT "\x4" 
+    DRAWADOT "\x4"
     ,                  // end of display list for this glyph
 
 // glyph 'j'
@@ -1673,94 +1673,94 @@ char *displaylist[] = {
     MOVE "\x2"
     LINE "\x3"
     POLYELLIPTICSPLINE "\x4\x4"
-    DRAWADOT "\x8" 
+    DRAWADOT "\x8"
     ,                  // end of display list for this glyph
 
 // glyph 'k'
 
     "k"  "\x8"         // 8 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
-    MOVE "\x4" 
+    MOVE "\x4"
     LINE "\x5"
-    MOVE "\x6" 
-    LINE "\x7" 
+    MOVE "\x6"
+    LINE "\x7"
     ,                  // end of display list for this glyph
 
 // glyph 'l'
 
     "l"  "\x4"         // 4 points for this glyph
-    MOVE "\x2" 
-    LINE "\x3" 
+    MOVE "\x2"
+    LINE "\x3"
     ,                  // end of display list for this glyph
 
 // glyph 'm'
 
     "m"  "\x10"         // 16 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
     MOVE "\x4"
-    POLYELLIPTICSPLINE "\x4\x5" 
+    POLYELLIPTICSPLINE "\x4\x5"
     LINE "\x9"
     MOVE "\xa"
-    POLYELLIPTICSPLINE "\x4\xb" 
+    POLYELLIPTICSPLINE "\x4\xb"
     LINE "\xf"
     ,                  // end of display list for this glyph
 
 // glyph 'n'
 
     "n"  "\xa"         // 10 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
     MOVE "\x4"
-    POLYELLIPTICSPLINE "\x4\x5" 
+    POLYELLIPTICSPLINE "\x4\x5"
     LINE "\x9"
     ,                  // end of display list for this glyph
 
 // glyph 'o'
 
-    "o"  "\x5"         // 5 points for this glyph 
-    ELLIPSE "\x2\x3\x4" 
-    ,                  // end of display list for this glyph        
+    "o"  "\x5"         // 5 points for this glyph
+    ELLIPSE "\x2\x3\x4"
+    ,                  // end of display list for this glyph
 
 // glyph 'p'
 
-    "p"  "\x7"         // 7 points for this glyph 
+    "p"  "\x7"         // 7 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
-    LINE "\x6" 
-    ,                  // end of display list for this glyph        
+    LINE "\x6"
+    ,                  // end of display list for this glyph
 
 // glyph 'q'
 
-    "q"  "\x7"         // 7 points for this glyph 
+    "q"  "\x7"         // 7 points for this glyph
     ELLIPSE "\x2\x3\x4"
     MOVE "\x5"
-    LINE "\x6" 
-    ,                  // end of display list for this glyph        
+    LINE "\x6"
+    ,                  // end of display list for this glyph
 
 // glyph 'r'
 
     "r"  "\x9"         // 9 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
     MOVE "\x4"
     POLYELLIPTICSPLINE "\x4\x5"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 's'
 
     "s"  "\xf"         // 15 points for this glyph
-    MOVE "\x2" 
-    POLYELLIPTICSPLINE "\xc\x3" 
-    ,                  // end of display list for this glyph        
+    MOVE "\x2"
+    POLYELLIPTICSPLINE "\xc\x3"
+    ,                  // end of display list for this glyph
 
 // glyph 't'
 
-    "t"  "\xa"         // 10 points for this glyph 
+    "t"  "\xa"         // 10 points for this glyph
     MOVE "\x2"
     LINE "\x3"
-    POLYELLIPTICSPLINE "\x4\x4" 
+    POLYELLIPTICSPLINE "\x4\x4"
     MOVE "\x8"
     LINE "\x9"
     ,                  // end of display list for this glyph
@@ -1768,10 +1768,10 @@ char *displaylist[] = {
 // glyph 'u'
 
     "u"  "\xa"         // 10 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     LINE "\x3"
     MOVE "\x4"
-    POLYELLIPTICSPLINE "\x4\x5" 
+    POLYELLIPTICSPLINE "\x4\x5"
     LINE "\x9"
     ,                  // end of display list for this glyph
 
@@ -1780,14 +1780,14 @@ char *displaylist[] = {
     "v"  "\x5"         // 5 points for this glyph
     MOVE "\x2"
     POLYLINE "\x2\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'w'
 
     "w"  "\x7"         // 7 points for this glyph
     MOVE "\x2"
     POLYLINE "\x4\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'x'
 
@@ -1796,7 +1796,7 @@ char *displaylist[] = {
     LINE "\x3"
     MOVE "\x4"
     LINE "\x5"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'y'
 
@@ -1806,40 +1806,40 @@ char *displaylist[] = {
     LINE "\x4"
     MOVE "\x3"
     LINE "\x5"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph 'z'
 
     "z"  "\x6"         // 6 points for this glyph
     MOVE "\x2"
     POLYLINE "\x3\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph '{'
 
     "{"  "\xb"         // 11 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\x8\x3"
     ,                  // end of display list for this glyph
 
 // glyph '|'
 
     "|"  "\x4"         // 4 points for this glyph
-    MOVE "\x2" 
-    LINE "\x3" 
-    ,                  // end of display list for this glyph        
+    MOVE "\x2"
+    LINE "\x3"
+    ,                  // end of display list for this glyph
 
 // glyph '}'
 
     "}"  "\xb"         // 11 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\x8\x3"
-    ,                  // end of display list for this glyph        
+    ,                  // end of display list for this glyph
 
 // glyph '~'
 
     "~"  "\x7"         // 7 points for this glyph
-    MOVE "\x2" 
+    MOVE "\x2"
     POLYELLIPTICSPLINE "\x4\x3"
     ,                  // end of display list for this glyph
 
@@ -1856,7 +1856,7 @@ char *displaylist[] = {
 //---------------------------------------------------------------------
 //
 // Public functions: The TextApp constructor allocates and initializes
-// the font data structures 
+// the font data structures
 //
 //---------------------------------------------------------------------
 
@@ -1917,7 +1917,7 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
         case _MOVE_:
             sg->Move(xy[p[1]].x, xy[p[1]].y);
             p += 2;
-            break;             
+            break;
         case _LINE_:
             sg->Line(xy[p[1]].x, xy[p[1]].y);
             p += 2;
@@ -1951,7 +1951,7 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
             {
                 SGPoint v0, v1, v2;
                 SGCoord radius = 65536*(_width/11 + 0.5f);
-    
+
                 v0 = v1 = v2 = xy[p[1]];
                 v1.x += radius;
                 v2.y += radius;
@@ -2091,10 +2091,10 @@ void TextApp::GetTextEndpoint(const float xform[], const char *str, XY *xyout)
 
     assert(xyout != 0);
     assert(len < MAXLEN);
-    
+
     // Each iteration of this for-loop adds the width of a glyph
     for (int i = 0; i < len; ++i)
-    {   
+    {
         int cc = str[i];
         GLYPH *p = _glyphtbl[cc & 0x7f];
 
