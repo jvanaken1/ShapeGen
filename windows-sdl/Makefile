@@ -8,21 +8,28 @@
 INCDIR = C:\SDL2\include
 LIBDIR = C:\SDL2\lib\x86
 LIBFILES = $(LIBDIR)\SDL2main.lib $(LIBDIR)\SDL2.lib shell32.lib
-OBJFILES = demo.obj bmpfile.obj textapp.obj gradient.obj pattern.obj \
+OBJFILES = sdlmain.obj bmpfile.obj textapp.obj gradient.obj pattern.obj \
            arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
+BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp star.bmp           
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
 LFLAGS = /SUBSYSTEM:CONSOLE
 LDEBUG = /DEBUG
 
-all : demo.exe bricks.bmp fleur.bmp honeycomb.bmp star.bmp
+all : svgview.exe $(BMPFILES) demo.exe
 
-demo.exe : sdlmain.obj $(OBJFILES)
+demo.exe : demo.obj $(OBJFILES)
+	$(LINK) $(LDEBUG) $(LFLAGS) demo.obj $(OBJFILES) $(LIBFILES) /OUT:$@ /PDB:$*.pdb
+                
+svgview.exe : svgview.obj $(OBJFILES)
 	$(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
 
 demo.obj : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) $(CDEBUG) -c demo.cpp
+
+svgview.obj : svgview.cpp shapegen.h renderer.h demo.h nanosvg.h
+	$(CC) $(CDEBUG) -c svgview.cpp
 
 sdlmain.obj : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) -I$(INCDIR) $(CDEBUG) -c sdlmain.cpp
@@ -69,6 +76,9 @@ shapegen.h : ..\shapegen.h
 shapepri.h : ..\shapepri.h
         copy /y ..\shapepri.h
 
+nanosvg.h : ..\nanosvg.h
+        copy /y ..\nanosvg.h
+
 arc.cpp : ..\arc.cpp
         copy /y ..\arc.cpp
         
@@ -95,6 +105,9 @@ path.cpp : ..\path.cpp
         
 stroke.cpp : ..\stroke.cpp
         copy /y ..\stroke.cpp
+
+svgview.cpp : ..\svgview.cpp
+        copy /y ..\svgview.cpp
         
 textapp.cpp : ..\textapp.cpp
         copy /y ..\textapp.cpp

@@ -22,10 +22,12 @@
 //---------------------------------------------------------------------
 //
 // bmpfile.cpp:
-//   This file contains the code for a bitmap file reader (for image
-//   files with .bmp filename extension). The BmpReader class inherits
-//   from the base class ImageReader that defined to supply image data
-//   to TiledPattern objects, defined in render.h.
+//   This file implements a rudimentary BMP file reader -- i.e., it
+//   reads image files with a .bmp filename extension. This reader can
+//   handle the simple BMP files used by the ShapeGen demo program.
+//   The BmpReader class inherits from the base class ImageReader,
+//   which is defined in render.h, and is provided to supply image
+//   data to TiledPattern objects for use in pattern-fill operations.
 //
 //---------------------------------------------------------------------
 
@@ -93,16 +95,16 @@ struct CIEXYZTRIPLE {
 
 struct BITMAPV4HEADER {
     DWORD    biSize;
-    LONG     biWidth;            
-    LONG     biHeight;           
-    WORD     biPlanes;           
-    WORD     biBitCount;         
-    DWORD    biCompression;     
-    DWORD    biSizeImage;        
-    LONG     biXPelsPerMeter;    
-    LONG     biYPelsPerMeter;    
-    DWORD    biClrUsed;          
-    DWORD    biClrImportant;  // <-- BITMAPINFOHEADER ends here   
+    LONG     biWidth;
+    LONG     biHeight;
+    WORD     biPlanes;
+    WORD     biBitCount;
+    DWORD    biCompression;
+    DWORD    biSizeImage;
+    LONG     biXPelsPerMeter;
+    LONG     biYPelsPerMeter;
+    DWORD    biClrUsed;
+    DWORD    biClrImportant;  // <-- BITMAPINFOHEADER ends here
     DWORD    biRedMask;
     DWORD    biGreenMask;
     DWORD    biBlueMask;
@@ -156,101 +158,102 @@ struct BITMAPV5HEADER {
 //
 //---------------------------------------------------------------------
 
-BmpReader::BmpReader(const char *pszFile, UserMessage *umsg)
-                     : _umsg(umsg), _width(0), _height(0), 
-                       _bpp(0), _flags(0), _offset(0), _pad(0), 
+BmpReader::BmpReader(const char *pszFile)
+                     : _width(0), _height(0), _bpp(0),
+                       _flags(0), _offset(0), _pad(0),
                        _bAlpha(false), _row(0), _col(0)
 {
+    const int MAX_FILENAME_LEN = 255;
     char *pszError = 0;
-    
+
     do
     {
         BITMAPFILEHEADER hdr;
         BITMAPV5HEADER info;
-    
+
         memset(&hdr, 0, sizeof(hdr));
         memset(&info, 0, sizeof(info));
         _pFile = fopen(pszFile, "rb");
         if (_pFile == 0)
         {
-            pszError = "Input file not found";
+            pszError = "not found";
             break;
         }
-    
+
         // Inspect header to verify that file type is .bmp
         if (fread(&hdr, sizeof(hdr), 1, _pFile) < 1)
         {
-            pszError = "Input file is too short";
+            pszError = "is too short";
             break;
         }
         char *bfMagic = reinterpret_cast<char*>(&hdr.bfType);
         if (strncmp("BM", bfMagic, 2) != 0)
         {
-            pszError = "Input file type is not supported";
+            pszError = "type is not supported";
             break;
         }
         _offset = hdr.bfOffBits;  // file offset to pixel data
-    
+
         // Read in the size field of the info header
         if (fread(&info.biSize, sizeof(info.biSize), 1, _pFile) < 1)
         {
-            pszError = "Input file is too short";
+            pszError = "is too short";
             break;
         }
-    
+
         // Verify that the info header structure is supported
         if (info.biSize != sizeof(BITMAPINFOHEADER) &&
             info.biSize != sizeof(BITMAPV4HEADER) &&
             info.biSize != sizeof(BITMAPV5HEADER))
         {
-            pszError = "File info header type is unsupported";
+            pszError = "has unsupported info header type";
             break;
         }
-    
+
         // Read in the rest of the info header structure
         int nbytes = info.biSize - sizeof(info.biSize);
         if (fread(&info.biWidth, nbytes, 1, _pFile) < 1)
         {
-            pszError = "Input file is too short";
+            pszError = "is too short";
             break;
         }
         _width = info.biWidth;
         _height = info.biHeight;
-        if (_width <= 0 || _height == 0)
+        if (_width <= 0 || _height <= 0)
         {
-            pszError = "Bad value in file info header";
+            pszError = "has bad value in info header";
             break;
         }
-    
+
         // For now, we don't support compressed pixel formats
         if (info.biCompression != BI_RGB &&
             info.biCompression != BI_BITFIELDS)
         {
-            pszError = "Input file has unsupported pixel data format";
+            pszError = "has unsupported pixel data format";
             break;
         }
-    
+
         // If necessary, read in the R, G, and B color masks
         if (info.biSize == sizeof(BITMAPINFOHEADER) &&
             info.biCompression == BI_BITFIELDS &&
             fread(&info.biRedMask, 3*sizeof(DWORD), 1, _pFile) < 1)
         {
-            pszError = "Input file is too short";
+            pszError = "is too short";
             break;
         }
-    
+
         // Verify that we support the .bmp file's pixel format
         _bpp = info.biBitCount;
         if (_bpp != 24 && _bpp != 32)
         {
-            pszError = "Input file has unsupported pixel data format";
+            pszError = "has unsupported pixel data format";
             break;
         }
         if (info.biCompression == BI_BITFIELDS &&
             (info.biGreenMask != 0x0000ff00 ||
             (info.biRedMask | info.biBlueMask) != 0x00ff00ff))
         {
-            pszError = "Input file has unsupported pixel data format";
+            pszError = "has unsupported pixel data format";
             break;
         }
         if (info.biCompression == BI_RGB ||
@@ -266,31 +269,42 @@ BmpReader::BmpReader(const char *pszFile, UserMessage *umsg)
             _height = -_height;
         else
             _flags |= FLAG_IMAGE_BOTTOMUP;
-    
+
         // Sanity checks
         if (hdr.bfSize < _width*_height*(_bpp >> 3))
         {
-            pszError = "Bad value in file info header";
+            pszError = "has bad value in info header";
             break;
         }
         if (_width > 5000 || _height > 5000)
         {
-            pszError = "File image dimensions are excessively large";
+            pszError = "has excessively large image dimensions";
             break;
         }
-    
+
         // Move file position to start of pixel data
         RewindData();
     } while (0);
     if (pszError)
     {
-        ErrorMessage(pszError);
-        _width = _height = 0;
+        char sbuf[256];
+        int len = strnlen(pszFile, sizeof(sbuf));
+        char *pszFormat = "File \"%s\" %s";
+
+        if (len < sizeof(sbuf) - strlen(pszFormat) - strlen(pszError))
+        {
+            sprintf(sbuf, pszFormat, pszFile, pszError);
+            ErrorMessage(sbuf);
+        }
+        else
+            ErrorMessage("File name is too long");
+
         if (_pFile)
         {
             fclose(_pFile);
             _pFile = 0;
         }
+        _width = _height = 0;  // null image
     }
 }
 
@@ -302,8 +316,7 @@ BmpReader::~BmpReader()
 
 void BmpReader::ErrorMessage(char *pszError)
 {
-    if (_umsg)
-        _umsg->MessageOut(pszError, "Error", 0);
+    _umsg.ShowMessage(pszError, "BMP file reader - Error", MESSAGECODE_ERROR);
 }
 
 // Returns the image info flags, and writes the image width and
@@ -313,9 +326,9 @@ void BmpReader::ErrorMessage(char *pszError)
 // values are both zero.
 int BmpReader::GetImageInfo(int *width, int *height)
 {
-   *width  = _width;
-   *height = _height;
-   return _flags;
+    *width  = _width;
+    *height = _height;
+    return _flags;
 }
 
 // Reads a block of pixel data from a .bmp file and writes it to a
@@ -348,9 +361,9 @@ int BmpReader::ReadPixels(COLOR *buffer, int count)
             if (_col >= _width)  // at end of row?
             {
                 ++_row;  // yes, start next row
-                if (_row >= _height)  // at end of bitmap? 
+                if (_row >= _height)  // at end of bitmap?
                     return k;  // all done
-    
+
                 // Skip past padding at end of row. Padding is never
                 // more than three bytes. Note that we avoid trying
                 // to read any padding past the end of the last row.
@@ -358,7 +371,7 @@ int BmpReader::ReadPixels(COLOR *buffer, int count)
                 {
                     if (fread(&tinybuf, sizeof(char), _pad, _pFile) != _pad)
                     {
-                        ErrorMessage("Error reading pixel data from file");
+                        ErrorMessage("Error reading pixel data from .bmp file");
                         return k;
                     }
                 }
@@ -366,7 +379,7 @@ int BmpReader::ReadPixels(COLOR *buffer, int count)
             }
             if (fread(&tinybuf, 3, 1, _pFile) < 1)
             {
-                ErrorMessage("Read request extends past end of file");
+                ErrorMessage("Read request extends past end of .bmp file");
                 return k;
             }
             *pOut++ = tinybuf;
@@ -378,12 +391,12 @@ int BmpReader::ReadPixels(COLOR *buffer, int count)
     {
         assert(_pad == 0);
         if (_bAlpha)
-        {    
+        {
             // Easy case: 32-bit source pixels have 8-bit alphas
             k = fread(&buffer[0], 4, count, _pFile);
             if (k < count)
-                ErrorMessage("Read request extends past end of file");
-    
+                ErrorMessage("Read request extends past end of .bmp file");
+
             return k;
         }
         pOut = &buffer[0];
@@ -391,7 +404,7 @@ int BmpReader::ReadPixels(COLOR *buffer, int count)
         {
             if (fread(&tinybuf, 4, 1, _pFile) < 1)
             {
-                ErrorMessage("Read request extends past end of file");
+                ErrorMessage("Read request extends past end of .bmp file");
                 return k;
             }
             *pOut++ = tinybuf | 0xff000000;  // set alpha field to 255

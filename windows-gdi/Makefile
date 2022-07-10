@@ -4,21 +4,28 @@
 # Remember to run vcvars32.bat first to set up your build environment
 
 LIBFILES = user32.lib gdi32.lib Winmm.lib Msimg32.lib
-OBJFILES = demo.obj textapp.obj bmpfile.obj gradient.obj pattern.obj \
+OBJFILES = winmain.obj textapp.obj bmpfile.obj gradient.obj pattern.obj \
            arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
+BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp star.bmp           
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
 LFLAGS =
 LDEBUG = /DEBUG
 
-all : demo.exe bricks.bmp fleur.bmp honeycomb.bmp star.bmp
+all : svgview.exe $(BMPFILES) demo.exe
 
-demo.exe : winmain.obj $(OBJFILES)
+demo.exe : demo.obj $(OBJFILES)
+	$(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
+
+svgview.exe : svgview.obj $(OBJFILES)
 	$(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
 
 demo.obj : demo.cpp shapegen.h renderer.h demo.h
 	$(CC) $(CDEBUG) -c demo.cpp
+
+svgview.obj : svgview.cpp shapegen.h renderer.h demo.h nanosvg.h
+	$(CC) $(CDEBUG) -c svgview.cpp
 
 textapp.obj : textapp.cpp shapegen.h renderer.h demo.h
 	$(CC) $(CDEBUG) -c textapp.cpp
@@ -65,6 +72,9 @@ shapepri.h : ..\shapepri.h
 renderer.h : ..\renderer.h
         copy /y ..\renderer.h
 
+nanosvg.h : ..\nanosvg.h
+        copy /y ..\nanosvg.h
+
 arc.cpp : ..\arc.cpp
         copy /y ..\arc.cpp
         
@@ -91,6 +101,9 @@ path.cpp : ..\path.cpp
         
 stroke.cpp : ..\stroke.cpp
         copy /y ..\stroke.cpp
+        
+svgview.cpp : ..\svgview.cpp
+        copy /y ..\svgview.cpp
         
 textapp.cpp : ..\textapp.cpp
         copy /y ..\textapp.cpp

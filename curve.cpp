@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019 Jerry R. VanAken
+  Copyright (C) 2019-2022 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -206,7 +206,7 @@ bool PathMgr::IsFlatCubic(const VERT16 v[])
     FIX16 vy = abs(2*(v[2].y - v[3].y) + v[2].y - v[0].y);
     FIX16 xmax = max(ux, vx);
     FIX16 ymax = max(uy, vy);
-    FIX16 error = VLen(xmax, ymax)/4;
+    FIX16 error = VLen(xmax, ymax)/2;
 
     return (error <= _flatness);
 }

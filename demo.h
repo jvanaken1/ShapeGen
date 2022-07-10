@@ -23,7 +23,7 @@
 //
 // demo.h:
 //   Header file for demo code. This header is included by the
-//   ShapeGen demo code and code examples in demo.cpp. 
+//   ShapeGen demo code and code examples in demo.cpp.
 //
 //---------------------------------------------------------------------
 
@@ -43,15 +43,19 @@ const int DEMO_HEIGHT =  960;
 #ifdef min
 #undef min
 #endif
-#define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values 
+#define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values
 #ifdef max
 #undef max
 #endif
 #define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
 #ifdef sign
 #undef sign
-#endif 
-#define sign(x)   ((x)<0?-1:1)	     // sign (plus or minus) of value
+#endif
+#define sign(x)   ((x)<0?-1:1)       // sign (plus or minus) of value
+
+// Make command-line args globally accessible
+extern int _argc_;
+extern char **_argv_;
 
 //---------------------------------------------------------------------
 //
@@ -81,16 +85,20 @@ extern int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, 
 
 //---------------------------------------------------------------------
 //
-// Class UserMessage: Sends text message to user
+// Class UserMessage: Shows text message to user
 //
 //---------------------------------------------------------------------
+
+const int MESSAGECODE_ERROR = 0;
+const int MESSAGECODE_WARNING = 1;
+const int MESSAGECODE_INFORMATION = 2;
 
 class UserMessage
 {
 public:
     UserMessage() {}
     ~UserMessage() {}
-    void MessageOut(char *text, char *title, int code = 0);
+    void ShowMessage(char *text, char *title, int msgcode = 0);
 };
 
 //---------------------------------------------------------------------
@@ -105,7 +113,7 @@ public:
 class BmpReader : public ImageReader
 {
     FILE *_pFile;  // .bmp file pointer
-    UserMessage *_umsg;  // for sending error message to user
+    UserMessage _umsg;  // shows error message to user
     int _flags;    // image info flags
     int _offset;   // file offset to start of pixel data
     int _width;    // width of bitmap, in pixels
@@ -117,7 +125,7 @@ class BmpReader : public ImageReader
     int _pad;      // bytes of padding at end of each row
 
 public:
-    BmpReader(const char *pszFile, UserMessage *umsg);
+    BmpReader(const char *pszFile);
     ~BmpReader();
     int GetImageInfo(int *width, int *height);
     int ReadPixels(COLOR *buffer, int count);
@@ -133,7 +141,7 @@ public:
 
 struct XY
 {
-    float x; 
+    float x;
     float y;
 };
 
