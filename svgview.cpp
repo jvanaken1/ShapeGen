@@ -35,6 +35,74 @@
 #define NANOSVG_ALL_COLOR_KEYWORDS
 #include "nanosvg.h"
 
+
+
+namespace {
+    //-------------------------------------------------------------------
+    //
+    // Prepares the paint to be used for a filled or stroked shape
+    //
+    //-------------------------------------------------------------------
+    void PreparePaint(NSVGpaint *paint, float scale, EnhancedRenderer *aarend)
+    {
+        assert(paint->type != NSVG_PAINT_NONE);
+        switch (paint->type)
+        {
+        case NSVG_PAINT_COLOR:
+            aarend->SetColor(paint->color);
+            break;
+        case NSVG_PAINT_LINEAR_GRADIENT:
+        case NSVG_PAINT_RADIAL_GRADIENT:
+            {
+                NSVGgradient* grad = paint->gradient;
+                NSVGgradientStop* stop = grad->stops;
+                SPREAD_METHOD spread;
+                float xform[6];
+
+                aarend->ResetColorStops();
+                for (int i = 0; i < grad->nstops; ++i)
+                {
+                    aarend->AddColorStop(stop->offset, stop->color);
+                    ++stop;
+                }
+                switch (grad->spread)
+                {
+                case NSVG_SPREAD_PAD:
+                    spread = SPREAD_PAD;
+                    break;
+                case NSVG_SPREAD_REFLECT:
+                    spread = SPREAD_REFLECT;
+                    break;
+                case NSVG_SPREAD_REPEAT:
+                default:
+                    spread = SPREAD_REPEAT;
+                    break;
+                }
+                for (int i = 0; i < 6; ++i)
+                    xform[i] = scale*grad->xform[i];
+
+                aarend->SetTransform(xform);
+                if (paint->type == NSVG_PAINT_LINEAR_GRADIENT)
+                    aarend->SetLinearGradient(0,0, 0,1, spread,
+                                              FLAG_EXTEND_START | FLAG_EXTEND_END);
+                else
+                    aarend->SetRadialGradient(grad->fx,grad->fy,grad->fr, 0,0,1, spread,
+                                              FLAG_EXTEND_START | FLAG_EXTEND_END);
+            }
+            break;
+        default:
+            aarend->SetColor(RGBX(128,128,128));
+            break;
+        }
+    }
+}
+
+//---------------------------------------------------------------------
+//
+// The main program calls this function to render an SVG file
+//
+//---------------------------------------------------------------------
+
 int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect)
 {
     SGPtr sg(aarend, cliprect);
@@ -121,53 +189,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             bool bEvenOdd = (shape->fillRule == NSVG_FILLRULE_EVENODD);
             FILLRULE rule = (bEvenOdd) ? FILLRULE_EVENODD : FILLRULE_WINDING;
 
-            switch (shape->fill.type)
-            {
-            case NSVG_PAINT_COLOR:
-                aarend->SetColor(shape->fill.color);
-                break;
-            case NSVG_PAINT_LINEAR_GRADIENT:
-            case NSVG_PAINT_RADIAL_GRADIENT:
-                {
-                    NSVGgradient* grad = shape->fill.gradient;
-                    NSVGgradientStop* stop = grad->stops;
-                    SPREAD_METHOD spread;
-                    float xform[6];
-
-                    aarend->ResetColorStops();
-                    for (int i = 0; i < grad->nstops; ++i)
-                    {
-                        aarend->AddColorStop(stop->offset, stop->color);
-                        ++stop;
-                    }
-                    switch (grad->spread)
-                    {
-                    case NSVG_SPREAD_PAD:
-                        spread = SPREAD_PAD;
-                        break;
-                    case NSVG_SPREAD_REFLECT:
-                        spread = SPREAD_REFLECT;
-                        break;
-                    case NSVG_SPREAD_REPEAT:
-                    default:
-                        spread = SPREAD_REPEAT;
-                        break;
-                    }
-                    for (int i = 0; i < 6; ++i)
-                        xform[i] = scale*grad->xform[i];
-                    aarend->SetTransform(xform);
-                    if (shape->fill.type == NSVG_PAINT_LINEAR_GRADIENT)
-                        aarend->SetLinearGradient(0,0, 0,1, spread,
-                                                  FLAG_EXTEND_START | FLAG_EXTEND_END);
-                    else
-                        aarend->SetRadialGradient(grad->fx,grad->fy,grad->fr, 0,0,1, spread,
-                                                  FLAG_EXTEND_START | FLAG_EXTEND_END);
-                }
-                break;
-            default:
-                aarend->SetColor(0xff808080);
-                break;
-            }
+            PreparePaint(&shape->fill, scale, aarend);
             sg->FillPath(rule);
         }
 
@@ -224,59 +246,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             else
                 sg->SetLineDash(0,0,0);
 
-            if (shape->stroke.type != NSVG_PAINT_NONE)
-            {
-                bool bEvenOdd = (shape->fillRule == NSVG_FILLRULE_EVENODD);
-                FILLRULE rule = (bEvenOdd) ? FILLRULE_EVENODD : FILLRULE_WINDING;
-
-                switch (shape->stroke.type)
-                {
-                case NSVG_PAINT_COLOR:
-                    aarend->SetColor(shape->stroke.color);
-                    break;
-                case NSVG_PAINT_LINEAR_GRADIENT:
-                case NSVG_PAINT_RADIAL_GRADIENT:
-                    {
-                        NSVGgradient* grad = shape->stroke.gradient;
-                        NSVGgradientStop* stop = grad->stops;
-                        SPREAD_METHOD spread;
-
-                        aarend->ResetColorStops();
-                        for (int i = 0; i < grad->nstops; ++i)
-                        {
-                            aarend->AddColorStop(stop->offset, stop->color);
-                            ++stop;
-                        }
-                        switch (grad->spread)
-                        {
-                        case NSVG_SPREAD_PAD:
-                            spread = SPREAD_PAD;
-                            break;
-                        case NSVG_SPREAD_REFLECT:
-                            spread = SPREAD_REFLECT;
-                            break;
-                        case NSVG_SPREAD_REPEAT:
-                        default:
-                            spread = SPREAD_REPEAT;
-                            break;
-                        }
-                        float xform[6];
-                        for (int i = 0; i < 6; ++i)
-                            xform[i] = scale*grad->xform[i];
-                        aarend->SetTransform(xform);
-                        if (shape->stroke.type == NSVG_PAINT_LINEAR_GRADIENT)
-                            aarend->SetLinearGradient(0,0, 0,1, spread,
-                                                      FLAG_EXTEND_START | FLAG_EXTEND_END);
-                        else
-                            aarend->SetRadialGradient(grad->fx,grad->fy,0, 0,0,1,
-                                                      spread, FLAG_EXTEND_START | FLAG_EXTEND_END);
-                    }
-                    break;
-                default:
-                    aarend->SetColor(0xff808080);
-                    break;
-                }
-            }
+            PreparePaint(&shape->stroke, scale, aarend);
             sg->StrokePath();
         }
     }
