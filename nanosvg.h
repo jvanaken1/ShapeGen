@@ -204,12 +204,12 @@ void nsvgDelete(NSVGimage* image);
 #define NSVG_PI (3.14159265358979323846264338327f)
 #define NSVG_KAPPA90 (0.5522847493f)    // Length proportional to radius of a cubic bezier handle for 90deg arcs.
 
-#define NSVG_ALIGN_MID 0
-#define NSVG_ALIGN_MIN 1
+#define NSVG_ALIGN_MIN 0
+#define NSVG_ALIGN_MID 1
 #define NSVG_ALIGN_MAX 2
-#define NSVG_ALIGN_MEET 0
-#define NSVG_ALIGN_SLICE 1
-#define NSVG_ALIGN_NONE 2
+#define NSVG_ALIGN_NONE 0
+#define NSVG_ALIGN_MEET 1
+#define NSVG_ALIGN_SLICE 2
 
 #define NSVG_NOTUSED(v) do { (void)(1 ? (void)0 : ( (void)(v) ) ); } while(0)
 #define NSVG_RGB(r, g, b) (((unsigned int)r) | ((unsigned int)g << 8) | ((unsigned int)b << 16))
@@ -615,6 +615,9 @@ static NSVGparser* nsvg__createParser()
     p->attr[0].fillRule = NSVG_FILLRULE_NONZERO;
     p->attr[0].hasFill = 1;
     p->attr[0].visible = 1;
+    p->alignX = NSVG_ALIGN_MID;
+    p->alignY = NSVG_ALIGN_MID;
+    p->alignType = NSVG_ALIGN_MEET;
 
     return p;
 
