@@ -666,7 +666,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 cliprect.x = cliprect.y = 0;
             break;
         case VK_ESCAPE:
-            testnum = 0;
+            if (mod)
+                PostQuitMessage(0);
+            else
+                testnum = 0;
             break;
         case VK_SHIFT:
         case VK_CONTROL:
