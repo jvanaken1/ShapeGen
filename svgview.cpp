@@ -35,8 +35,6 @@
 #define NANOSVG_ALL_COLOR_KEYWORDS
 #include "nanosvg.h"
 
-
-
 namespace {
     //-------------------------------------------------------------------
     //
@@ -112,7 +110,9 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
 
     if (_argc_ < 2)
     {
-        umsg.ShowMessage("List one or more SVG filenames on command line",
+        umsg.ShowMessage("List one or more SVG filenames on command line, \n"
+                         "separated by spaces. Press space key to step \n"
+                         "through files in list.",
                          "SVG viewer - Usage info", MESSAGECODE_INFORMATION);
         return -1;
     }
