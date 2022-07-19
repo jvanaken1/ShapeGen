@@ -34,7 +34,7 @@
 
 typedef unsigned int COLOR;
 
-// Macro definitions 
+// Macro definitions
 #define RGBX(r,g,b)    (COLOR)(((r)&255)|(((g)&255)<<8)|(((b)&255)<<16)|0xff000000)
 #define RGBA(r,g,b,a)  (COLOR)(((r)&255)|(((g)&255)<<8)|(((b)&255)<<16)|((a)<<24))
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
@@ -77,21 +77,22 @@ const int FLAG_PREMULTALPHA = 32;
 // example, a bitmap file) to the specified 'buffer' array. The
 // return value is the number of pixels the function has copied,
 // which can be less than 'count' if the source supply of pixels is
-// low, or zero if the source is empty.  
+// low, or zero if the source is empty.
 //
 //---------------------------------------------------------------------
 
 class ImageReader
 {
 public:
-    virtual int ReadPixels(COLOR *buffer, int count) = 0;      
+    virtual int ReadPixels(COLOR *buffer, int count) = 0;
 };
 
 //---------------------------------------------------------------------
 //
-// SimpleRenderer class: User interface for a simple renderer, which
-// is derived from the Renderer base class defined in shapegen.h. This
-// renderer fills shapes with solid colors.
+// A basic renderer: Fills a shape with a solid color, but does _NOT_
+// do antialiasing. This class is derived from the SimpleRenderer class
+// in demo.h, which, in turn, is derived from the Renderer base class
+// in shapegen.h.
 //
 //---------------------------------------------------------------------
 
@@ -103,10 +104,9 @@ public:
 
 //---------------------------------------------------------------------
 //
-// An enhanced renderer derived from the SimpleRenderer base class.
-// This type of renderer works exclusively with full-color displays,
-// and does antialiasing, alpha blending, solid-color fills, pattern
-// fills, linear gradient fills, and radial gradient fills.
+// An enhanced renderer: Works exclusively with full-color displays.
+// Can paint with solid colors, tiled patterns, linear gradients,
+// and radial gradients. Does antialiasing and alpha blending.
 //
 //---------------------------------------------------------------------
 
@@ -119,9 +119,9 @@ public:
     virtual void SetRadialGradient(float x0, float y0, float r0,
                                    float x1, float y1, float r1,
                                    SPREAD_METHOD spread, int flags) = 0;
-    virtual void SetPattern(const COLOR *pattern, float u0, float v0, 
+    virtual void SetPattern(const COLOR *pattern, float u0, float v0,
                             int w, int h, int stride, int flags) = 0;
-    virtual void SetPattern(ImageReader *imgrdr, float u0, float v0, 
+    virtual void SetPattern(ImageReader *imgrdr, float u0, float v0,
                             int w, int h, int flags) = 0;
     virtual void AddColorStop(float offset, COLOR color) = 0;
     virtual void ResetColorStops() = 0;
@@ -154,7 +154,7 @@ public:
     virtual ~PaintGen()
     {
     }
-    virtual void FillSpan(int xs, int ys, int len, 
+    virtual void FillSpan(int xs, int ys, int len,
                           COLOR outBuf[], const COLOR inAlpha[] = 0) = 0;
     virtual bool SetScrollPosition(int x, int y) = 0;
 };
@@ -164,26 +164,26 @@ public:
 class TiledPattern : public PaintGen
 {
 public:
-    TiledPattern() 
-    { 
+    TiledPattern()
+    {
     }
-    TiledPattern(const COLOR *pattern, float u0, float v0, int w, int h, 
+    TiledPattern(const COLOR *pattern, float u0, float v0, int w, int h,
                  int stride, int flags, const float xform[]);
-    TiledPattern(ImageReader *imgrdr, float u0, float v0, int w, int h, 
+    TiledPattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
                  int flags, const float xform[]);
-    virtual ~TiledPattern() 
-    { 
+    virtual ~TiledPattern()
+    {
     }
     virtual void FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[]) = 0;
     virtual bool SetScrollPosition(int x, int y) = 0;
 };
 
-extern TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0, 
-                                        int w, int h, int stride, int flags, 
+extern TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0,
+                                        int w, int h, int stride, int flags,
                                         const float xform[] = 0);
 
-extern TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0, 
-                                        int w, int h, int flags, 
+extern TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0,
+                                        int w, int h, int flags,
                                         const float xform[] = 0);
 
 // Paint generator for linear gradient fills
@@ -230,5 +230,113 @@ extern RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
                                             float x1, float y1, float r1,
                                             SPREAD_METHOD spread, int flags,
                                             const float xform[] = 0);
+
+//---------------------------------------------------------------------
+//
+// This frame buffer descriptor is passed as an argument to the
+// constructor in a BasicRenderer or EnhancedRenderer object. The
+// renderer uses this information to write directly to the frame
+// buffer.
+//
+//---------------------------------------------------------------------
+
+struct FRAME_BUFFER
+{
+    COLOR *pixels; // pointer to frame buffer pixel data
+    int width;     // width of frame buffer in pixels
+    int height;    // height of frame buffer in pixels
+    int depth;     // number of bits per pixel
+    int pitch;     // pitch of frame buffer in bytes
+};
+
+//---------------------------------------------------------------------
+//
+// BasicRenderer class: A platform-independent implementation of the
+// SimpleRenderer virtual base class defined above.
+//
+//---------------------------------------------------------------------
+
+class BasicRenderer : public SimpleRenderer
+{
+    friend ShapeGen;
+
+    FRAME_BUFFER _frmbuf;
+    COLOR _color;
+
+protected:
+    // Interface to ShapeGen object
+    void RenderShape(ShapeFeeder *feeder);
+
+public:
+    // Application interface
+    BasicRenderer(FRAME_BUFFER *framebuf);
+    ~BasicRenderer()
+    {
+    }
+    void SetColor(COLOR color);
+};
+
+//---------------------------------------------------------------------
+//
+// AA4x8Renderer class: A platform-independent implementation of the
+// EnhancedRenderer virtual base class defined above. To support
+// antialiasing and alpha blending, this class uses an "AA-buffer"
+// to keep track of pixel coverage. The AA-buffer dedicates a 32-bit
+// bitmask (organized as 4 rows of 8 bits) to each pixel in the
+// current scan line.
+//
+//---------------------------------------------------------------------
+
+class AA4x8Renderer : public EnhancedRenderer
+{
+    friend ShapeGen;
+
+    FRAME_BUFFER _frmbuf;  // frame buffer descriptor
+    COLOR *_linebuf;   // pixel data bits in scanline buffer
+    COLOR _alpha;      // source constant alpha
+    int _width;        // width (in pixels) of device clipping rect
+    int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
+    int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
+    int _lut[33];      // look-up table for source alpha values
+    PaintGen *_paintgen;  // paint generator (gradients, patterns)
+    COLOR_STOP _cstop[STOPARRAY_MAXLEN+1];  // color-stop array
+    int _stopCount;    // Number of elements in color-stop array
+    float _xform[6];   // Transform matrix (gradients, patterns)
+    float *_pxform;    // Pointer to transform matrix
+    int _xscroll, _yscroll;  // Scroll position coordinates
+
+    void FillSubpixelSpan(int xL, int xR, int ysub);
+    void RenderAbuffer(int xmin, int xmax, int yscan);
+    void BlendLUT(COLOR component);
+    void BlendConstantAlphaLUT();
+    COLOR PremultAlpha(COLOR color);
+    void AlphaBlender(COLOR *src, COLOR *dst, int len);
+
+protected:
+    // Interface to ShapeGen object
+    void RenderShape(ShapeFeeder *feeder);
+    bool SetMaxWidth(int width);
+    int QueryYResolution() { return 2; }
+    bool SetScrollPosition(int x, int y);
+
+public:
+    // Application interface
+    AA4x8Renderer(FRAME_BUFFER *frmbuf);
+    ~AA4x8Renderer();
+    void SetColor(COLOR color);
+    void SetPattern(const COLOR *pattern, float u0, float v0,
+                    int w, int h, int stride, int flags);
+    void SetPattern(ImageReader *imgrdr, float u0, float v0,
+                    int w, int h, int flags);
+    void SetLinearGradient(float x0, float y0, float x1, float y1,
+                           SPREAD_METHOD spread, int flags);
+    void SetRadialGradient(float x0, float y0, float r0,
+                           float x1, float y1, float r1,
+                           SPREAD_METHOD spread, int flags);
+    void AddColorStop(float offset, COLOR color);
+    void ResetColorStops() { _stopCount = 0; }
+    void SetTransform(const float xform[]);
+    void SetConstantAlpha(COLOR alpha) { _alpha = alpha & 255; }
+};
 
 #endif // RENDERER_H

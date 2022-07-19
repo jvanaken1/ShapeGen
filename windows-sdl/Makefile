@@ -8,9 +8,9 @@
 INCDIR = C:\SDL2\include
 LIBDIR = C:\SDL2\lib\x86
 LIBFILES = $(LIBDIR)\SDL2main.lib $(LIBDIR)\SDL2.lib shell32.lib
-OBJFILES = sdlmain.obj bmpfile.obj textapp.obj gradient.obj pattern.obj \
+OBJFILES = sdlmain.obj bmpfile.obj textapp.obj gradient.obj pattern.obj renderer.obj \
            arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
-BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp star.bmp           
+BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp star.bmp
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
@@ -21,7 +21,7 @@ all : svgview.exe $(BMPFILES) demo.exe
 
 demo.exe : demo.obj $(OBJFILES)
 	$(LINK) $(LDEBUG) $(LFLAGS) demo.obj $(OBJFILES) $(LIBFILES) /OUT:$@ /PDB:$*.pdb
-                
+
 svgview.exe : svgview.obj $(OBJFILES)
 	$(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
 
@@ -55,6 +55,9 @@ edge.obj : edge.cpp shapegen.h shapepri.h
 path.obj : path.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c path.cpp
 
+renderer.obj : renderer.cpp shapegen.h shapepri.h
+	$(CC) $(CDEBUG) -c renderer.cpp
+
 stroke.obj : stroke.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c stroke.cpp
 
@@ -63,72 +66,75 @@ textapp.obj : textapp.cpp shapegen.h renderer.h demo.h
 
 thinline.obj : thinline.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c thinline.cpp
-        
+
 demo.h : ..\demo.h
-        copy /y ..\demo.h
+	copy /y ..\demo.h
 
 renderer.h : ..\renderer.h
-        copy /y ..\renderer.h
+	copy /y ..\renderer.h
 
 shapegen.h : ..\shapegen.h
-        copy /y ..\shapegen.h
+	copy /y ..\shapegen.h
 
 shapepri.h : ..\shapepri.h
-        copy /y ..\shapepri.h
+	copy /y ..\shapepri.h
 
 nanosvg.h : ..\nanosvg.h
-        copy /y ..\nanosvg.h
+	copy /y ..\nanosvg.h
 
 arc.cpp : ..\arc.cpp
-        copy /y ..\arc.cpp
-        
+	copy /y ..\arc.cpp
+
 bmpfile.cpp : ..\bmpfile.cpp
-        copy /y ..\bmpfile.cpp
-        
+	copy /y ..\bmpfile.cpp
+
 curve.cpp : ..\curve.cpp
-        copy /y ..\curve.cpp
-        
+	copy /y ..\curve.cpp
+
 demo.cpp : ..\demo.cpp
-        copy /y ..\demo.cpp
-        
+	copy /y ..\demo.cpp
+
 edge.cpp : ..\edge.cpp
-        copy /y ..\edge.cpp
-        
+	copy /y ..\edge.cpp
+
 pattern.cpp : ..\pattern.cpp
-        copy /y ..\pattern.cpp
-        
+	copy /y ..\pattern.cpp
+
 gradient.cpp : ..\gradient.cpp
-        copy /y ..\gradient.cpp
-        
+	copy /y ..\gradient.cpp
+
 path.cpp : ..\path.cpp
-        copy /y ..\path.cpp
-        
+	copy /y ..\path.cpp
+
+renderer.cpp : ..\renderer.cpp
+	copy /y ..\renderer.cpp
+
 stroke.cpp : ..\stroke.cpp
-        copy /y ..\stroke.cpp
+	copy /y ..\stroke.cpp
 
 svgview.cpp : ..\svgview.cpp
-        copy /y ..\svgview.cpp
-        
+	copy /y ..\svgview.cpp
+
 textapp.cpp : ..\textapp.cpp
-        copy /y ..\textapp.cpp
-        
+	copy /y ..\textapp.cpp
+
 thinline.cpp : ..\thinline.cpp
-        copy /y ..\thinline.cpp
-        
+	copy /y ..\thinline.cpp
+
 bricks.bmp : ..\bricks.bmp
-        copy /y ..\bricks.bmp
-        
+	copy /y ..\bricks.bmp
+
 fleur.bmp : ..\fleur.bmp
-        copy /y ..\fleur.bmp
-        
+	copy /y ..\fleur.bmp
+
 honeycomb.bmp : ..\honeycomb.bmp
-        copy /y ..\honeycomb.bmp
-        
+	copy /y ..\honeycomb.bmp
+
 star.bmp : ..\star.bmp
-        copy /y ..\star.bmp
-        
+	copy /y ..\star.bmp
+
 clean:
-        @del *.exe
-        @del *.ilk
-        @del *.obj
-        @del *.pdb
+	@del *.exe
+	@del *.ilk
+	@del *.obj
+	@del *.pdb
