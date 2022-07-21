@@ -36,20 +36,20 @@
 #include <assert.h>
 #include "shapegen.h"
 
-// Macro definitions 
+// Macro definitions
 #define ARRAY_LEN(a)  (sizeof(a)/sizeof((a)[0]))
 #ifdef min
   #undef min
 #endif
-#define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values 
+#define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values
 #ifdef max
   #undef max
 #endif
 #define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
 #ifdef sign
   #undef sign
-#endif 
-#define sign(x)   ((x)<0?-1:1)	     // sign (plus or minus) of value
+#endif
+#define sign(x)   ((x)<0?-1:1)       // sign (plus or minus) of value
 
 //---------------------------------------------------------------------
 //
@@ -57,15 +57,15 @@
 //
 //---------------------------------------------------------------------
 
-// Types used internally for fixed-point numbers 
-//typedef int FIX16;	 // fixed-point value with 16-bit fraction 
+// Types used internally for fixed-point numbers
+//typedef int FIX16;     // fixed-point value with 16-bit fraction
 typedef int FIX30;   // fixed-point value with 30-bit fraction
 
-// Internal structures for 2-D points, vertexes, and vectors
-struct VERT16 { 
+// Internal structures for 2-D points, vertices, and vectors
+struct VERT16 {
     FIX16 x, y;
 };
-struct VERT30 { 
+struct VERT30 {
     FIX30 x, y;
 };
 
@@ -81,19 +81,19 @@ const FIX16 FIX_BIAS = 0x7FFF;  // (1/2-1/65536) in fixed-point format
 const int KMAX = 6;        // max k for ellipse angular increment 1/2^k
 const int MAXLEVELS = 12;  // max number bezier subdivision levels
 
-// Structure used to describe a figure (aka subpath or contour) 
-struct FIGURE { 
+// Structure used to describe a figure (aka subpath or contour)
+struct FIGURE {
     bool isclosed;  // true if figure is closed
-    int offset;     // offset to previous item in list of figures 
+    int offset;     // offset to previous item in list of figures
 };
 
-// Structure used to describe a polygonal edge 
-struct EDGE { 
+// Structure used to describe a polygonal edge
+struct EDGE {
     EDGE *next;  // pointer to next item in edge list
-    int ytop;    // integer y coord at top end of edge 
-    int dy;      // signed length of edge in y dimension 
-    FIX16 xtop;  // fixed point x coord at top end of edge 
-    FIX16 dxdy;  // inverse slope: change in x per unit step in y 
+    int ytop;    // integer y coord at top end of edge
+    int dy;      // signed length of edge in y dimension
+    FIX16 xtop;  // fixed point x coord at top end of edge
+    FIX16 dxdy;  // inverse slope: change in x per unit step in y
 };
 
 // Internal fill-rule attribute values to set clipping region:
@@ -101,7 +101,7 @@ struct EDGE {
 //       current clipping region and the current path
 //   FILLRULE_EXCLUDE - Include spans that are inside the current
 //       clipping region but outside the current path
-const FILLRULE FILLRULE_INTERSECT = FILLRULE(FILLRULE_WINDING + 1); 
+const FILLRULE FILLRULE_INTERSECT = FILLRULE(FILLRULE_WINDING + 1);
 const FILLRULE FILLRULE_EXCLUDE = FILLRULE(FILLRULE_INTERSECT + 1);
 
 // Length of initial path stack memory allocation
@@ -208,12 +208,12 @@ class PathMgr : virtual public ShapeGen
 
     // Storage for points in path
     int _pathlength;  // current length of path array
-    VERT16 *_path;    // pointer to dynamically allocated path array 
+    VERT16 *_path;    // pointer to dynamically allocated path array
 
-    // Four members updated by path memory management               
-    VERT16 *_cpoint;  // pointer to current point in figure              
+    // Four members updated by path memory management
+    VERT16 *_cpoint;  // pointer to current point in figure
     VERT16 *_fpoint;  // pointer to first point in figure
-    FIGURE *_figure;  // pointer to current figure in path              
+    FIGURE *_figure;  // pointer to current figure in path
     FIGURE *_figtmp;  // temporary figure pointer
 
     // Dashed line pattern parameters
@@ -224,11 +224,11 @@ class PathMgr : virtual public ShapeGen
     bool _dashon;          // true (false) if _pdash points to dash (gap)
 
     // Stroked path variables
-    VERT16 _vin, _vout; // edge vertexes at start of stroked segment
-    FIX16 _linewidth;   // width (in pixels) of stroked line        
-    LINEEND _lineend;   // line end cap style      
+    VERT16 _vin, _vout; // edge vertices at start of stroked segment
+    FIX16 _linewidth;   // width (in pixels) of stroked line
+    LINEEND _lineend;   // line end cap style
     LINEJOIN _linejoin; // line join style
-    FIX16 _miterlimit;  // miter limit              
+    FIX16 _miterlimit;  // miter limit
     FIX16 _mitercheck;  // precomputed parameter for miter-limit check
     FIX16 _angle;       // angle between line segments at round join
 
@@ -248,15 +248,14 @@ protected:
     ~PathMgr();
 
 public:
-
-    // Set rendering object
+    // Set the renderer to use for filling and stroking shapes
     bool SetRenderer(Renderer *renderer);
 
     // Basic path construction
     void BeginPath();
     void CloseFigure();
     void EndFigure();
-    void Move(SGCoord x, SGCoord y);              
+    void Move(SGCoord x, SGCoord y);
     bool Line(SGCoord x, SGCoord y);
     bool PolyLine(int npts, const SGPoint xy[]);
     void Rectangle(const SGRect& rect);
@@ -267,7 +266,7 @@ public:
     int GetBoundingBox(SGRect *bbox);
 
     // Clipping and masking
-    bool InitClipRegion(int width, int height); 
+    bool InitClipRegion(int width, int height);
     void ResetClipRegion();
     bool SetClipRegion(FILLRULE fillrule);
     bool SetMaskRegion(FILLRULE fillrule);
@@ -314,7 +313,7 @@ public:
 
 private:
     // Internal functions to flatten ellipses and elliptic arcs
-    void EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP, 
+    void EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP,
                      FIX16 xQ, FIX16 yQ, FIX16 sweep);
     int AngularInc(FIX16 xP, FIX16 yP, FIX16 xQ, FIX16 yQ);
 
@@ -380,7 +379,7 @@ inline FIX16 fixlen(FIX16 x, FIX16 y)
     return z;
 }
 
-//-----------------------------------------------------------------------     
+//-----------------------------------------------------------------------
 //
 // Rightmost one function: rmo(val)
 //   Returns the little-endian bit number (0 = LSB, 31 = MSB) of

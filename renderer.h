@@ -297,7 +297,7 @@ class AA4x8Renderer : public EnhancedRenderer
     int _width;        // width (in pixels) of device clipping rect
     int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
     int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
-    int _lut[33];      // look-up table for source alpha values
+    int _lut[33];      // look-up table for source alpha/RGB values
     PaintGen *_paintgen;  // paint generator (gradients, patterns)
     COLOR_STOP _cstop[STOPARRAY_MAXLEN+1];  // color-stop array
     int _stopCount;    // Number of elements in color-stop array
@@ -309,8 +309,6 @@ class AA4x8Renderer : public EnhancedRenderer
     void RenderAbuffer(int xmin, int xmax, int yscan);
     void BlendLUT(COLOR component);
     void BlendConstantAlphaLUT();
-    COLOR PremultAlpha(COLOR color);
-    void AlphaBlender(COLOR *src, COLOR *dst, int len);
 
 protected:
     // Interface to ShapeGen object

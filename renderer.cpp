@@ -4,7 +4,9 @@
 //    This file contains the implementations of the BasicRenderer and
 //    AA4x8Renderer classes declared in renderer.h. Both renderers are
 //    platform independent, and write directly to a frame buffer that
-//    is described by a FRAME_BUFFER structure.
+//    is described by a FRAME_BUFFER structure. The frame buffer has
+//    a 32-bit BGRA pixel format (that is, 0xaarrggbb), but the 8-bit
+//    alpha field is never checked and always assumed to be 0xff.
 //
 //---------------------------------------------------------------------
 
@@ -14,14 +16,16 @@
 
 //---------------------------------------------------------------------
 //
-// BasicRenderer functions
+// BasicRenderer functions - This renderer does solid color fills with
+// no antialiasing or alpha blending, but can fill large areas faster
+// than the enhanced renderer
 //
 //---------------------------------------------------------------------
 
 BasicRenderer::BasicRenderer(FRAME_BUFFER *framebuf)
 {
     _frmbuf = *framebuf;
-    _frmbuf.pitch /= sizeof(COLOR);  // convert from bytes to pixels
+    _frmbuf.pitch /= 4;  // convert from bytes to 32-bit pixels
     SetColor(RGBX(0,0,0));
 }
 
@@ -56,64 +60,75 @@ void BasicRenderer::SetColor(COLOR color)
 
 //---------------------------------------------------------------------
 //
-// EnhancedRenderer functions
+// Utility functions used by EnhancedRenderer to do alpha blending
 //
 //---------------------------------------------------------------------
-
-// Premultiplies a 32-bit pixel's RGB components by its alpha value
-COLOR AA4x8Renderer::PremultAlpha(COLOR color)
-{
-    COLOR rb, ga, alfa = color >> 24;
-
-    if (alfa == 255)
-        return color;
-
-    if (alfa == 0)
-        return 0;
-
-    color |= 0xff000000;
-    rb = color & 0x00ff00ff;
-    rb *= alfa;
-    rb += 0x00800080;
-    rb += (rb >> 8) & 0x00ff00ff;
-    rb = (rb >> 8) & 0x00ff00ff;
-    ga = (color >> 8) & 0x00ff00ff;
-    ga *= alfa;
-    ga += 0x00800080;
-    ga += (ga >> 8) & 0x00ff00ff;
-    ga &= 0xff00ff00;
-    color = ga | rb;
-    return color;
-}
-
-// Alpha-blends an array of 32-bit source pixels into an array of
-// 32-bit destination pixels. Parameter len is the array length.
-// The source pixels are already in premultiplied-alpha format.
-// Destination pixels are assumed to be 100 percent opaque.
-void AA4x8Renderer::AlphaBlender(COLOR *src, COLOR *dst, int len)
-{
-    while (len--)
+namespace {
+    // Premultiplies a 32-bit pixel's RGB components by its alpha
+    // value. The pixel is in BGRA format (that is, 0xaarrggbb).
+    COLOR PremultAlpha(COLOR color)
     {
-        COLOR srcpix, dstpix, rb, ga, anot;
+        COLOR rb, ga, alfa = color >> 24;
 
-        srcpix = *src++;
-        anot = ~srcpix >> 24;
-        dstpix = *dst | 0xff000000;
-        rb = dstpix & 0x00ff00ff;
-        rb *= anot;
+        if (alfa == 255)
+            return color;
+
+        if (alfa == 0)
+            return 0;
+
+        color |= 0xff000000;
+        rb = color & 0x00ff00ff;
+        rb *= alfa;
         rb += 0x00800080;
         rb += (rb >> 8) & 0x00ff00ff;
         rb = (rb >> 8) & 0x00ff00ff;
-        ga = (dstpix >> 8) & 0x00ff00ff;
-        ga *= anot;
+        ga = (color >> 8) & 0x00ff00ff;
+        ga *= alfa;
         ga += 0x00800080;
         ga += (ga >> 8) & 0x00ff00ff;
         ga &= 0xff00ff00;
-        dstpix = ga | rb;
-        *dst++ = dstpix + srcpix;
+        color = ga | rb;
+        return color;
+    }
+
+    // Alpha-blends an array of 32-bit source pixels into an array of
+    // 32-bit destination pixels. Parameter len is the array length.
+    // The source pixels are in BGRA format (that is, 0xaarrggbb),
+    // and have already been premultiplied by their alpha values.
+    // Destination pixels are assumed to be 100 percent opaque.
+    void AlphaBlender(COLOR *src, COLOR *dst, int len)
+    {
+        while (len--)
+        {
+            COLOR srcpix, dstpix, rb, ga, anot;
+
+            srcpix = *src++;
+            anot = ~srcpix >> 24;
+            dstpix = *dst | 0xff000000;
+            rb = dstpix & 0x00ff00ff;
+            rb *= anot;
+            rb += 0x00800080;
+            rb += (rb >> 8) & 0x00ff00ff;
+            rb = (rb >> 8) & 0x00ff00ff;
+            ga = (dstpix >> 8) & 0x00ff00ff;
+            ga *= anot;
+            ga += 0x00800080;
+            ga += (ga >> 8) & 0x00ff00ff;
+            ga &= 0xff00ff00;
+            dstpix = ga | rb;
+            *dst++ = dstpix + srcpix;
+        }
     }
 }
 
+//---------------------------------------------------------------------
+//
+// EnhancedRenderer functions - To perform alpha blending, this
+// renderer uses an internal 32-bit BGRA pixel format (that is,
+// 0xaarrggbb). Input pixels in RGBA format are converted to BGRA
+// before being processed.
+//
+//---------------------------------------------------------------------
 AA4x8Renderer::AA4x8Renderer(FRAME_BUFFER *framebuf)
                   : _width(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _alpha(255),
@@ -132,14 +147,14 @@ AA4x8Renderer::AA4x8Renderer(FRAME_BUFFER *framebuf)
 AA4x8Renderer::~AA4x8Renderer()
 {
     delete[] _aabuf;
+    delete[] _linebuf;
     if (_paintgen)
         _paintgen->~PaintGen();
 }
 
 // ShapeGen calls this function to notify the renderer when the width
 // of the device clipping rectangle changes. This function rebuilds
-// the AA-buffer and the offscreen pixel buffer to accommodate the
-// new width.
+// the AA-buffer and the scan-line buffer to accommodate the new width.
 bool AA4x8Renderer::SetMaxWidth(int width)
 {
     // Pad out specified width to be multiple of four
@@ -188,7 +203,7 @@ void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
         int xR = (span.xR + FIX_BIAS/8 - FIX_BIAS) >> 13;
         int ysub = span.y;
 
-        // Is this span so tiny that it falls into a gap between pixels?
+        // Is this span so tiny that it falls into a gap between subpixels?
         if (xL == xR)
             continue;  // yes, nothing to do here
 
@@ -222,7 +237,7 @@ void AA4x8Renderer::FillSubpixelSpan(int xL, int xR, int ysub)
 {
     // To speed up AA-buffer accesses, we write 4 bytes at a time
     // (to update the bitmap data for 4 adjacent pixels in parallel).
-    // Variables iL and iR are indexes to the starting and ending
+    // Variables iL and iR are indices to the starting and ending
     // 4-byte blocks in the AA-buffer. Variables maskL and maskR are
     // the bitmasks for the starting and ending 4-byte blocks.
 
@@ -245,8 +260,8 @@ void AA4x8Renderer::FillSubpixelSpan(int xL, int xR, int ysub)
         prow[iL] |= maskL & maskR;
 }
 
-// Use the data in the AA-buffer to paint the antialiased pixels in the
-// most recent scan line
+// Use the data in the AA-buffer to paint the antialiased pixels in
+// the scan line that was just completed
 void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
 {
     int iL = xmin >> 5;         // index of first 4-byte block
@@ -298,18 +313,18 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     if (_paintgen)
         _paintgen->FillSpan(xleft, yscan, len, srcbuf, srcbuf);
 
-    // Alpha-blend the painted pixels into the window-backing surface
+    // Alpha-blend the painted pixels into the frame buffer
     COLOR *dest = &_frmbuf.pixels[yscan*_frmbuf.pitch + xleft];
     AlphaBlender(srcbuf, dest, len);
     memset(&_linebuf[xleft], 0, len*sizeof(_linebuf[0]));
 }
 
-// Loads alpha values or RGB color components into the look-up
+// Loads an RGB color component or alpha value into the look-up
 // table in the _lut array. The array is loaded with 33 elements
 // corresponding to all possible per-pixel alpha values (0/32,
-// 1/32, ... , 32/32) obtained from a pixel's coverage bitmask
-// in the AA-buffer. The motivation here is to substitute table
-// lookups for multiplications during fill operations.
+// 1/32, ... , 32/32) obtained from a pixel's 32-bit coverage
+// bitmask in the AA-buffer. The motivation here is to substitute
+// table lookups for multiplications during fill operations.
 void AA4x8Renderer::BlendLUT(COLOR component)
 {
     COLOR diff = component | (component << 8);
@@ -328,7 +343,7 @@ void AA4x8Renderer::BlendLUT(COLOR component)
 // 32/32) obtained from a pixel's coverage bitmask in the AA-buffer.
 // In the process, the pixel's color is converted from RGBA (that
 // is, 0xaabbggrr) to BGRA (0xaarrggbb) format. Note that the
-// source constant alpha is first mixed with the per-pixel alpha.
+// source-constant alpha is first mixed with the per-pixel alpha.
 void AA4x8Renderer::SetColor(COLOR color)
 {
     COLOR opacity = _alpha*(color >> 24);
@@ -348,15 +363,19 @@ void AA4x8Renderer::SetColor(COLOR color)
         BlendLUT((color >> shift) & 255);
 }
 
-// Loads the _lut array with product of source constant alpha and
-// all possible per-pixel alpha values (0/32, 1/32, ... , 32/32)
-// obtained from a pixel's coverage bitmask in the AA-buffer.
+// Loads the _lut array with the product of the current source-
+// constant alpha and all possible per-pixel alpha values (0/32,
+// 1/32, ... , 32/32) obtained from a pixel's 32-bit coverage
+// bitmask in the AA-buffer. The motivation here is to substitute
+// table lookups for multiplications during fill operations.
 void AA4x8Renderer::BlendConstantAlphaLUT()
 {
     memset(_lut, 0, sizeof(_lut));
     BlendLUT(_alpha);
 }
 
+// The patterns and gradients in painted shapes must follow the
+// shapes as they are scrolled horizontally and vertically.
 bool AA4x8Renderer::SetScrollPosition(int x, int y)
 {
     _xscroll = x, _yscroll = y;
@@ -366,7 +385,7 @@ bool AA4x8Renderer::SetScrollPosition(int x, int y)
     return true;
 }
 
-// Sets up the renderer to do tiled pattern fills from an array
+// Prepares the renderer to do tiled-pattern fills from a pixel array
 // containing a 2-D image
 void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
                                int w, int h, int stride, int flags)
@@ -389,8 +408,8 @@ void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Sets up the renderer to do pattern fills from a bitmap file
-// containing a 2-D image
+// Prepares the renderer to use the 2-D image from a bitmap file
+// to do tiled-pattern fills
 void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
                                int w, int h, int flags)
 {
@@ -412,7 +431,7 @@ void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Sets up the renderer to do linear gradient fills
+// Prepares the renderer to do linear gradient fills
 void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
                                       SPREAD_METHOD spread, int flags)
 {
@@ -432,7 +451,7 @@ void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Sets up the renderer to do radial gradient fills
+// Prepares the renderer to do radial gradient fills
 void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
                                       float x1, float y1, float r1,
                                       SPREAD_METHOD spread, int flags)
@@ -470,6 +489,7 @@ void AA4x8Renderer::AddColorStop(float offset, COLOR color)
     }
 }
 
+// Sets the transformation matrix to use for patterns and gradients
 void AA4x8Renderer::SetTransform(const float xform[])
 {
     if (xform)
