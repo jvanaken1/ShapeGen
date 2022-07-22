@@ -10,9 +10,28 @@
 #include <string.h>
 #include "demo.h"
 
+// Make command-line args globally accessible
 int _argc_ = 0;
 char **_argv_ = 0;
 
+// Display error/warning/info text message for user
+void UserMessage::ShowMessage(char *text, char *caption, int msgcode)
+{
+    int wincode = MB_ICONERROR;  // win32 message code
+
+    if (msgcode == MESSAGECODE_INFORMATION)
+        wincode = MB_ICONINFORMATION;
+    else if (msgcode == MESSAGECODE_WARNING)
+        wincode = MB_ICONWARNING;
+
+    MessageBox(0, text, caption, wincode);
+}
+
+//----------------------------------------------------------------------
+//
+// WinMain entry point - Win32 window creation
+//
+//----------------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -63,27 +82,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
     return msg.wParam;
 }
 
-// Display error message for user
-void UserMessage::ShowMessage(char *text, char *title, int msgcode)
-{
-    int wincode;  // Windows MessageBox code
-
-    switch (msgcode)
-    {
-    case MESSAGECODE_INFORMATION:
-        wincode = MB_ICONINFORMATION;
-        break;
-    case MESSAGECODE_WARNING:
-        wincode = MB_ICONWARNING;
-        break;
-    case MESSAGECODE_ERROR:
-    default:
-        wincode = MB_ICONERROR;
-        break;
-    }
-    MessageBox(0, text, title, wincode);
-}
-
 //----------------------------------------------------------------------
 //
 // Win32 window procedure: Processes the next message for this window
@@ -96,7 +94,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static HBITMAP hbmp = 0;
     static int testnum = 0;
     static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
-    UserMessage usrmsg;
+    static UserMessage usrmsg;
     bool mod;
     PAINTSTRUCT ps;
     HDC hdc;
@@ -204,7 +202,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             frmbuf.width  = cliprect.w;
             frmbuf.height = cliprect.h;
             frmbuf.depth  = 32;
-            frmbuf.pitch  = 4*cliprect.w;  // specified in bytes
+            frmbuf.pitch  = 4*cliprect.w;  // pitch specified in bytes
             BasicRenderer rend(&frmbuf);
             AA4x8Renderer aarend(&frmbuf);
 
@@ -222,6 +220,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             SelectObject(hdcMem, hbmp);
             BitBlt(hdc, 0, 0, cliprect.w, cliprect.h, hdcMem, 0, 0, SRCCOPY);
             DeleteDC(hdcMem);
+
+            // Clear frame buffer (set background color = white)
             memset(bmpixels, 0xff, 4*cliprect.w*cliprect.h);
         }
         EndPaint(hwnd, &ps);

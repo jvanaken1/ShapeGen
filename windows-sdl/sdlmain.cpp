@@ -12,25 +12,21 @@
 #include <assert.h>
 #include "demo.h"
 
-// Display error message for user
-void UserMessage::ShowMessage(char *text, char *title, int msgcode)
-{
-    int sdlcode;  // SDL MessageBox code
+// Make command-line args globally accessible
+int _argc_ = 0;
+char **_argv_ = 0;
 
-    switch (msgcode)
-    {
-    case MESSAGECODE_INFORMATION:
+// Display error/warning/info text message for user
+void UserMessage::ShowMessage(char *text, char *caption, int msgcode)
+{
+    int sdlcode = SDL_MESSAGEBOX_ERROR;  // SDL MessageBox code
+
+    if (msgcode == MESSAGECODE_INFORMATION)
         sdlcode = SDL_MESSAGEBOX_INFORMATION;
-        break;
-    case MESSAGECODE_WARNING:
+    else if (msgcode == MESSAGECODE_WARNING)
         sdlcode = SDL_MESSAGEBOX_WARNING;
-        break;
-    case MESSAGECODE_ERROR:
-    default:
-        sdlcode = SDL_MESSAGEBOX_ERROR;
-        break;
-    }
-    SDL_ShowSimpleMessageBox(sdlcode, title, text, 0);
+
+    SDL_ShowSimpleMessageBox(sdlcode, caption, text, 0);
 }
 
 //---------------------------------------------------------------------
@@ -38,9 +34,6 @@ void UserMessage::ShowMessage(char *text, char *title, int msgcode)
 // SDL2 main function
 //
 //---------------------------------------------------------------------
-
-int _argc_ = 0;
-char **_argv_ = 0;
 
 int main(int argc, char *argv[])
 {
@@ -81,10 +74,10 @@ int main(int argc, char *argv[])
     // matches the renderer's internal format, the renderer can
     // do alpha compositing directly to this surface, and avoid
     // having to create a separate RGB surface for compositing.
-    formatsMatch = (winsurf->format->BitsPerPixel == 32) &&
-                   (winsurf->format->Rmask == 0x00ff0000) &&
-                   (winsurf->format->Gmask == 0x0000ff00) &&
-                   (winsurf->format->Bmask == 0x000000ff);
+    formatsMatch = winsurf->format->BitsPerPixel == 32 &&
+                   winsurf->format->Rmask == 0x00ff0000 &&
+                   winsurf->format->Gmask == 0x0000ff00 &&
+                   winsurf->format->Bmask == 0x000000ff;
     // Begin main loop
     for (;;)
     {
@@ -99,7 +92,7 @@ int main(int argc, char *argv[])
         else if (evt.type == SDL_KEYDOWN)
         {
             int flags = KMOD_ALT | KMOD_SHIFT | KMOD_CTRL;
-            bool mod = ((SDL_GetModState() & flags) != 0);
+            bool mod = flags & SDL_GetModState();
 
             switch (evt.key.keysym.sym)
             {
@@ -135,7 +128,7 @@ int main(int argc, char *argv[])
                 break;
             case SDLK_ESCAPE:
                 if (mod)
-                    quit = true;
+                    quit = true, redraw = false;
                 else
                     testnum = 0;
                 break;
@@ -164,6 +157,7 @@ int main(int argc, char *argv[])
                 if (winsurf == 0)
                 {
                     printf("ERROR-- %s\n", SDL_GetError());
+                    SDL_DestroyWindow(window);
                     SDL_Quit();
                     return -1;
                 }
@@ -184,6 +178,7 @@ int main(int argc, char *argv[])
                     if (rgbsurf == 0)
                     {
                         printf("ERROR-- %s\n", SDL_GetError());
+                        SDL_DestroyWindow(window);
                         SDL_Quit();
                         return -1;
                     }
@@ -201,35 +196,41 @@ int main(int argc, char *argv[])
         else
             redraw = false;
 
+        if (redraw && cliprect.w > 0 && cliprect.h > 0)
+        {
+            // Pass frame-buffer descriptor to both renderers
+            SDL_Surface *surf = formatsMatch ? winsurf : rgbsurf;
+            FRAME_BUFFER frmbuf;
+            frmbuf.pixels = (COLOR*)surf->pixels;
+            frmbuf.width  = surf->w;
+            frmbuf.height = surf->h;
+            frmbuf.depth  = 32;
+            frmbuf.pitch  = surf->pitch;
+            BasicRenderer rend(&frmbuf);
+            AA4x8Renderer aarend(&frmbuf);
+
+            // Draw next frame
+            testnum = runtest(testnum, &rend, &aarend, cliprect);
+            if (testnum >= 0)
+            {
+                // Copy frame buffer to screen
+                if (!formatsMatch)
+                    SDL_BlitSurface(rgbsurf, 0, winsurf, 0);
+
+                SDL_UpdateWindowSurface(window);
+
+                // Clear frame buffer (set background color = white)
+                SDL_FillRect(surf, 0, 0xffffffff);
+            }
+            else
+                quit = true;
+        }
         if (quit)
         {
             printf("Quitting SDL2 app...\n");
             SDL_DestroyWindow(window);
             SDL_Quit();
             break;  // exit main loop
-        }
-        if (redraw && cliprect.w > 0 && cliprect.h > 0)
-        {
-            SDL_Surface *surf = formatsMatch ? winsurf : rgbsurf;
-            FRAME_BUFFER frmbuf;
-
-            frmbuf.pixels = (COLOR*)surf->pixels;
-            frmbuf.width  = surf->w;
-            frmbuf.height = surf->h;
-            frmbuf.depth  = 32;
-            frmbuf.pitch  = surf->pitch;
-
-            BasicRenderer rend(&frmbuf);
-            AA4x8Renderer aarend(&frmbuf);
-
-            testnum = runtest(testnum, &rend, &aarend, cliprect);
-            if (!formatsMatch)
-                SDL_BlitSurface(rgbsurf, 0, winsurf, 0);
-
-            SDL_UpdateWindowSurface(window);
-            SDL_FillRect(surf, 0, 0xffffffff);
-            if (testnum < 0)
-                quit = true;
         }
     }
     return 0;

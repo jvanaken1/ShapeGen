@@ -98,7 +98,7 @@ class UserMessage
 public:
     UserMessage() {}
     ~UserMessage() {}
-    void ShowMessage(char *text, char *title, int msgcode = 0);
+    void ShowMessage(char *text, char *caption, int msgcode = 0);
 };
 
 //---------------------------------------------------------------------
