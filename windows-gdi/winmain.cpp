@@ -179,7 +179,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                     &bmpixels, 0, 0);
             if (!hbmp || !bmpixels)
             {
-                usrmsg.ShowMessage("Failed to allocate frame buffer",
+                usrmsg.ShowMessage("Failed to allocate back buffer",
                                    "ShapeGen demo - out of memory", MESSAGECODE_ERROR);
                 PostQuitMessage(0);
                 return 0;
@@ -196,17 +196,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hwnd, &ps);
         if (hbmp)
         {
-            // Pass frame-buffer descriptor to both renderers
-            FRAME_BUFFER frmbuf;
-            frmbuf.pixels = (COLOR*)bmpixels;
-            frmbuf.width  = cliprect.w;
-            frmbuf.height = cliprect.h;
-            frmbuf.depth  = 32;
-            frmbuf.pitch  = 4*cliprect.w;  // pitch specified in bytes
-            BasicRenderer rend(&frmbuf);
-            AA4x8Renderer aarend(&frmbuf);
+            // Pass back-buffer descriptor to both renderers
+            BACK_BUFFER bkbuf;
+            bkbuf.pixels = (COLOR*)bmpixels;
+            bkbuf.width  = cliprect.w;
+            bkbuf.height = cliprect.h;
+            bkbuf.depth  = 32;
+            bkbuf.pitch  = 4*cliprect.w;  // pitch specified in bytes
+            BasicRenderer rend(&bkbuf);
+            AA4x8Renderer aarend(&bkbuf);
 
-            // Draw next frame
+            // Draw next back
             testnum = runtest(testnum, &rend, &aarend, cliprect);
             if (testnum < 0)
             {
@@ -214,14 +214,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 return 0;
             }
 
-            // Copy frame buffer to screen
+            // Copy back buffer to screen
             RECT rect = { 0, 0, cliprect.w, cliprect.h };
             hdcMem = CreateCompatibleDC(hdc);
             SelectObject(hdcMem, hbmp);
             BitBlt(hdc, 0, 0, cliprect.w, cliprect.h, hdcMem, 0, 0, SRCCOPY);
             DeleteDC(hdcMem);
 
-            // Clear frame buffer (set background color = white)
+            // Clear back buffer (set background color = white)
             memset(bmpixels, 0xff, 4*cliprect.w*cliprect.h);
         }
         EndPaint(hwnd, &ps);

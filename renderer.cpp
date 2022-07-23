@@ -2,11 +2,15 @@
 //
 //  renderer.cpp:
 //    This file contains the implementations of the BasicRenderer and
-//    AA4x8Renderer classes declared in renderer.h. Both renderers are
-//    platform independent, and write directly to a frame buffer that
-//    is described by a FRAME_BUFFER structure. The frame buffer has
-//    a 32-bit BGRA pixel format (that is, 0xaarrggbb), but the 8-bit
-//    alpha field is never checked and always assumed to be 0xff.
+//    AA4x8Renderer classes declared in renderer.h. This rendering
+//    code is platform-INdependent: the renderers write directly to
+//    a window-backing buffer (or back buffer) that is described by a
+//    BACK_BUFFER structure. The only platform-dependent code needed
+//    is the BitBlt function call (contained in separate module) that
+//    copies the back buffer to the window on the display. The back
+//    buffer has a 32-bit BGRA pixel format (that is, 0xaarrggbb), but
+//    its 8-bit alpha channel is never inspected and always assumed to
+//    be 0xff (100 percent opaque).
 //
 //---------------------------------------------------------------------
 
@@ -22,10 +26,10 @@
 //
 //---------------------------------------------------------------------
 
-BasicRenderer::BasicRenderer(FRAME_BUFFER *framebuf)
+BasicRenderer::BasicRenderer(BACK_BUFFER *backbuf)
 {
-    _frmbuf = *framebuf;
-    _frmbuf.pitch /= 4;  // convert from bytes to 32-bit pixels
+    _backbuf = *backbuf;
+    _backbuf.pitch /= 4;  // convert from bytes to 32-bit pixels
     SetColor(RGBX(0,0,0));
 }
 
@@ -36,14 +40,14 @@ void BasicRenderer::RenderShape(ShapeFeeder *feeder)
 
     while (feeder->GetNextSDLRect(&rect))
     {
-        COLOR *p = &_frmbuf.pixels[rect.y*_frmbuf.pitch + rect.x];
+        COLOR *p = &_backbuf.pixels[rect.y*_backbuf.pitch + rect.x];
         for (int j = 0; j < rect.h; ++j)
         {
             COLOR *q = p;
             for (int i = 0; i < rect.w; ++i)
                 *q++ = _color;
 
-            p = &p[_frmbuf.pitch];
+            p = &p[_backbuf.pitch];
         }
     }
 }
@@ -129,14 +133,14 @@ namespace {
 // before being processed.
 //
 //---------------------------------------------------------------------
-AA4x8Renderer::AA4x8Renderer(FRAME_BUFFER *framebuf)
+AA4x8Renderer::AA4x8Renderer(BACK_BUFFER *backbuf)
                   : _width(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _alpha(255),
                     _xscroll(0), _yscroll(0)
 {
-    assert(framebuf->depth == 32);
-    _frmbuf = *framebuf;
-    _frmbuf.pitch /= sizeof(COLOR);  // convert from bytes to pixels
+    assert(backbuf->depth == 32);
+    _backbuf = *backbuf;
+    _backbuf.pitch /= sizeof(COLOR);  // convert from bytes to pixels
     memset(&_lut[0], 0, sizeof(_lut));
     memset(&_aarow[0], 0, sizeof(_aarow));
     memset(&_cstop[0], 0, sizeof(_cstop));
@@ -313,8 +317,8 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     if (_paintgen)
         _paintgen->FillSpan(xleft, yscan, len, srcbuf, srcbuf);
 
-    // Alpha-blend the painted pixels into the frame buffer
-    COLOR *dest = &_frmbuf.pixels[yscan*_frmbuf.pitch + xleft];
+    // Alpha-blend the painted pixels into the back buffer
+    COLOR *dest = &_backbuf.pixels[yscan*_backbuf.pitch + xleft];
     AlphaBlender(srcbuf, dest, len);
     memset(&_linebuf[xleft], 0, len*sizeof(_linebuf[0]));
 }

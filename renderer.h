@@ -233,20 +233,22 @@ extern RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
 
 //---------------------------------------------------------------------
 //
-// This frame buffer descriptor is passed as an argument to the
-// constructor in a BasicRenderer or EnhancedRenderer object. The
-// renderer uses this information to write directly to the frame
-// buffer.
+// This structure describes the window-backing buffer, or back buffer,
+// which is located in off-screen memory. A BACK_BUFFER struct is
+// passed as an argument to the constructor for a BasicRenderer or
+// EnhancedRenderer object. The renderer uses the information in this
+// struct to write directly to the back buffer, which is later blitted
+// to a window in on-screen memory.
 //
 //---------------------------------------------------------------------
 
-struct FRAME_BUFFER
+struct BACK_BUFFER
 {
-    COLOR *pixels; // pointer to frame buffer pixel data
-    int width;     // width of frame buffer in pixels
-    int height;    // height of frame buffer in pixels
+    COLOR *pixels; // pointer to back buffer pixel data
+    int width;     // width of back buffer in pixels
+    int height;    // height of back buffer in pixels
     int depth;     // number of bits per pixel
-    int pitch;     // pitch of frame buffer in bytes
+    int pitch;     // pitch of back buffer in bytes
 };
 
 //---------------------------------------------------------------------
@@ -260,7 +262,7 @@ class BasicRenderer : public SimpleRenderer
 {
     friend ShapeGen;
 
-    FRAME_BUFFER _frmbuf;
+    BACK_BUFFER _backbuf;
     COLOR _color;
 
 protected:
@@ -269,7 +271,7 @@ protected:
 
 public:
     // Application interface
-    BasicRenderer(FRAME_BUFFER *framebuf);
+    BasicRenderer(BACK_BUFFER *backbuf);
     ~BasicRenderer()
     {
     }
@@ -291,7 +293,7 @@ class AA4x8Renderer : public EnhancedRenderer
 {
     friend ShapeGen;
 
-    FRAME_BUFFER _frmbuf;  // frame buffer descriptor
+    BACK_BUFFER _backbuf;  // back buffer descriptor
     COLOR *_linebuf;   // pixel data bits in scanline buffer
     COLOR _alpha;      // source constant alpha
     int _width;        // width (in pixels) of device clipping rect
@@ -319,7 +321,7 @@ protected:
 
 public:
     // Application interface
-    AA4x8Renderer(FRAME_BUFFER *frmbuf);
+    AA4x8Renderer(BACK_BUFFER *backbuf);
     ~AA4x8Renderer();
     void SetColor(COLOR color);
     void SetPattern(const COLOR *pattern, float u0, float v0,

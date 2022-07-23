@@ -166,6 +166,8 @@ int main(int argc, char *argv[])
                     if (rgbsurf)
                         SDL_FreeSurface(rgbsurf);
 
+                    // Our two renderers require a back buffer
+                    // with a 32-bit BGRA pixel format
                     rgbsurf = SDL_CreateRGBSurface(
                                     0,
                                     winsurf->w,
@@ -198,28 +200,28 @@ int main(int argc, char *argv[])
 
         if (redraw && cliprect.w > 0 && cliprect.h > 0)
         {
-            // Pass frame-buffer descriptor to both renderers
+            // Pass back-buffer descriptor to both renderers
             SDL_Surface *surf = formatsMatch ? winsurf : rgbsurf;
-            FRAME_BUFFER frmbuf;
-            frmbuf.pixels = (COLOR*)surf->pixels;
-            frmbuf.width  = surf->w;
-            frmbuf.height = surf->h;
-            frmbuf.depth  = 32;
-            frmbuf.pitch  = surf->pitch;
-            BasicRenderer rend(&frmbuf);
-            AA4x8Renderer aarend(&frmbuf);
+            BACK_BUFFER bkbuf;
+            bkbuf.pixels = (COLOR*)surf->pixels;
+            bkbuf.width  = surf->w;
+            bkbuf.height = surf->h;
+            bkbuf.depth  = 32;
+            bkbuf.pitch  = surf->pitch;
+            BasicRenderer rend(&bkbuf);
+            AA4x8Renderer aarend(&bkbuf);
 
-            // Draw next frame
+            // Draw next back
             testnum = runtest(testnum, &rend, &aarend, cliprect);
             if (testnum >= 0)
             {
-                // Copy frame buffer to screen
+                // Copy back buffer to screen
                 if (!formatsMatch)
                     SDL_BlitSurface(rgbsurf, 0, winsurf, 0);
 
                 SDL_UpdateWindowSurface(window);
 
-                // Clear frame buffer (set background color = white)
+                // Clear back buffer (set background color = white)
                 SDL_FillRect(surf, 0, 0xffffffff);
             }
             else
