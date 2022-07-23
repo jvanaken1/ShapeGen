@@ -94,7 +94,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static HBITMAP hbmp = 0;
     static int testnum = 0;
     static SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT };
-    static UserMessage usrmsg;
     bool mod;
     PAINTSTRUCT ps;
     HDC hdc;
@@ -148,7 +147,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case VK_ESCAPE:
             if (mod)
+            {
                 PostQuitMessage(0);
+                return 0;
+            }
             else
                 testnum = 0;
             break;
@@ -179,6 +181,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                     &bmpixels, 0, 0);
             if (!hbmp || !bmpixels)
             {
+                UserMessage usrmsg;
                 usrmsg.ShowMessage("Failed to allocate back buffer",
                                    "ShapeGen demo - out of memory", MESSAGECODE_ERROR);
                 PostQuitMessage(0);
@@ -206,7 +209,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             BasicRenderer rend(&bkbuf);
             AA4x8Renderer aarend(&bkbuf);
 
-            // Draw next back
+            // Render next frame into back buffer
             testnum = runtest(testnum, &rend, &aarend, cliprect);
             if (testnum < 0)
             {
@@ -215,7 +218,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             // Copy back buffer to screen
-            RECT rect = { 0, 0, cliprect.w, cliprect.h };
             hdcMem = CreateCompatibleDC(hdc);
             SelectObject(hdcMem, hbmp);
             BitBlt(hdc, 0, 0, cliprect.w, cliprect.h, hdcMem, 0, 0, SRCCOPY);
