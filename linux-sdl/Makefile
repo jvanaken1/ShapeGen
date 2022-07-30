@@ -4,9 +4,9 @@
 
 CC = g++
 
-OBJS = sdlmain.o bmpfile.o textapp.o gradient.o pattern.o \
+OBJS = sdlmain.o bmpfile.o textapp.o gradient.o pattern.o renderer.o \
        arc.o curve.o edge.o path.o stroke.o thinline.o
-BMPS = bricks.bmp fleur.bmp honeycomb.bmp star.bmp                   
+BMPS = bricks.bmp fleur.bmp honeycomb.bmp star.bmp
 
 all : .PHONY svgview $(BMPS) demo
 
@@ -48,6 +48,9 @@ edge.o : edge.cpp shapegen.h shapepri.h
 
 path.o : path.cpp shapegen.h shapepri.h
 	$(CC) -w -c path.cpp
+
+renderer.o : renderer.cpp shapegen.h shapepri.h
+	$(CC) -w -c renderer.cpp
 
 stroke.o : stroke.cpp shapegen.h shapepri.h
 	$(CC) -w -c stroke.cpp
