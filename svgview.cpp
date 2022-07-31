@@ -21,7 +21,7 @@
 */
 //---------------------------------------------------------------------
 //
-// demo.cpp:
+// svgview.cpp:
 //   This file contains the code for a simple SVG file viewer based on
 //   the ShapeGen 2-D graphics library, and on Mikko Mononen's SVG
 //   parser, which is implemented as a single header file, nanosvg.h.
