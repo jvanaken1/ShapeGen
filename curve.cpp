@@ -33,7 +33,7 @@
 namespace {
     //-------------------------------------------------------------------
     //
-    // Returns the absolute value of signed integer x.
+    // Returns the absolute value of signed integer x
     //
     //-------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ namespace {
 
         if (x > y)
             return x + max(y/8, y/2 - x/8);
-    
+
         return y + max(x/8, x/2 - y/8);
     }
 }
@@ -72,8 +72,8 @@ namespace {
 
 bool PathMgr::IsFlatQuadratic(const VERT16 v[])
 {
-    FIX16 dx = abs(v[0].x - 2*v[1].x + v[2].x);
-    FIX16 dy = abs(v[0].y - 2*v[1].y + v[2].y);
+    FIX16 dx = iabs(v[0].x - 2*v[1].x + v[2].x);
+    FIX16 dy = iabs(v[0].y - 2*v[1].y + v[2].y);
     FIX16 error = VLen(dx, dy)/4;
 
     return (error <= _flatness);
@@ -89,7 +89,7 @@ bool PathMgr::IsFlatQuadratic(const VERT16 v[])
 // classic de Casteljau algorithm to subdivide the Bezier curve into
 // segments that meet the tolerance specified by the _flatness member.
 // On entry, the current figure must not be empty (i.e., the current
-// point must be defined) or the function faults. 
+// point must be defined) or the function faults.
 //
 //----------------------------------------------------------------------
 
@@ -101,7 +101,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
     int *plstk = &lstack[0];     // level stack pointer
     int level = 0;               // current subdivision level
     VERT16 v[2+1][2+1];          // control polygon vertexes
-    
+
     if (_cpoint == 0)
     {
         assert(_cpoint != 0);
@@ -114,7 +114,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
     v[0][1].y = v1.y << _fixshift;
     v[0][2].x = v2.x << _fixshift;  // C
     v[0][2].y = v2.y << _fixshift;
-    
+
     // Continue to subdivide Bezier control polygon ABC until
     // flatness of each curve segment is within specified tolerance
     for (;;)
@@ -128,12 +128,12 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
                     v[j][i].x = (v[j-1][i].x + v[j-1][i+1].x)/2;
                     v[j][i].y = (v[j-1][i].y + v[j-1][i+1].y)/2;
                 }
-    
+
             // Push level, and vertexes EC onto stack for later
             *plstk++ = ++level;
             *pvstk++ = v[0][2];  // C
             *pvstk++ = v[1][1];  // E
-        
+
             // Define new control polygon ABC for next iteration
             v[0][1] = v[1][0];  // B
             v[0][2] = v[2][0];  // C
@@ -146,7 +146,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
         // If stack is empty, we're done
         if (plstk == &lstack[0])
             break;
-        
+
         // Pop level, and vertexes BC from stack
         level = *--plstk;
         v[0][0] = v[0][2];   // A
@@ -186,7 +186,7 @@ bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
     }
     return true;
 }
-    
+
 //--------------------------------------------------------------------
 //
 // Private function: Returns a true/false value indicating whether
@@ -200,10 +200,10 @@ bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
 bool PathMgr::IsFlatCubic(const VERT16 v[])
 {
 
-    FIX16 ux = abs(2*(v[1].x - v[0].x) + v[1].x - v[3].x);
-    FIX16 uy = abs(2*(v[1].y - v[0].y) + v[1].y - v[3].y);
-    FIX16 vx = abs(2*(v[2].x - v[3].x) + v[2].x - v[0].x);
-    FIX16 vy = abs(2*(v[2].y - v[3].y) + v[2].y - v[0].y);
+    FIX16 ux = iabs(2*(v[1].x - v[0].x) + v[1].x - v[3].x);
+    FIX16 uy = iabs(2*(v[1].y - v[0].y) + v[1].y - v[3].y);
+    FIX16 vx = iabs(2*(v[2].x - v[3].x) + v[2].x - v[0].x);
+    FIX16 vy = iabs(2*(v[2].y - v[3].y) + v[2].y - v[0].y);
     FIX16 xmax = max(ux, vx);
     FIX16 ymax = max(uy, vy);
     FIX16 error = VLen(xmax, ymax)/2;
@@ -239,7 +239,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
         assert(_cpoint != 0);
         return false;
     }
-    
+
     // Get 4 vertexes for Bezier control polygon ABCD
     v[0][0] = *_cpoint;             // A
     v[0][1].x = v1.x << _fixshift;  // B
@@ -248,7 +248,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
     v[0][2].y = v2.y << _fixshift;
     v[0][3].x = v3.x << _fixshift;  // D
     v[0][3].y = v3.y << _fixshift;
-    
+
     // Continue to subdivide Bezier control polygon ABCD until
     // flatness of each curve segment is within specified tolerance
     for (;;)
@@ -262,13 +262,13 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
                     v[j][i].x = (v[j-1][i].x + v[j-1][i+1].x)/2;
                     v[j][i].y = (v[j-1][i].y + v[j-1][i+1].y)/2;
                 }
-    
+
             // Push level, and vertexes IGD onto stack for later
             *plstk++ = ++level;
             *pvstk++ = v[0][3];  // D
             *pvstk++ = v[1][2];  // G
             *pvstk++ = v[2][1];  // I
-        
+
             // Define new control polygon ABCD for next iteration
             v[0][1] = v[1][0];  // B
             v[0][2] = v[2][0];  // C
@@ -282,7 +282,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
         // If stack is empty, we're done
         if (plstk == &lstack[0])
             break;
-        
+
         // Pop level, and vertexes BCD from stack
         level = *--plstk;
         v[0][0] = v[0][3];   // A
