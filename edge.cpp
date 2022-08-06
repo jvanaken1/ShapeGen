@@ -25,7 +25,7 @@
 //   Polygonal edge manager: Converts paths into lists of polygonal
 //   edges. The output edge list is in normalized form, which means
 //   that each successive pair of edges describes the left and right
-//   edges of the same trapezoid. The trapezoids in this list are 
+//   edges of the same trapezoid. The trapezoids in this list are
 //   non-overlapping, clipped, and ready to be filled by a renderer.
 //
 //---------------------------------------------------------------------
@@ -41,15 +41,15 @@ namespace {
     // list are sorted in order of their ascending ytop values.
     //
     //----------------------------------------------------------------------
-    
+
     int ycomp(const void *key1, const void *key2)
     {
         EDGE *p = *(EDGE**)key1;
         EDGE *q = *(EDGE**)key2;
-    
+
         return (p->ytop - q->ytop);
     }
-    
+
     //---------------------------------------------------------------------
     //
     // A qsort comparison function used to sort a list of edges in order of
@@ -60,17 +60,17 @@ namespace {
     // sorted in order of their descending dy values.
     //
     //----------------------------------------------------------------------
-    
+
     int xcomp(const void *key1, const void *key2)
     {
         EDGE *p = *(EDGE**)key1;
         EDGE *q = *(EDGE**)key2;
-    
+
         if (p->xtop == q->xtop)
         {
             if (p->dxdy != q->dxdy)
                 return (p->dxdy - q->dxdy);
-    
+
             return (q->dy - p->dy);  // sort coincident edges
         }
         return (p->xtop - q->xtop);
@@ -85,21 +85,21 @@ namespace {
     // head of the new, sorted list.
     //
     //---------------------------------------------------------------------
-    
+
     EDGE* sortlist(EDGE *plist, int length, int (*comp)(const void *, const void *))
     {
         int i, count = 0;
         EDGE **ptr = new EDGE*[length];  // pointer array for qsort
-    
+
         assert(ptr);  // out of memory?
         for (EDGE *p = plist; p; p = p->next)
             ptr[count++] = p;
-    
+
         //assert(count == length);
         qsort(ptr, count, sizeof(EDGE*), comp);   // stdlib.h function
         for (i = 1; i < count; i++)
             ptr[i-1]->next = ptr[i];  // update links in linked list
-    
+
         ptr[i-1]->next = 0;
         EDGE *tmp = ptr[0];
         delete[] ptr;
@@ -171,7 +171,7 @@ class Feeder : ShapeFeeder
     EDGE *_list, *_edgeL, *_edgeR;
     FIX16 _xL, _xR, _dxL, _dxR;
     int _ytop, _height;
-    
+
     EDGE* ysortlist(EDGE *plist, int length);
 
 protected:
@@ -238,7 +238,7 @@ bool Feeder::GetNextSDLRect(SGRect *rect)
             _edgeL = _edgeR->next;
             return true;
         }
-    } 
+    }
 
     // Send next span to renderer
     rect->x  = _xL >> 16;
@@ -291,7 +291,7 @@ bool Feeder::GetNextGDIRect(SGRect *rect)
             _edgeL = _edgeR->next;
             return true;
         }
-    } 
+    }
 
     // Send next span to renderer
     rect->x = _xL >> 16;  // RECT.left
@@ -405,7 +405,7 @@ EDGE* Feeder::ysortlist(EDGE *plist, int length)
 //---------------------------------------------------------------------
 
 EdgeMgr::EdgeMgr()
-            : _inlist(0), _outlist(0), _cliplist(0), 
+            : _inlist(0), _outlist(0), _cliplist(0),
               _rendlist(0), _savelist(0), _renderer(0)
 {
     _inpool = new POOL;
@@ -413,7 +413,7 @@ EdgeMgr::EdgeMgr()
     _clippool = new POOL;
     _rendpool = new POOL;
     _savepool = new POOL;
-    assert(_inpool != 0 && _outpool != 0 && _clippool != 0 && 
+    assert(_inpool != 0 && _outpool != 0 && _clippool != 0 &&
            _rendpool != 0 && _savepool != 0);  // out of memory?
 }
 
@@ -443,6 +443,7 @@ bool EdgeMgr::SetRenderer(Renderer *renderer)
     int yres = renderer->QueryYResolution();
     _yshift = 16 - yres;
     _ybias = FIX_BIAS >> yres;
+    _yhalf = _ybias + 1;
     _renderer = renderer;
     return true;
 }
@@ -584,7 +585,7 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
     _inlist = _outlist;
     _outlist = 0;
     POOL *swap = _inpool; _inpool = _outpool; _outpool = swap;
-    
+
     // Add copy of clipping region from _cliplist to _inlist
     for (EDGE *p = _cliplist; p != 0; p = p->next)
     {
@@ -674,7 +675,7 @@ void EdgeMgr::SetDeviceClipRectangle(int width, int height)
     v1.y = 0;
     v2.y = height << 16;
     v1.x = v2.x = 0;
-    AttachEdge(&v1, &v2);  
+    AttachEdge(&v1, &v2);
     v1.x = v2.x = width << 16;
     AttachEdge(&v2, &v1);  // <-- note reverse ordering
 
@@ -691,10 +692,10 @@ void EdgeMgr::SetDeviceClipRectangle(int width, int height)
 // of perhaps multiple closed figures) into a list of nonoverlapping
 // trapezoids that are ready to be filled. The boundaries of each
 // trapezoid are determined according to the specified polygon fill
-// rule. The polygon may contain holes, disjoint regions, and
-// boundary self-intersections. The path manager is responsible for
-// ensuring that all figures are closed, which means that the number
-// of edges intersected by any scan line is always even, and never odd.
+// rule. The polygon may contain holes, disjoint regions, and boundary
+// self-intersections. The path manager is responsible for ensuring
+// that all figures are closed, which means that the number of edges
+// intersected by any scan line is always even, and never odd.
 //
 //----------------------------------------------------------------------
 
@@ -719,12 +720,12 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     length = _inpool->GetCount();
     ylist = sortlist(_inlist, length, ycomp);
 
-    // Partition polygon into a list of non-overlapping trapezoids. The
-    // trapezoids are filled in major order from top (minimum y) to
-    // bottom, and in minor order from left (minimum x) to right on the
-    // display. Each iteration below fills a band of trapezoids with
-    // the same y = ytop.
-    
+    // Partition the polygon into a list of non-overlapping trapezoids.
+    // The trapezoids will be produced in major order from top (minimum
+    // y) to bottom, and in minor order from left (minimum x) to right.
+    // Each iteration of the while-loop below produces a band of one or
+    // more trapezoids that all have the same ytop value.
+
     xlist = 0;
     while (ylist != 0)
     {
@@ -733,11 +734,11 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
         // Starting at the head of the y-sorted list, remove each edge
         // for which ytop == yscan. Set height h to the minimum height
         // of these edges. Form a new, x-sorted list from these edges.
-        
+
         h = BIGVAL16;
         p = ylist;
         length = 0;
-        do       
+        do
         {
             h = min(h, abs(p->dy));
             q = p->next;    // number of edges is always even
@@ -748,18 +749,18 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
         xlist = sortlist(ylist, length, xcomp);
         ylist = p;
 
-        // The x-sorted list represents a band of trapezoids of height h.
+        // The x-sorted list contains a band of trapezoids of height h.
         // The number of edges in a band is always even. If the top of
         // the first edge in the y-sorted list intrudes into the band,
         // reduce the band's height h just enough to exclude this edge.
-        
+
         if (ylist != 0)
             h = min(h, ylist->ytop - yscan);
 
         // If any pair of adjacent edges in the x-sorted list intersect,
         // decrease height h to exclude the point of intersection. Don't
         // bother checking further if h reaches its minimum value of 1.
-        
+
         p = xlist;
         while ((q = p->next) != 0 && h > 1)
         {
@@ -771,9 +772,11 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
             p = q;
         }
 
-        // Use the specified fill rule to identify and render the
-        // non-overlapping trapezoids within the current band
-        
+        // Use the specified fill rule to identify the non-overlapping
+        // trapezoids within the current band. These trapezoids will be
+        // saved to an output list and later used for rendering. The
+        // INTERSECT and EXCLUDE fill rules are used for clipping.
+
         p = xlist;
         switch (fillrule)
         {
@@ -809,7 +812,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
                     break;
                 q = p->next;
                 while (q != 0 && (wind += sign(q->dy)) != 0)
-                    q = q->next; 
+                    q = q->next;
                 if (q == 0)
                     break;
                 SaveEdgePair(h, p, q);
@@ -821,15 +824,17 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
             break;
         }
 
-        // For each edge in the x-sorted list, clip off the portion of
-        // the edge that lies within the current trapezoid band. Save
-        // any of the resulting edges that are of nonzero height.
-        
+        // The trapezoids in the current band were just saved to the
+        // output list. Now, for each edge in the x-sorted list, cut
+        // off and discard the portion of the edge that lies within
+        // the current band. Save any of the remaining edges in the
+        // x-sorted list that are of nonzero height.
+
         p = xlist;
         q = &head;
         yscan += h;
         do
-        {   
+        {
             p->dy -= (p->dy < 0) ? -h : h;
             if (p->dy != 0)
             {
@@ -840,9 +845,9 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
             }
         } while ((p = p->next) != 0);
 
-        // All edges remaining in the x-sorted list have the same ytop.
-        // Insert this list at the head of the y-sorted list.
-        
+        // All edges remaining in the x-sorted list have the same ytop
+        // value. Insert this list at the head of the y-sorted list.
+
         if (q != &head)
         {
             q->next = ylist;
@@ -857,45 +862,50 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
 //
 // Protected function: Converts a directed line segment (taken from a
 // path) to a polygonal edge and adds the edge to the input edge list.
-// Parameters v1 and v2 specify the x-y coordinates of the line start
-// and end points, respectively.
+// Input parameters v1 and v2 specify the 16.16 fixed-point x-y coordi-
+// nates of the line's start and end points, respectively.
 //
 //----------------------------------------------------------------------
 
 void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
 {
-    EDGE *p;
-    FIX16 xgap;
-    VERT16 vtop, vbot;
-    int j, k, y;
+    int j = (v1->y + _ybias) >> _yshift;
+    int k = (v2->y + _ybias) >> _yshift;
+    int dy = k - j;
 
-    // If edge is horizontal, discard it
-    j = (v1->y + _ybias) >> _yshift;
-    k = (v2->y + _ybias) >> _yshift;
-    if (k == j)
-        return;
-
-    // Identify top and bottom vertexes on current edge
-    if (k > j)
+    // If edge is horizontal (j == k), discard it and return
+    if (dy)
     {
-        vtop = *v1;
-        vbot = *v2;
-        y = j;
-    }
-    else
-    {
-        vtop = *v2;
-        vbot = *v1;
-        y = k;
-    }
+        VERT16 vtop, vbot;
+        int ymin;
 
-    // Create new EDGE structure and insert at head of _inlist
-    p = _inpool->Allocate();
-    p->dxdy = fixdiv(vbot.x - vtop.x, vbot.y - vtop.y, _yshift);
-    xgap = fixmpy(p->dxdy, (y << _yshift) + (_ybias+1) - vtop.y, _yshift);
-    p->xtop = vtop.x + xgap + FIX_BIAS;
-    p->dy = k - j;
-    p->ytop = y;
-    p->next = _inlist;
-    _inlist = p;
+        // Identify top and bottom vertices on current edge
+        if (dy > 0)
+        {
+            vtop = *v1;
+            vbot = *v2;
+            ymin = j;
+        }
+        else
+        {
+            vtop = *v2;
+            vbot = *v1;
+            ymin = k;
+        }
+
+        // Prepare to snip off any small tip of the edge that lies
+        // above the topmost scanline that intersects the edge
+        float dx = vbot.x - vtop.x;
+        float dxdy = dx/(vbot.y - vtop.y);
+        FIX16 xgap = dxdy*((ymin << _yshift) + _yhalf - vtop.y);
+
+        // Create new EDGE structure and insert at head of _inlist
+        EDGE *p = _inpool->Allocate();
+        p->ytop = ymin;
+        p->dy = dy;  // sign of dy indicates edge up/down direction
+        p->xtop = vtop.x + xgap + FIX_BIAS;
+        p->dxdy = dxdy*(1 << _yshift);
+        p->next = _inlist;
+        _inlist = p;
+    }
 }

@@ -167,7 +167,7 @@ class EdgeMgr
     EDGE *_inlist, *_outlist, *_cliplist, *_rendlist, *_savelist;
     POOL *_inpool, *_outpool, *_clippool, *_rendpool, *_savepool;
     Renderer *_renderer;
-    int _yshift, _ybias;
+    int _yshift, _ybias, _yhalf;
 
     void SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR);
 
