@@ -1230,7 +1230,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     }
     sg->StrokePath();
 
-    // Highlight vertexes of 'S' glyph's control polygon
+    // Highlight vertices of 'S' glyph's control polygon
     sg->BeginPath();
     for (int k = 0; k < ARRAY_LEN(glyph)-1; k++)
     {
@@ -1291,7 +1291,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     sg->SetLineWidth(1.0);
     sg->StrokePath();
 
-    // Highlight vertexes of club suit control polygon
+    // Highlight vertices of club suit control polygon
     aarend->SetColor(RGBX(200,0,0));
     sg->BeginPath();
     for (int i = 0; i < ARRAY_LEN(point); ++i)
@@ -1411,7 +1411,7 @@ void demo09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->PolyLine(12, &xy[6]);
     sg->StrokePath();
 
-    // Highlight vertexes of control polygon
+    // Highlight vertices of control polygon
     SGPoint pt[] = { { 2<<16, 0 }, { 0, 2<<16 } };
     sg->BeginPath();
     for (int k = 2; k < ARRAY_LEN(xy); k++)
