@@ -32,16 +32,16 @@
 namespace {
 
     // By default, use the acos function in math.h
-#if 0                 
+#if 0
     //-----------------------------------------------------------------
     //
     // Arccosine approximation from Abramowitz & Stegun, page 81.
     // Input range is -1 <= x <= 1. Output range is 0 <= angle <= pi.
     //
     //-----------------------------------------------------------------
-    
-    float acos(float x) 
-    {   
+
+    float acos(float x)
+    {
         const float PI = 3.14159265358979;
         const float a0 =  1.5707288;
         const float a1 = -0.2121144;
@@ -49,10 +49,10 @@ namespace {
         const float a3 = -0.0187293;
         float val = a3;
         bool negate = x < 0;
-    
+
         if (negate)
             x = -x;
-    
+
         val = val*x + a2;
         val = val*x + a1;
         val = val*x + a0;
@@ -67,11 +67,11 @@ namespace {
     //-----------------------------------------------------------------
     FIX16 GetAngle(const VERT30& u, const VERT30& v)
     {
-        float ux = u.x, uy = u.y; 
+        float ux = u.x, uy = u.y;
         float cost = (ux*v.x + uy*v.y)/(1<<30)/(1<<30);
         float theta = acos(cost);
         FIX16 angle = 65536*theta;
-    
+
         return angle;
     }
 
@@ -84,6 +84,54 @@ namespace {
     {
         v.x = -v.x;
         v.y = -v.y;
+    }
+
+    //-----------------------------------------------------------------------
+    //
+    // Fixed-point multiply function: fixmpy(x, y, n)
+    //   Takes two 32-bit, fixed-point values, x and y, both with n bits of
+    //   fraction, and multiplies them together. Returns a 32-bit product in
+    //   the same fixed-point format.
+    //
+    // Fixed-point divide function: fixdiv(y, x, n)
+    //   Takes 32-bit, fixed-point dividend x, with n bits of fraction, and
+    //   divides it by 32-bit divisor y, which is in the same fixed-point
+    //   format. Returns a 32-bit quotient in the same fixed-point format.
+    //
+    // Fixed-point vector magnitude function: fixlen(x, y)
+    //   Takes a 2-D vector represented by its x-y components, and
+    //   calculates the length of the vector. Components x and y are
+    //   represented as 32-bit, fixed-point numbers. Returns the length
+    //   in the same fixed-point format.
+    //
+    //-----------------------------------------------------------------------
+    inline FIX16 fixmpy(FIX16 x, FIX16 y, int n)
+    {
+        double a = x;
+        double b = y;
+        double c = 1 << n;
+        FIX16 z = (a*b)/c;
+
+        return z;
+    }
+
+    inline FIX16 fixdiv(FIX16 x, FIX16 y, int n)
+    {
+        double a = x;
+        double b = y;
+        double c = 1 << n;
+        FIX16 z = (a*c)/b;
+
+        return z;
+    }
+
+    inline FIX16 fixlen(FIX16 x, FIX16 y)
+    {
+        double a = x;
+        double b = y;
+        FIX16 z = sqrt(a*a + b*b);
+
+        return z;
     }
 }
 
@@ -170,7 +218,7 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 //---------------------------------------------------------------------
 //
 // Public function: Sets the miter limit. Parameter mlim specifies the
-// length at which the sharp point of a mitered corner should be 
+// length at which the sharp point of a mitered corner should be
 // beveled off. Internally, the mlim value is multiplied by half the
 // stroked line width to determine the maximum extent of a mitered
 // join. Parameter mlim should be a value greater than or equal to
@@ -226,9 +274,9 @@ bool PathMgr::SetLineDash(char *dash, int offset, float mult)
     const int ixmax = ARRAY_LEN(_dasharray) - 1;  // max array index
     bool retval = true;
     int k;
-    
+
     if (dash == 0 || dash[0] == '\0')
-    {   
+    {
         _dasharray[0] = 0;
         return true;  // solid line (no dash pattern)
     }
@@ -241,7 +289,7 @@ bool PathMgr::SetLineDash(char *dash, int offset, float mult)
     {
         const float toolong = 16384;
         float dashlen = mult*static_cast<unsigned char>(dash[k]);
-        
+
         if (dashlen >= toolong)
         {
             assert(dashlen < toolong);
@@ -366,7 +414,7 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
             v2.y = vs.y + a.x;
             _edge->AttachEdge(&_vin, &v1);
             _edge->AttachEdge(&v2, &_vout);
-            
+
             // Cap the end of this dash
             if (_lineend == LINEEND_ROUND)
             {
@@ -376,7 +424,7 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
                 _angle = FIX_PI;
                 RoundJoin(vs, a, a2);
             }
-            else             
+            else
                 _edge->AttachEdge(&v1, &v2);  // flat or square cap
         }
         else
@@ -393,7 +441,7 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
             _vin.y = vs.y - a.x;
             _vout.x = vs.x - a.y;
             _vout.y = vs.y + a.x;
-            
+
             // Cap the start of the next dash
             if (_lineend == LINEEND_ROUND)
             {
@@ -403,7 +451,7 @@ void PathMgr::DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX
                 _angle = FIX_PI;
                 RoundJoin(vs, a1, a);
             }
-            else             
+            else
                 _edge->AttachEdge(&_vout, &_vin);  // flat or square cap
         }
 
@@ -469,7 +517,7 @@ void PathMgr::RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2)
     // the arc, adds them to the path, and updates _cpoint
     EllipseCore(v0.x, v0.y, v1.x, v1.y, a1.x, a1.y, _angle);
 
-    // Add arc's ending point to temporary path buffer 
+    // Add arc's ending point to temporary path buffer
     PathCheck(++_cpoint);
     _cpoint->x = v0.x + v2.x;
     _cpoint->y = v0.y + v2.y;
@@ -481,7 +529,7 @@ void PathMgr::RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2)
         _edge->AttachEdge(p++, ++q);
 
     // Restore temp buffer on path stack to empty state
-    _cpoint = 0;  
+    _cpoint = 0;
 }
 
 //---------------------------------------------------------------------
@@ -513,13 +561,13 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     // where the incoming and outgoing lines meet to form the join
     FIX16 xprod = fixmpy(ain.x, aout.y, 16) - fixmpy(ain.y, aout.x, 16);
     if (xprod < 0)
-    {   
+    {
         // Stroke turns left (CCW) at join
         _edge->AttachEdge(&v1, &v0);
         _edge->AttachEdge(&v0, &v3);
     }
     else
-    {   
+    {
         // Stroke turns right (CW) at join
         _edge->AttachEdge(&v4, &v0);
         _edge->AttachEdge(&v0, &v2);
@@ -548,7 +596,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
                 _edge->AttachEdge(&v4, &v2);  // bevel
         }
         else
-        {   
+        {
             // Stroke turns right (CW) at join
             if (_linejoin == LINEJOIN_ROUND)
                 RoundJoin(v0, ain, aout);
@@ -558,7 +606,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         _vin = v3;
         _vout = v4;
         return;  // bevel or round join completed
-    } 
+    }
 
     // This is a miter join. Determine whether the miter length
     // exceeds the specified miter limit.
@@ -567,7 +615,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     FIX16 denom = abs(ain.x + aout.x) + abs(ain.y + aout.y);
 
     if (abs(denom) > 15)  // verify denominator is not close to zero
-    {   
+    {
         t = fixdiv(numer, denom, 16);  // linear interpolation param
         if (t <= _mitercheck)
         {
@@ -576,7 +624,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
             FIX16 dy = fixmpy(t, ain.y - aout.y, 16);
 
             if (xprod < 0)
-            {   
+            {
                 // Stroke turns left (CCW) at join
                 v4.x = (v2.x + v4.x + dx)/2;
                 v4.y = (v2.y + v4.y + dy)/2;
@@ -584,7 +632,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
                 _edge->AttachEdge(&v4, &_vout);
             }
             else
-            {   
+            {
                 // Stroke turns right (CW) at join
                 v3.x = (v1.x + v3.x + dx)/2;
                 v3.y = (v1.y + v3.y + dy)/2;
@@ -607,7 +655,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
             _edge->AttachEdge(&v4, &v2);
         else
             _edge->AttachEdge(&v1, &v3);
-    
+
         _vin = v3;
         _vout = v4;
         return;  // the dirty deed is done
@@ -619,22 +667,22 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     FIX16 dotprod = fixmpy(ain.x, aout.x, 16) + fixmpy(ain.y, aout.y, 16);
 
     // Set vector vm to point from v0 to the miter point
-    if (dotprod < 0)  
-    {   
+    if (dotprod < 0)
+    {
         // Incoming/outgoing lines form acute angle at join
         vm.x = ain.x - aout.x;
         vm.y = ain.y - aout.y;
     }
     else  // in/out lines form oblique angle at join
     {
-        if (xprod < 0)  
-        {   
+        if (xprod < 0)
+        {
             // Stroke turns left (CCW) at join
             vm.x = -ain.y - aout.y;
             vm.y = ain.x + aout.x;
         }
-        else  
-        {   
+        else
+        {
             // Stroke turns right (CW) at join
             vm.x = ain.y + aout.y;
             vm.y = -ain.x - aout.x;
@@ -696,7 +744,7 @@ bool PathMgr::StrokePath()
     EndFigure();
     if (_figure->offset == 0)
         return false;  // path is empty
-    
+
     if (_linewidth == 0)  // special case: Mimic Bresenham line
         return ThinStrokePath();
 
@@ -709,7 +757,7 @@ bool PathMgr::StrokePath()
     {
         bool dashon0 = InitLineDash();  // initial _dashon state
         VERT16 *vs0, a0, vin0, vout0;  // save initial values
-        VERT30 uin, uout, u0;  // unit vector in line direction  
+        VERT30 uin, uout, u0;  // unit vector in line direction
         VERT16 ain, aout;  // vectors of length = _linewidth/2
         FIX16 linelen;     // length of current line segment
         VERT16 *fpt = reinterpret_cast<VERT16*>(_figtmp + 1);
@@ -724,7 +772,7 @@ bool PathMgr::StrokePath()
         linelen = LineLength(*vs, *ve, &uin, &ain);
         a0 = ain;
         u0 = uin;
-        
+
         // Offset stroked edges _linewidth/2 from initial line segment
         if (dashon0)
         {
@@ -772,7 +820,7 @@ bool PathMgr::StrokePath()
             _edge->AttachEdge(&vout0, &_vout);
         }
         else
-        {   
+        {
             VERT16 v1, v2;
 
             if (_dashon)
