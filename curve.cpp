@@ -95,12 +95,12 @@ bool PathMgr::IsFlatQuadratic(const VERT16 v[])
 
 bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
 {
-    VERT16 vstack[2*MAXLEVELS];  // stack for polygon vertexes
+    VERT16 vstack[2*MAXLEVELS];  // stack for polygon vertices
     VERT16 *pvstk = &vstack[0];  // vertex stack pointer
     int lstack[MAXLEVELS];       // stack for level numbers
     int *plstk = &lstack[0];     // level stack pointer
     int level = 0;               // current subdivision level
-    VERT16 v[2+1][2+1];          // control polygon vertexes
+    VERT16 v[2+1][2+1];          // control polygon vertices
 
     if (_cpoint == 0)
     {
@@ -108,7 +108,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
         return false;
     }
 
-    // Get 3 vertexes for Bezier control polygon ABC
+    // Get 3 vertices for Bezier control polygon ABC
     v[0][0] = *_cpoint;             // A
     v[0][1].x = v1.x << _fixshift;  // B
     v[0][1].y = v1.y << _fixshift;
@@ -129,7 +129,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
                     v[j][i].y = (v[j-1][i].y + v[j-1][i+1].y)/2;
                 }
 
-            // Push level, and vertexes EC onto stack for later
+            // Push level, and vertices EC onto stack for later
             *plstk++ = ++level;
             *pvstk++ = v[0][2];  // C
             *pvstk++ = v[1][1];  // E
@@ -147,7 +147,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
         if (plstk == &lstack[0])
             break;
 
-        // Pop level, and vertexes BC from stack
+        // Pop level, and vertices BC from stack
         level = *--plstk;
         v[0][0] = v[0][2];   // A
         v[0][1] = *--pvstk;  // B
@@ -227,12 +227,12 @@ bool PathMgr::IsFlatCubic(const VERT16 v[])
 
 bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
 {
-    VERT16 vstack[3*MAXLEVELS];  // stack for polygon vertexes
+    VERT16 vstack[3*MAXLEVELS];  // stack for polygon vertices
     VERT16 *pvstk = &vstack[0];  // vertex stack pointer
     int lstack[MAXLEVELS];       // stack for level numbers
     int *plstk = &lstack[0];     // level stack pointer
     int level = 0;               // current subdivision level
-    VERT16 v[3+1][3+1];          // control polygon vertexes
+    VERT16 v[3+1][3+1];          // control polygon vertices
 
     if (_cpoint == 0)
     {
@@ -240,7 +240,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
         return false;
     }
 
-    // Get 4 vertexes for Bezier control polygon ABCD
+    // Get 4 vertices for Bezier control polygon ABCD
     v[0][0] = *_cpoint;             // A
     v[0][1].x = v1.x << _fixshift;  // B
     v[0][1].y = v1.y << _fixshift;
@@ -263,7 +263,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
                     v[j][i].y = (v[j-1][i].y + v[j-1][i+1].y)/2;
                 }
 
-            // Push level, and vertexes IGD onto stack for later
+            // Push level, and vertices IGD onto stack for later
             *plstk++ = ++level;
             *pvstk++ = v[0][3];  // D
             *pvstk++ = v[1][2];  // G
@@ -283,7 +283,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
         if (plstk == &lstack[0])
             break;
 
-        // Pop level, and vertexes BCD from stack
+        // Pop level, and vertices BCD from stack
         level = *--plstk;
         v[0][0] = v[0][3];   // A
         v[0][1] = *--pvstk;  // B

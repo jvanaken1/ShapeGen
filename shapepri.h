@@ -167,7 +167,7 @@ class EdgeMgr
     EDGE *_inlist, *_outlist, *_cliplist, *_rendlist, *_savelist;
     POOL *_inpool, *_outpool, *_clippool, *_rendpool, *_savepool;
     Renderer *_renderer;
-    int _yshift, _ybias;
+    int _yshift, _ybias, _yhalf;
 
     void SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR);
 
@@ -329,98 +329,5 @@ private:
     bool IsFlatQuadratic(const VERT16 v[]);
     bool IsFlatCubic(const VERT16 v[]);
 };
-
-//-----------------------------------------------------------------------
-//
-// Fixed-point multiply function: fixmpy(x, y, n)
-//   Takes two 32-bit, fixed-point values, x and y, both with n bits of
-//   fraction, and multiplies them together. Returns a 32-bit product in
-//   the same fixed-point format.
-//
-// Fixed-point divide function: fixdiv(y, x, n)
-//   Takes 32-bit, fixed-point dividend x, with n bits of fraction, and
-//   divides it by 32-bit divisor y, which is in the same fixed-point
-//   format. Returns a 32-bit quotient in the same fixed-point format.
-//
-// Fixed-point vector magnitude function: fixlen(x, y)
-//   Takes a 2-D vector represented by its x-y components, and
-//   calculates the length of the vector. Components x and y are
-//   represented as 32-bit, fixed-point numbers. Returns the length
-//   in the same fixed-point format.
-//
-//-----------------------------------------------------------------------
-
-inline FIX16 fixmpy(FIX16 x, FIX16 y, int n)
-{
-    double a = x;
-    double b = y;
-    double c = 1 << n;
-    FIX16 z = (a*b)/c;
-
-    return z;
-}
-
-inline FIX16 fixdiv(FIX16 x, FIX16 y, int n)
-{
-    double a = x;
-    double b = y;
-    double c = 1 << n;
-    FIX16 z = (a*c)/b;
-
-    return z;
-}
-
-inline FIX16 fixlen(FIX16 x, FIX16 y)
-{
-    double a = x;
-    double b = y;
-    FIX16 z = sqrt(a*a + b*b);
-
-    return z;
-}
-
-//-----------------------------------------------------------------------
-//
-// Rightmost one function: rmo(val)
-//   Returns the little-endian bit number (0 = LSB, 31 = MSB) of
-//   the rightmost one (least-significant nonzero bit) in 32-bit
-//   parameter val; val must be nonzero, or the function faults.
-//
-// Leftmost one function: lmo(val)
-//   Returns the little-endian bit number (0 = LSB, 31 = MSB) of
-//   the leftmost one (least-significant nonzero bit) in 32-bit
-//   parameter val; val must be nonzero, or the function faults.
-//
-//-----------------------------------------------------------------------
-
-inline int rmo(unsigned int val)
-{
-    int n, m = 31;
-
-    assert(val != 0);
-    for (n = 16; n; n >>= 1)
-        if (val << n)
-        {
-            val <<= n;
-            m -= n;
-        }
-
-    return m;
-}
-
-inline int lmo(unsigned int val)
-{
-    int n, m = 0;
-
-    assert(val != 0);
-    for (n = 16; n; n >>= 1)
-        if (val >> n)
-        {
-            val >>= n;
-            m |= n;
-        }
-
-    return m;
-}
 
 #endif SHAPEPRI_H
