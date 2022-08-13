@@ -57,16 +57,13 @@
 //
 //---------------------------------------------------------------------
 
-// Types used internally for fixed-point numbers
-//typedef int FIX16;     // fixed-point value with 16-bit fraction
-typedef int FIX30;   // fixed-point value with 30-bit fraction
-
 // Internal structures for 2-D points, vertices, and vectors
 struct VERT16 {
     FIX16 x, y;
 };
-struct VERT30 {
-    FIX30 x, y;
+struct XY {
+    float x;
+    float y;
 };
 
 const int BIGVAL16 = 0x7FFF;  // biggest 16-bit signed integer value
@@ -296,10 +293,10 @@ public:
 private:
     // Stroked path internal functions
     bool InitLineDash();
-    FIX16 LineLength(const VERT16& vs, const VERT16& ve, VERT30 *u, VERT16 *a);
+    FIX16 LineLength(const VERT16& vs, const VERT16& ve, XY *u, VERT16 *a);
     void RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2);
     void JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout);
-    void DashedLine(const VERT16& ve, const VERT30& u, const VERT16& a, FIX16 linelen);
+    void DashedLine(const VERT16& ve, const XY& u, const VERT16& a, FIX16 linelen);
     bool ThinStrokePath();
     void ThinJoinLines(const VERT16 *vert, int inquad, int outquad);
 
