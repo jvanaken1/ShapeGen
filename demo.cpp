@@ -255,9 +255,11 @@ char *dasharray[] = {
 //----------------------------------------------------------------------
 
 // Demo frame 1: ShapeGen logo
-void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo01(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     float xform[6] = { 2.0, -0.8, 0, 2.5, 175.0, 685.0 };
     COLOR crBkgd = RGBX(222,222,255);
@@ -291,7 +293,7 @@ void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -365,9 +367,11 @@ void demo01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 2: Path drawing modes
-void demo02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo02(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd  = RGBX(240,220,220);
     COLOR crFrame = RGBX(50,80,140);
@@ -384,7 +388,7 @@ void demo02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -480,9 +484,11 @@ void demo02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 3: Clip to arbitrary shapes
-void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo03(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd  = RGBX(222, 222, 255);
     COLOR crFrame = RGBX( 32, 152, 224);
@@ -497,7 +503,7 @@ void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -598,9 +604,11 @@ void demo03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 4: Stroked line caps and joins
-void demo04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo04(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
@@ -619,7 +627,7 @@ void demo04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -714,9 +722,11 @@ void demo04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 5: Miter limit
-void demo05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo05(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(222,222,255);
     COLOR crFrame = RGBX(80,40,140);
@@ -731,7 +741,7 @@ void demo05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -832,9 +842,11 @@ void demo05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 6: Dashed line patterns
-void demo06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo06(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(222,222,255);
     COLOR crFrame = RGBX(0,100,0);
@@ -850,7 +862,7 @@ void demo06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1028,9 +1040,11 @@ void demo06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 7: Thin stroked lines
-void demo07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo07(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(242,236,255);
     COLOR crFrame = RGBX(132,24,10);
@@ -1046,7 +1060,7 @@ void demo07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1091,7 +1105,7 @@ void demo07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Switch to basic renderer
-    sg->SetRenderer(rend);
+    sg->SetRenderer(&(*rend));
 
     // Draw many-pointed star on left side of window
     SGPoint point[33];
@@ -1141,9 +1155,11 @@ void demo07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 8: Bezier curves
-void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)  // Bezier 'S'
+void demo08(const BACK_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(222,222,255);
     COLOR crText = RGBX(40,70,110);
@@ -1158,7 +1174,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1259,7 +1275,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
             &bboxsrc, &clubs[0]);
 
     // Switch to basic renderer for large area fill
-    sg->SetRenderer(rend);
+    sg->SetRenderer(&(*rend));
 
     // Fill club suit symbol
     COLOR crFill = RGBX(100,200,47);
@@ -1275,7 +1291,7 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
     sg->FillPath(FILLRULE_EVENODD);
 
     // Switch to antialiasing renderer to stroke edges
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Stroke edges of club suit symbol
     COLOR crTrim = RGBX(0,160,0);
@@ -1307,9 +1323,11 @@ void demo08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip) 
 }
 
 // Demo frame 9: Ellipses and elliptic splines
-void demo09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo09(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(220,220,220);
     COLOR crText = RGBX(40,70,110);
@@ -1323,7 +1341,7 @@ void demo09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1460,9 +1478,11 @@ void demo09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 10: Elliptic arcs
-void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo10(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(222,222,255);
     COLOR crText = RGBX(40,70,110);
@@ -1476,7 +1496,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Stroke the edge of the frame
     sg->SetLineWidth(8.0);
@@ -1540,7 +1560,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
             }
         }
         // Switch to the basic renderer to do large area fills
-        sg->SetRenderer(rend);
+        sg->SetRenderer(&(*rend));
 
         // Paint the top of the pie slice
         sg->BeginPath();
@@ -1552,14 +1572,14 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         sg->FillPath(FILLRULE_EVENODD);
 
         // Switch to antialiasing renderer to outline edges
-        sg->SetRenderer(aarend);
+        sg->SetRenderer(&(*aarend));
         aarend->SetColor(crEdge);
         sg->StrokePath();
 
         if (i == 1 || i == 2)
         {
             // Switch to basic renderer to do large area fills
-            sg->SetRenderer(rend);
+            sg->SetRenderer(&(*rend));
 
             // Paint the filling in the pulled-out pie slice
             COLOR crFill = BlendPixels(alpha/2, 0, crSlice[i]);
@@ -1573,7 +1593,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
             sg->FillPath(FILLRULE_EVENODD);
 
             // Switch to antialiasing renderer to outline edges
-            sg->SetRenderer(aarend);
+            sg->SetRenderer(&(*aarend));
             aarend->SetColor(crEdge);
             sg->StrokePath();
         }
@@ -1595,7 +1615,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
         if (astart >= PI/2 && astart < 3*PI/2)
         {
             // Switch to basic renderer to do large area fills
-            sg->SetRenderer(rend);
+            sg->SetRenderer(&(*rend));
 
             // Rim of pie slice is visible, so paint it
             sg->BeginPath();
@@ -1608,7 +1628,7 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
             sg->FillPath(FILLRULE_EVENODD);
 
             // Switch to antialiasing renderer to outline edges
-            sg->SetRenderer(aarend);
+            sg->SetRenderer(&(*aarend));
             aarend->SetColor(crEdge);
             sg->StrokePath();
         }
@@ -1624,9 +1644,11 @@ void demo10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 11: Composite paths
-void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo11(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     const float sin30 = sin(PI/6);
     const float cos30 = cos(PI/6);
@@ -1645,7 +1667,7 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1664,7 +1686,7 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Switch to the basic renderer to fill large areas
-    sg->SetRenderer(rend);
+    sg->SetRenderer(&(*rend));
 
     // Combine multiple ellipses into a single path
     sg->SetFixedBits(16);
@@ -1690,7 +1712,7 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Switch to the antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Stroke the edges of the ellipses in red
     aarend->SetColor(RGBX(255,0,0));
@@ -1698,9 +1720,11 @@ void demo11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 12: Layered stroke effects
-void demo12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo12(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(205,195,185);
     COLOR crFrame = RGBX(100,80,90);
@@ -1715,7 +1739,7 @@ void demo12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1777,9 +1801,11 @@ void demo12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 13: Alpha blending
-void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo13(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     TextApp txt;
     COLOR crBkgd = RGBX(240,240,240);
     COLOR crFrame = RGBX(170,170,170);
@@ -1793,7 +1819,7 @@ void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     sg->FillPath(FILLRULE_EVENODD);
 
     // Now switch to antialiasing renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
@@ -1842,9 +1868,11 @@ void demo13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 14: Tiled pattern fills
-void demo14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     TextApp txt;
 
     // Fill the background with a checkerboard pattern
@@ -2036,9 +2064,11 @@ void demo14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 15: Linear gradient fills
-void demo15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo15(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     TextApp txt;
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
@@ -2138,9 +2168,11 @@ void demo15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 16: Radial gradient fills
-void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo16(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     TextApp txt;
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
@@ -2280,9 +2312,11 @@ void demo16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Demo frame 17: Introduction to code examples
-void demo17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void demo17(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
 
@@ -2355,9 +2389,10 @@ void MySub(ShapeGen *sg, SGRect& rect)
     sg->FillPath(FILLRULE_EVENODD);
 }
 
-void MyTest(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void MyTest(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     SGRect rect = { 100, 80, 250, 160 };
 
     sg->BeginPath();
@@ -2369,6 +2404,7 @@ void MyTest(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     MySub(&(*sg), rect);
 
     //-----  Label the output of this code example -----
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
     char *str = "Output of code example from \"Creating a "
@@ -2376,16 +2412,18 @@ void MyTest(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
     float scale = 0.3;
     SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
     aarend->SetColor(crText);
     sg->SetLineWidth(3.0);
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // 1st code example from UG topic "Ellipses and elliptic arcs"
-void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void EggRoll(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[][4] = {  // the first three of four vertices
         { {  155,   29 }, {   29,   29 }, {   29,  155 }, },
         { {  353,   85 }, {  185,   85 }, {  185,  183 }, },
@@ -2458,9 +2496,11 @@ void EggRoll(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // 2nd code example from UG topic "Ellipses and elliptic arcs"
-void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void PieToss(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 15.3, 18.7
     };
@@ -2545,9 +2585,11 @@ void PieToss(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
 }
 
 // Code example from ShapeGen::Bezier2 reference topic
-void example01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example01(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
 
     // Draw quadratic Bezier spline in red
@@ -2581,9 +2623,11 @@ void example01(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::Bezier3 reference topic
-void example02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example02(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 308 }, v1 = { 210, 70 },
             v2 = { 364, 308 }, v3 = { 461, 70 };
 
@@ -2619,9 +2663,11 @@ void example02(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::Ellipse reference topic
-void example03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example03(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[2][4] = {
         { { 100, 275 }, { 100,  75 }, { 300,  75 }, },
         { { 354, 309 }, { 380, 139 }, { 618,  37 }, },
@@ -2677,9 +2723,11 @@ void example03(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::EllipticArc reference topic
-void example04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example04(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     float percent[] = {
         5.1, 12.5, 14.8, 5.2, 11.6, 8.7, 15.3, 18.7
     };
@@ -2727,9 +2775,11 @@ void example04(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::EllipticSpline reference topic
-void example05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example05(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
 
     // Draw elliptic spline in green
@@ -2763,9 +2813,11 @@ void example05(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::GetBoundingBox reference topic
-void example06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example06(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
         { 130, 97 }, { 308, 265 }, { 326, 181 },
         { 100, 257 }, { 158, 312 }, { 206, 73 }
@@ -2839,9 +2891,11 @@ void example06(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::PolyBezier2 reference topic
-void example07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example07(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
         { 84, 224 }, { 125, 70 }, { 189, 196 }, { 251, 322 },
         { 301, 196 }, { 350, 70 }, { 411, 237 },
@@ -2885,9 +2939,11 @@ void example07(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::PolyBezier3 reference topic
-void example08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example08(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
         { 50, 270 }, { 130, 130 }, { 150, 310 }, { 235, 185 }, { 320, 60 },
         { 180, 60 }, { 270, 175 }, { 360, 290 }, { 450, 230 }, { 408, 150 }
@@ -2935,9 +2991,11 @@ void example08(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::PolyEllipticSpline reference topic
-void example09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example09(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
         { 84, 224 }, { 125, 70 }, { 189, 196 }, { 251, 322 },
         { 301, 196 }, { 350, 70 }, { 411, 237 },
@@ -2981,9 +3039,11 @@ void example09(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::Rectangle reference topic
-void example10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example10(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     SGRect rect = { 100, 75, 350, 265 };
 
     // Construction of the outer rectangle proceeds in the
@@ -3017,16 +3077,18 @@ void example10(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
     aarend->SetColor(crText);
     sg->SetLineWidth(3.0);
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
 // Code example from ShapeGen::RoundedRectangle reference topic
-void example11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example11(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     SGRect rect = { 100, 75, 350, 265 };
     SGPoint round = { 35, 35 };
 
@@ -3052,7 +3114,7 @@ void example11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule!
 
     // Switch to antialiasing renderer and stroke boundaries
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
     aarend->SetColor(RGBX(80,80,80));
     sg->SetLineWidth(2.0);
     sg->StrokePath();
@@ -3071,9 +3133,11 @@ void example11(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetClipRegion reference topic
-void example12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example12(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     const float t = 0.8*PI;
     const float sint = sin(t);
     const float cost = cos(t);
@@ -3130,9 +3194,11 @@ void example12(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetLineDash reference topic
-void example13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example13(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
         { 127, 251 }, { 127, 203 }, { 72, 251 }, { 206, 299 },
         { 206, 203 }, { 109, 130 }, { 164, 58 },
@@ -3174,9 +3240,11 @@ void example13(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetLineEnd reference topic
-void example14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example14(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
     SGPoint vert[] = { { 84, 288 }, { 204, 114 }, { 264, 324 } };
 
@@ -3210,9 +3278,11 @@ void example14(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetLineJoin reference topic
-void example15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example15(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
     SGPoint vert[] = { { 84, 288 }, { 204, 114 }, { 264, 324 } };
 
@@ -3247,9 +3317,11 @@ void example15(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetMaskRegion reference topic
-void example16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example16(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     const float t = 0.8*PI;
     const float sint = sin(t);
     const float cost = cos(t);
@@ -3300,9 +3372,11 @@ void example16(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetMiterLimit reference topic
-void example17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example17(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint vert[] = { { 120, 300 }, { 204, 114 }, { 252, 324 } };
 
     sg->SetLineEnd(LINEEND_SQUARE);
@@ -3338,9 +3412,11 @@ void example17(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from ShapeGen::SetRenderer reference topic
-void example18(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example18(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(rend, clip);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
     SGRect rect = { 100, 110, 400, 240 };
     SGPoint v0 = { 360, 170 }, v1 = { 360+160, 170 }, v2 = { 360, 170+110 };
 
@@ -3351,7 +3427,7 @@ void example18(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
     sg->FillPath(FILLRULE_EVENODD);
 
     // Switch to the enhanced renderer
-    sg->SetRenderer(aarend);
+    sg->SetRenderer(&(*aarend));
 
     // Alpha-blend a stroked magenta ellipse over the rectangle
     sg->BeginPath();
@@ -3374,9 +3450,10 @@ void example18(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from EnhancedRenderer::AddColorStop reference topic
-void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example19(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     int i0, j0, i1, j1;
     float x0 = 300.0, y0 = 190.0;
     float x1 = 400.0, y1 = 190.0;
@@ -3438,9 +3515,10 @@ void example19(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from EnhancedRenderer::SetConstantAlpha reference topic
-void example20(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example20(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     COLOR checker[4] = {
         RGBX(90,90,90), RGBX(255,255,255),
         RGBX(255,255,255), RGBX(90,90,90),
@@ -3491,9 +3569,10 @@ void example20(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from EnhancedRenderer::SetLinearGradient reference topic
-void example21(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example21(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGRect bkgd = { 40, 40, 400, 300 };
     SGRect light = { 200, 190, 80, 150 };
     SGPoint v0 = { 240, 191 }, v1 = { 200, 191 }, v2 = { 240, 151 };
@@ -3540,9 +3619,10 @@ void example21(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from EnhancedRenderer::SetPattern reference topic
-void example22(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example22(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     COLOR yel = RGBX(231,213,168), gry = RGBX(163,147,128),
           red = RGBX(211,76,73), mar = RGBX(146,74,77),
           blu = RGBX(79,78,88);
@@ -3578,9 +3658,10 @@ void example22(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example from EnhancedRenderer::SetRadialGradient reference topic
-void example23(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example23(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 200, 200 }, v1 = { 200-162, 200 }, v2 = { 200, 200-162 };
 
     aarend->AddColorStop(0, RGBX(255,255,224));  // light yellow
@@ -3604,9 +3685,10 @@ void example23(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example 1 from EnhancedRenderer::SetTransform reference topic
-void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example24(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     float xform[6] = { 0.375, -0.650, 1.083, 0.625, 364.3, 227.1 };
     SGPoint sc[3] = { { 200, 160 }, { 200-70, 160 }, { 200, 160-70 } };
     SGPoint ec[3] = { { 290, 215 }, { 290-100, 215 }, { 290, 215-100 } };
@@ -3699,9 +3781,10 @@ void example24(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Code example 2 from EnhancedRenderer::SetTransform reference topic
-void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& clip)
+void example25(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, clip);
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     int w = 7, h = 7;  // width, height of test image
     COLOR c0 = RGBX(212,212,212), c1 = RGBX(255,40,0),
           c2 = RGBX(0,191,255), c3 = RGBX(100,100,100);
@@ -3781,7 +3864,7 @@ void example25(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cli
 }
 
 // Array of pointers to all demo functions
-void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect) =
+void (*testfunc[])(const BACK_BUFFER& bkbuf, const SGRect& cliprect) =
 {
     // Demo frames
     demo01, demo02, demo03, demo04,
@@ -3809,11 +3892,11 @@ void (*testfunc[])(SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect&
 //
 //---------------------------------------------------------------------
 
-int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect)
+int RunTest(int testnum, const BACK_BUFFER& bkbuf, const SGRect& cliprect)
 {
     const int len = ARRAY_LEN(testfunc);
 
     testnum = (testnum + len) % len;
-    testfunc[testnum](rend, aarend, cliprect);
+    testfunc[testnum](bkbuf, cliprect);
     return testnum;
 }

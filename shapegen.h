@@ -35,52 +35,52 @@
 //
 //---------------------------------------------------------------------
 
-// 32-bit fixed-point value with 16-bit fraction (16.16 fixed point) 
+// 32-bit fixed-point value with 16-bit fraction (16.16 fixed point)
 typedef int FIX16;
 
 // Coordinates, points, rectangles, and spans
 typedef int SGCoord;
-struct SGPoint { 
-    SGCoord x; 
-    SGCoord y; 
+struct SGPoint {
+    SGCoord x;
+    SGCoord y;
 };
-struct SGRect { 
-    SGCoord x; 
-    SGCoord y; 
-    SGCoord w; 
-    SGCoord h; 
+struct SGRect {
+    SGCoord x;
+    SGCoord y;
+    SGCoord w;
+    SGCoord h;
 };
-struct SGSpan {  // <-- used only by a renderer 
-    FIX16 xL; 
+struct SGSpan {  // <-- used only by a renderer
+    FIX16 xL;
     FIX16 xR;
-    int y; 
+    int y;
 };
 
-// Default line-width attribute for stroked paths 
+// Default line-width attribute for stroked paths
 const float LINEWIDTH_DEFAULT = 4.0;
 
-// Miter limit parameters 
+// Miter limit parameters
 const float MITERLIMIT_DEFAULT = 10.0;   // default miter limit
 const float MITERLIMIT_MINIMUM = 1.0;    // minimum miter limit
 
-// Flatness threshold -- required curve-to-chord tolerance 
+// Flatness threshold -- required curve-to-chord tolerance
 const float FLATNESS_DEFAULT = 0.5;      // default flatness setting
 const float FLATNESS_MINIMUM = 0.2;      // minimum flatness setting
 const float FLATNESS_MAXIMUM = 100.0;    // maximum flatness setting
 
-// SGCoord fixed-point fraction length -- bits to right of binary point 
+// SGCoord fixed-point fraction length -- bits to right of binary point
 const int FIXBITS_DEFAULT = 0;  // default = integer (no fixed point)
 
 // Maximum length of dash-pattern array, not counting terminating 0
 const int DASHARRAY_MAXLEN = 32;
 
-// Fill rule attributes for filling paths 
+// Fill rule attributes for filling paths
 enum FILLRULE {
     FILLRULE_EVENODD,    // even-odd (aka "parity") fill rule
     FILLRULE_WINDING,    // nonzero winding number fill rule
 };
 
-// Join attribute values for stroked paths 
+// Join attribute values for stroked paths
 enum LINEJOIN {
     LINEJOIN_BEVEL,  // beveled join between two line segments
     LINEJOIN_ROUND,  // rounded join between two line segments
@@ -89,7 +89,7 @@ enum LINEJOIN {
 };
 const LINEJOIN LINEJOIN_DEFAULT = LINEJOIN_BEVEL;  // default line join
 
-// Line end cap attribute values for stroked paths 
+// Line end cap attribute values for stroked paths
 enum LINEEND {
     LINEEND_FLAT,   // flat line end (butt line cap)
     LINEEND_ROUND,  // rounded line end (round cap)
@@ -152,7 +152,7 @@ public:
 // to actually write the shapes to the pixels in the display device.
 // In other words, ShapeGen consigns all device dependencies to the
 // renderer. Thus, the ShapeGen source code contains no device depend-
-// encies or platform-specific function calls, and is highly portable. 
+// encies or platform-specific function calls, and is highly portable.
 //
 //---------------------------------------------------------------------
 
@@ -207,7 +207,7 @@ public:
 
     // Ellipses and elliptic arcs
     virtual void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2) = 0;
-    virtual void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, 
+    virtual void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2,
                              float aStart, float aSweep) = 0;
     virtual bool EllipticSpline(const SGPoint& v1, const SGPoint& v2) = 0;
     virtual bool PolyEllipticSpline(int npts, const SGPoint xy[]) = 0;
@@ -222,38 +222,29 @@ public:
 
 //---------------------------------------------------------------------
 //
-// SGPtr class: ShapeGen smart pointer. Creates a ShapeGen object that
-// is automatically deleted when the SGPtr object goes out of scope.
-// The SGPtr class encapsulates ShapeGen's internal implementation
-// details as follows: (1) SGPtr overloads the '->' operator to enable
-// an SGPtr object to be used as a ShapeGen object pointer, and (2)
-// SGPtr overloads the '*' operator to enable a ShapeGen object
-// pointer to be passed as a function parameter.
+// Generic smart pointer class template: Of course, you might prefer
+// to use another smart pointer, such as the unique_ptr class template
+// in the C++ Standard Library. However, the template below is used
+// here to avoid introducing additional dependencies into the build.
 //
-//--------------------------------------------------------------------- 
-class SGPtr 
-{ 
-    ShapeGen *sg;
-
-    ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect);
-
-public: 
-    SGPtr(Renderer *renderer, const SGRect& cliprect) 
-    { 
-        sg = CreateShapeGen(renderer, cliprect); 
-    }
-    ~SGPtr() 
-    { 
-        delete(sg); 
-    }
-    ShapeGen* operator->() 
-    { 
-        return sg; 
-    }
-    ShapeGen& operator*() 
-    {  
-        return *sg; 
-    } 
+//---------------------------------------------------------------------
+template <class T> class SmartPtr {
+    T* _ptr;
+public:
+    explicit SmartPtr(T* ptr = 0) { _ptr = ptr; }
+    ~SmartPtr() { delete _ptr; }
+    T* operator->() { return _ptr; }
+    T& operator*() { return *_ptr; }
 };
+
+//---------------------------------------------------------------------
+//
+// Creates a ShapeGen object and returns a pointer to this object.
+// The caller is responsible for deleting this object when it is no
+// longer needed (hint: use a smart pointer).
+//
+//---------------------------------------------------------------------
+
+ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect);
 
 #endif  // SHAPEGEN_H

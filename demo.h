@@ -81,7 +81,7 @@ inline void GetRgbValues(const COLOR color, int *r, int *g, int *b)
 //
 //---------------------------------------------------------------------
 
-extern int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect);
+extern int RunTest(int testnum, const BACK_BUFFER& bkbuf, const SGRect& cliprect);
 
 //---------------------------------------------------------------------
 //

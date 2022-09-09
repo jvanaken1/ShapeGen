@@ -101,9 +101,11 @@ namespace {
 //
 //---------------------------------------------------------------------
 
-int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect)
+int RunTest(int testnum, const BACK_BUFFER& bkbuf, const SGRect& cliprect)
 {
-    SGPtr sg(aarend, cliprect);
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), cliprect));
     NSVGimage* image;
     float scale, scale16;
     UserMessage umsg;
@@ -189,7 +191,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             bool bEvenOdd = (shape->fillRule == NSVG_FILLRULE_EVENODD);
             FILLRULE rule = (bEvenOdd) ? FILLRULE_EVENODD : FILLRULE_WINDING;
 
-            PreparePaint(&shape->fill, scale, aarend);
+            PreparePaint(&shape->fill, scale, &(*aarend));
             sg->FillPath(rule);
         }
 
@@ -246,7 +248,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             else
                 sg->SetLineDash(0,0,0);
 
-            PreparePaint(&shape->stroke, scale, aarend);
+            PreparePaint(&shape->stroke, scale, &(*aarend));
             sg->StrokePath();
         }
     }

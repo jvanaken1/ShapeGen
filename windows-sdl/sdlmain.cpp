@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 
         if (redraw && cliprect.w > 0 && cliprect.h > 0)
         {
-            // Pass back-buffer descriptor to both renderers
+            // Back-buffer descriptor will be passed to renderers
             SDL_Surface *surf = formatsMatch ? winsurf : rgbsurf;
             BACK_BUFFER bkbuf;
             bkbuf.pixels = (COLOR*)surf->pixels;
@@ -208,11 +208,9 @@ int main(int argc, char *argv[])
             bkbuf.height = surf->h;
             bkbuf.depth  = 32;
             bkbuf.pitch  = surf->pitch;
-            BasicRenderer rend(&bkbuf);
-            AA4x8Renderer aarend(&bkbuf);
 
-            // Draw next back
-            testnum = runtest(testnum, &rend, &aarend, cliprect);
+            // Draw next frame in demo
+            testnum = RunTest(testnum, bkbuf, cliprect);
             if (testnum >= 0)
             {
                 // Copy back buffer to screen

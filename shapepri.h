@@ -195,7 +195,7 @@ protected:
 
 class PathMgr : virtual public ShapeGen
 {
-    friend SGPtr;
+    friend ShapeGen* CreateShapeGen(Renderer*, const SGRect&);
 
     Renderer *_renderer;
     EdgeMgr *_edge;     // manages lists of polygonal edges

@@ -199,21 +199,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hwnd, &ps);
         if (hbmp)
         {
-            // Pass back-buffer descriptor to both renderers
+            // Back-buffer descriptor will be passed to renderers
             BACK_BUFFER bkbuf;
             bkbuf.pixels = (COLOR*)bmpixels;
             bkbuf.width  = cliprect.w;
             bkbuf.height = cliprect.h;
             bkbuf.depth  = 32;
             bkbuf.pitch  = 4*cliprect.w;  // pitch specified in bytes
-            BasicRenderer rend(&bkbuf);
-            AA4x8Renderer aarend(&bkbuf);
 
             // Render next frame into back buffer
-            testnum = runtest(testnum, &rend, &aarend, cliprect);
+            testnum = RunTest(testnum, bkbuf, cliprect);
             if (testnum < 0)
             {
-                PostQuitMessage(0);
+                PostQuitMessage(0);  // negative retval means quit
                 return 0;
             }
 

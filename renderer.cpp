@@ -26,7 +26,7 @@
 //
 //---------------------------------------------------------------------
 
-BasicRenderer::BasicRenderer(BACK_BUFFER *backbuf)
+BasicRenderer::BasicRenderer(const BACK_BUFFER *backbuf)
 {
     _backbuf = *backbuf;
     _backbuf.pitch /= 4;  // convert from bytes to 32-bit pixels
@@ -133,7 +133,7 @@ namespace {
 // before being processed.
 //
 //---------------------------------------------------------------------
-AA4x8Renderer::AA4x8Renderer(BACK_BUFFER *backbuf)
+AA4x8Renderer::AA4x8Renderer(const BACK_BUFFER *backbuf)
                   : _width(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _alpha(255),
                     _xscroll(0), _yscroll(0)
@@ -504,5 +504,32 @@ void AA4x8Renderer::SetTransform(const float xform[])
     else
         _pxform = 0;
 }
+
+//---------------------------------------------------------------------
+//
+// Each of the following functions creates a SimpleRenderer or
+// EnhancedRender object and returns a pointer to this object. The
+// caller is responsible for deleting this object when it is no
+// longer needed (hint: you can use a smart pointer; see the SmartPtr
+// class template in shapegen.h).
+//
+//---------------------------------------------------------------------
+
+SimpleRenderer* CreateSimpleRenderer(const BACK_BUFFER *bkbuf)
+{
+    SimpleRenderer *rend = new BasicRenderer(bkbuf);
+    assert(rend != 0);  // out of memory?
+
+    return rend;
+}
+
+EnhancedRenderer* CreateEnhancedRenderer(const BACK_BUFFER *bkbuf)
+{
+    EnhancedRenderer *aarend = new AA4x8Renderer(bkbuf);
+    assert(aarend != 0);  // out of memory?
+
+    return aarend;
+}
+
 
 

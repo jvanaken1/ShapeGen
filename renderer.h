@@ -89,9 +89,8 @@ public:
 
 //---------------------------------------------------------------------
 //
-// A basic renderer: Fills a shape with a solid color, but does _NOT_
-// do antialiasing. This class is derived from the SimpleRenderer class
-// in demo.h, which, in turn, is derived from the Renderer base class
+// A simple renderer: Fills a shape with a solid color, but does _NOT_
+// do antialiasing. This class is derived from the Renderer base class
 // in shapegen.h.
 //
 //---------------------------------------------------------------------
@@ -271,7 +270,7 @@ protected:
 
 public:
     // Application interface
-    BasicRenderer(BACK_BUFFER *backbuf);
+    BasicRenderer(const BACK_BUFFER *backbuf);
     ~BasicRenderer()
     {
     }
@@ -321,7 +320,7 @@ protected:
 
 public:
     // Application interface
-    AA4x8Renderer(BACK_BUFFER *backbuf);
+    AA4x8Renderer(const BACK_BUFFER *backbuf);
     ~AA4x8Renderer();
     void SetColor(COLOR color);
     void SetPattern(const COLOR *pattern, float u0, float v0,
@@ -338,5 +337,15 @@ public:
     void SetTransform(const float xform[]);
     void SetConstantAlpha(COLOR alpha) { _alpha = alpha & 255; }
 };
+
+//---------------------------------------------------------------------
+//
+// Each of the following functions creates a SimpleRenderer or
+// EnhancedRender object and returns a pointer to this object
+//
+//---------------------------------------------------------------------
+
+SimpleRenderer* CreateSimpleRenderer(const BACK_BUFFER *bkbuf);
+EnhancedRenderer* CreateEnhancedRenderer(const BACK_BUFFER *bkbuf);
 
 #endif // RENDERER_H
