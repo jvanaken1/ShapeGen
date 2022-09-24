@@ -1870,12 +1870,11 @@ void demo13(const BACK_BUFFER& bkbuf, const SGRect& clip)
 // Demo frame 14: Tiled pattern fills
 void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
 {
-    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     TextApp txt;
 
-    // Fill the background with a checkerboard pattern
+    // Fill the background with a light blue checkerboard pattern
     SGPoint corner = { 40, 40 };
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     COLOR checker[4] = {
@@ -1894,7 +1893,7 @@ void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(50,100,222));
     sg->StrokePath();
 
-    // Draw inner ellipse
+    // Fill inner ellipse with fleur-de-lis pattern
     float sweep = 2*PI/5;
     float sina = sin(sweep), cosa = cos(sweep);
     float dt = PI/35;
@@ -1924,7 +1923,57 @@ void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_ROUND);
     sg->StrokePath();
 
-    // Draw outer ellipse fragments
+    // Render a star shape directly into a 30x30 array of pixels.
+    // This array will be used as the source image for a pattern fill.
+    const SGCoord Ws = 30, Hs = 30;
+    COLOR star[Ws*Hs];
+    {
+        // Create renderer that will use 'star' array as target surface
+        BACK_BUFFER tile;
+        tile.pixels = (COLOR*)(&star[0]);
+        tile.width  = Ws;
+        tile.height = Hs;
+        tile.depth  = 32;    // bits per pixel
+        tile.pitch  = 4*Ws;  // pitch in bytes
+        SmartPtr<EnhancedRenderer> trend(CreateEnhancedRenderer(&tile));
+        sg->SetRenderer(&(*trend));
+        sg->InitClipRegion(Ws, Hs);
+        sg->SetScrollPosition(0,0);
+        sg->SetFixedBits(16);
+
+        // Set pattern background color to dark blue
+        SGRect rect = { 0, 0, Ws<<16, Hs<<16 };
+        trend->SetColor(RGBX(21,11,86));
+        sg->BeginPath();
+        sg->Rectangle(rect);
+        sg->FillPath(FILLRULE_EVENODD);
+
+        // Paint a yellow 5-pointed star
+        float angle = 0.8*PI;
+        float sina = sin(angle), cosa = cos(angle);
+        SGCoord x0 = rect.w/2, y0 = rect.h/2;
+        SGCoord x = 0, y = -13*rect.h/32;
+
+        sg->BeginPath();
+        sg->Move(x+x0, y+y0);
+        for (int i = 0; i < 4; ++i)
+        {
+            SGCoord tmp = x*cosa + y*sina;
+            y = -x*sina + y*cosa;
+            x = tmp;
+            sg->Line(x+x0, y+y0);
+        }
+        trend->SetColor(RGBX(254,235,0));
+        sg->FillPath(FILLRULE_WINDING);
+
+        // Restore original graphics state
+        sg->SetFixedBits(0);
+        sg->SetRenderer(&(*aarend));
+        sg->SetScrollPosition(clip.x, clip.y);
+        sg->InitClipRegion(clip.w, clip.h);
+    }
+
+    // Fill five outer ellipse fragments with various tiled patterns
     for (int i = 0; i < 5; ++i)
     {
         v1 = v2 = C;
@@ -2010,16 +2059,8 @@ void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
         case 3:
             {
                 float xform[6] = { 0.7, -0.7, 0.7, 0.7, 0, 0 };
-                int width, height;
-                BmpReader bmr("star.bmp");
-                int flags = bmr.GetImageInfo(&width, &height);
-                if (width)
-                {
-                    aarend->SetTransform(xform);
-                    aarend->SetPattern(&bmr, 0, 0, width, height, flags);
-                }
-                else
-                    aarend->SetColor(RGBX(0,0,0));  // can't find BMP file
+                aarend->SetTransform(xform);
+                aarend->SetPattern(&star[0], 0, 0, Ws, Hs, Ws, FLAG_IMAGE_BGRA32);
             }
             break;
         case 4:
@@ -3865,7 +3906,7 @@ void example25(const BACK_BUFFER& bkbuf, const SGRect& clip)
 
 // Array of pointers to all demo functions
 void (*testfunc[])(const BACK_BUFFER& bkbuf, const SGRect& cliprect) =
-{
+{   demo14,
     // Demo frames
     demo01, demo02, demo03, demo04,
     demo05, demo06, demo07, demo08,
