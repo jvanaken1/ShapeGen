@@ -200,7 +200,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (hbmp)
         {
             // Back-buffer descriptor will be passed to renderers
-            BACK_BUFFER bkbuf;
+            PIXEL_BUFFER bkbuf;
             bkbuf.pixels = (COLOR*)bmpixels;
             bkbuf.width  = cliprect.w;
             bkbuf.height = cliprect.h;
@@ -221,8 +221,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             BitBlt(hdc, 0, 0, cliprect.w, cliprect.h, hdcMem, 0, 0, SRCCOPY);
             DeleteDC(hdcMem);
 
-            // Clear back buffer (set background color = white)
-            memset(bmpixels, 0xff, 4*cliprect.w*cliprect.h);
+            // Set background color to opaque white
+            memset(bmpixels, 0xff, cliprect.w*cliprect.h*sizeof(COLOR));
         }
         EndPaint(hwnd, &ps);
         return 0;

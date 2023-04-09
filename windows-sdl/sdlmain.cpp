@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
         {
             // Back-buffer descriptor will be passed to renderers
             SDL_Surface *surf = formatsMatch ? winsurf : rgbsurf;
-            BACK_BUFFER bkbuf;
+            PIXEL_BUFFER bkbuf;
             bkbuf.pixels = (COLOR*)surf->pixels;
             bkbuf.width  = surf->w;
             bkbuf.height = surf->h;
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
 
                 SDL_UpdateWindowSurface(window);
 
-                // Clear back buffer (set background color = white)
+                // Set background color to opaque white
                 SDL_FillRect(surf, 0, 0xffffffff);
             }
             else
