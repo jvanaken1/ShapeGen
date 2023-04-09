@@ -32,6 +32,10 @@
 
 #include "shapegen.h"
 
+// A 'COLOR' variable contains either a 32-bit pixel, or one or more
+// components of a 32-bit pixel. We use little-endian conventions to
+// describe the two 32-bit pixel formats used in source file
+// renderer.cpp as 'RGBA32' (0xaabbggrr) and 'BGRA32' (0xaarrggbb).
 typedef unsigned int COLOR;
 
 // Macro definitions
@@ -65,6 +69,33 @@ const int FLAG_IMAGE_BOTTOMUP = 4;
 const int FLAG_IMAGE_BGRA32 = 8;
 const int FLAG_SWAP_REDBLUE = 16;
 const int FLAG_PREMULTALPHA = 32;
+
+//---------------------------------------------------------------------
+//
+// The PIXEL_BUFFER struct describes a memory buffer for a 2-D array
+// of pixels. For example, a PIXEL_BUFFER struct that specifies the
+// back buffer is passed as an argument to the constructor for a
+// BasicRenderer or EnhancedRenderer object. The renderer uses the
+// information in this struct to write directly to the back buffer,
+// which is then blitted to a window in on-screen memory.
+//
+//---------------------------------------------------------------------
+
+struct PIXEL_BUFFER
+{
+    COLOR *pixels; // pointer to 2-D array of pixels
+    int width;     // width of pixel buffer in pixels
+    int height;    // height of pixel buffer in pixels
+    int depth;     // number of bits per pixel
+    int pitch;     // pitch of pixel buffer in bytes
+};
+
+// Utilities for manipulating pixel buffers
+extern COLOR* AllocateRawPixels(int w, int h, char fill = 0);
+extern COLOR* DeleteRawPixels(COLOR *buf);
+extern COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, char fill = 0);
+extern COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf);
+extern void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox);
 
 //---------------------------------------------------------------------
 //
@@ -232,26 +263,6 @@ extern RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
 
 //---------------------------------------------------------------------
 //
-// This structure describes the window-backing buffer, or back buffer,
-// which is located in off-screen memory. A BACK_BUFFER struct is
-// passed as an argument to the constructor for a BasicRenderer or
-// EnhancedRenderer object. The renderer uses the information in this
-// struct to write directly to the back buffer, which is later blitted
-// to a window in on-screen memory.
-//
-//---------------------------------------------------------------------
-
-struct BACK_BUFFER
-{
-    COLOR *pixels; // pointer to back buffer pixel data
-    int width;     // width of back buffer in pixels
-    int height;    // height of back buffer in pixels
-    int depth;     // number of bits per pixel
-    int pitch;     // pitch of back buffer in bytes
-};
-
-//---------------------------------------------------------------------
-//
 // BasicRenderer class: A platform-independent implementation of the
 // SimpleRenderer virtual base class defined above.
 //
@@ -261,7 +272,8 @@ class BasicRenderer : public SimpleRenderer
 {
     friend ShapeGen;
 
-    BACK_BUFFER _backbuf;
+    PIXEL_BUFFER _backbuf;
+    int _stride;
     COLOR _color;
 
 protected:
@@ -270,7 +282,7 @@ protected:
 
 public:
     // Application interface
-    BasicRenderer(const BACK_BUFFER *backbuf);
+    BasicRenderer(const PIXEL_BUFFER *backbuf);
     ~BasicRenderer()
     {
     }
@@ -292,7 +304,7 @@ class AA4x8Renderer : public EnhancedRenderer
 {
     friend ShapeGen;
 
-    BACK_BUFFER _backbuf;  // back buffer descriptor
+    PIXEL_BUFFER _backbuf;  // back buffer descriptor
     COLOR *_linebuf;   // pixel data bits in scanline buffer
     COLOR _alpha;      // source constant alpha
     int _width;        // width (in pixels) of device clipping rect
@@ -320,7 +332,7 @@ protected:
 
 public:
     // Application interface
-    AA4x8Renderer(const BACK_BUFFER *backbuf);
+    AA4x8Renderer(const PIXEL_BUFFER *backbuf);
     ~AA4x8Renderer();
     void SetColor(COLOR color);
     void SetPattern(const COLOR *pattern, float u0, float v0,
@@ -345,7 +357,7 @@ public:
 //
 //---------------------------------------------------------------------
 
-SimpleRenderer* CreateSimpleRenderer(const BACK_BUFFER *bkbuf);
-EnhancedRenderer* CreateEnhancedRenderer(const BACK_BUFFER *bkbuf);
+SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *bkbuf);
+EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *bkbuf);
 
 #endif // RENDERER_H

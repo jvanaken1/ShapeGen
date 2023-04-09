@@ -255,7 +255,7 @@ char *dasharray[] = {
 //----------------------------------------------------------------------
 
 // Demo frame 1: ShapeGen logo
-void demo01(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -367,7 +367,7 @@ void demo01(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 2: Path drawing modes
-void demo02(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -484,7 +484,7 @@ void demo02(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 3: Clip to arbitrary shapes
-void demo03(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -604,7 +604,7 @@ void demo03(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 4: Stroked line caps and joins
-void demo04(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -722,7 +722,7 @@ void demo04(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 5: Miter limit
-void demo05(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo05(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -842,7 +842,7 @@ void demo05(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 6: Dashed line patterns
-void demo06(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1040,7 +1040,7 @@ void demo06(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 7: Thin stroked lines
-void demo07(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1155,7 +1155,7 @@ void demo07(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 8: Bezier curves
-void demo08(const BACK_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
+void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1323,7 +1323,7 @@ void demo08(const BACK_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
 }
 
 // Demo frame 9: Ellipses and elliptic splines
-void demo09(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1478,7 +1478,7 @@ void demo09(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 10: Elliptic arcs
-void demo10(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1644,7 +1644,7 @@ void demo10(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 11: Composite paths
-void demo11(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo11(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1720,7 +1720,7 @@ void demo11(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 12: Layered stroke effects
-void demo12(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1801,7 +1801,7 @@ void demo12(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 13: Alpha blending
-void demo13(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -1868,7 +1868,7 @@ void demo13(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 14: Tiled pattern fills
-void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -1929,7 +1929,7 @@ void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
     COLOR star[Ws*Hs];
     {
         // Create renderer that will use 'star' array as target surface
-        BACK_BUFFER tile;
+        PIXEL_BUFFER tile;
         tile.pixels = (COLOR*)(&star[0]);
         tile.width  = Ws;
         tile.height = Hs;
@@ -2105,7 +2105,7 @@ void demo14(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 15: Linear gradient fills
-void demo15(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2209,7 +2209,7 @@ void demo15(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 16: Radial gradient fills
-void demo16(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2353,7 +2353,7 @@ void demo16(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Demo frame 17: Introduction to code examples
-void demo17(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2430,7 +2430,7 @@ void MySub(ShapeGen *sg, SGRect& rect)
     sg->FillPath(FILLRULE_EVENODD);
 }
 
-void MyTest(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void MyTest(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
@@ -2460,7 +2460,7 @@ void MyTest(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // 1st code example from UG topic "Ellipses and elliptic arcs"
-void EggRoll(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2537,7 +2537,7 @@ void EggRoll(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // 2nd code example from UG topic "Ellipses and elliptic arcs"
-void PieToss(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2626,7 +2626,7 @@ void PieToss(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::Bezier2 reference topic
-void example01(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2664,7 +2664,7 @@ void example01(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::Bezier3 reference topic
-void example02(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2704,7 +2704,7 @@ void example02(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::Ellipse reference topic
-void example03(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2764,7 +2764,7 @@ void example03(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::EllipticArc reference topic
-void example04(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2816,7 +2816,7 @@ void example04(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::EllipticSpline reference topic
-void example05(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example05(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2854,7 +2854,7 @@ void example05(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::GetBoundingBox reference topic
-void example06(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2932,7 +2932,7 @@ void example06(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::PolyBezier2 reference topic
-void example07(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2980,7 +2980,7 @@ void example07(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::PolyBezier3 reference topic
-void example08(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3032,7 +3032,7 @@ void example08(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::PolyEllipticSpline reference topic
-void example09(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3080,7 +3080,7 @@ void example09(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::Rectangle reference topic
-void example10(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3125,7 +3125,7 @@ void example10(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::RoundedRectangle reference topic
-void example11(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example11(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3174,7 +3174,7 @@ void example11(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetClipRegion reference topic
-void example12(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3235,7 +3235,7 @@ void example12(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetLineDash reference topic
-void example13(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3281,7 +3281,7 @@ void example13(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetLineEnd reference topic
-void example14(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3319,7 +3319,7 @@ void example14(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetLineJoin reference topic
-void example15(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3358,7 +3358,7 @@ void example15(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetMaskRegion reference topic
-void example16(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3413,7 +3413,7 @@ void example16(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetMiterLimit reference topic
-void example17(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3453,7 +3453,7 @@ void example17(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from ShapeGen::SetRenderer reference topic
-void example18(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example18(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -3491,7 +3491,7 @@ void example18(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::AddColorStop reference topic
-void example19(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example19(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3556,7 +3556,7 @@ void example19(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetConstantAlpha reference topic
-void example20(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example20(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3610,7 +3610,7 @@ void example20(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetLinearGradient reference topic
-void example21(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3660,7 +3660,7 @@ void example21(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetPattern reference topic
-void example22(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example22(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3699,7 +3699,7 @@ void example22(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetRadialGradient reference topic
-void example23(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example23(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3726,7 +3726,7 @@ void example23(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example 1 from EnhancedRenderer::SetTransform reference topic
-void example24(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3822,7 +3822,7 @@ void example24(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example 2 from EnhancedRenderer::SetTransform reference topic
-void example25(const BACK_BUFFER& bkbuf, const SGRect& clip)
+void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3905,8 +3905,8 @@ void example25(const BACK_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Array of pointers to all demo functions
-void (*testfunc[])(const BACK_BUFFER& bkbuf, const SGRect& cliprect) =
-{   demo14,
+void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
+{
     // Demo frames
     demo01, demo02, demo03, demo04,
     demo05, demo06, demo07, demo08,
@@ -3933,11 +3933,14 @@ void (*testfunc[])(const BACK_BUFFER& bkbuf, const SGRect& cliprect) =
 //
 //---------------------------------------------------------------------
 
-int RunTest(int testnum, const BACK_BUFFER& bkbuf, const SGRect& cliprect)
+int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect)
 {
     const int len = ARRAY_LEN(testfunc);
+    SGRect clip = cliprect;
 
+    clip.w = min(bkbuf.width, cliprect.w);
+    clip.h = min(bkbuf.height, cliprect.h);
     testnum = (testnum + len) % len;
-    testfunc[testnum](bkbuf, cliprect);
+    testfunc[testnum](bkbuf, clip);
     return testnum;
 }

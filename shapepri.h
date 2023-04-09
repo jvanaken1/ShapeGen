@@ -322,7 +322,7 @@ public:
     bool PolyBezier3(int npts, const SGPoint xy[]);
 
 private:
-    // Internal functions for for checking flatness of splines
+    // Internal functions for checking flatness of splines
     bool IsFlatQuadratic(const VERT16 v[]);
     bool IsFlatCubic(const VERT16 v[]);
 };

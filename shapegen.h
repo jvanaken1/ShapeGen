@@ -241,7 +241,8 @@ public:
 //
 // Creates a ShapeGen object and returns a pointer to this object.
 // The caller is responsible for deleting this object when it is no
-// longer needed (hint: use a smart pointer).
+// longer needed (suggestion: use a smart pointer like the one just
+// above).
 //
 //---------------------------------------------------------------------
 
