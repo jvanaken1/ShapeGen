@@ -101,8 +101,11 @@ namespace {
 //
 //---------------------------------------------------------------------
 
-int RunTest(int testnum, const BACK_BUFFER& bkbuf, const SGRect& cliprect)
+int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
+    SGRect cliprect = clip;
+    cliprect.w = min(bkbuf.width, clip.w);
+    cliprect.h = min(bkbuf.height, clip.h);
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), cliprect));
