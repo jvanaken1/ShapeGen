@@ -294,7 +294,7 @@ private:
     // Stroked path internal functions
     bool InitLineDash();
     FIX16 LineLength(const VERT16& vs, const VERT16& ve, XY *u, VERT16 *a);
-    void RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2);
+    void RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2);
     void JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout);
     void DashedLine(const VERT16& ve, const XY& u, const VERT16& a, FIX16 linelen);
     bool ThinStrokePath();

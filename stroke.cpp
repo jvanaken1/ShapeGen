@@ -61,12 +61,19 @@ namespace {
 #endif
     //-----------------------------------------------------------------
     //
-    // Return the angle, in radians, between unit vectors u and v
+    // Returns the angle, in radians, between unit vectors 'u' and
+    // 'v'. Although the dot product of two unit vectors is nominally
+    // restricted to the range [-1, +1], precision errors might cause
+    // the product u.v to fall slightly outside this range, in which
+    // case the function returns pi (in 16.16 fixed-point format).
     //
     //-----------------------------------------------------------------
     FIX16 GetAngle(const XY& u, const XY& v)
     {
         float cosine = u.x*v.x + u.y*v.y;
+        if (fabs(cosine) > 1.0f)
+            return FIX_PI;
+
         float theta = acos(cosine);
         FIX16 angle = 65536*theta;
 
@@ -75,7 +82,7 @@ namespace {
 
     //-----------------------------------------------------------------
     //
-    // Flip vector v around to point in the opposite direction
+    // Flips vector v around to point in the opposite direction
     //
     //-----------------------------------------------------------------
     inline void FlipVector(VERT16& v)
@@ -86,17 +93,15 @@ namespace {
 
     //-----------------------------------------------------------------------
     //
-    // Fixed-point multiply function: Fix16Mult(x, y)
-    //   Multiplies together two 32-bit, 16.16 fixed-point values, x and y,
-    //   both of which have 16 bits of fraction. Returns the 32-bit product
-    //   in the same fixed-point format.
+    // Fixed-point multiply function: Multiplies together two 32-bit, 16.16
+    // fixed-point values, x and y, both of which have 16 bits of fraction.
+    // Returns the 32-bit product in the same fixed-point format.
     //
     //-----------------------------------------------------------------------
     inline FIX16 Fix16Mult(FIX16 x, FIX16 y)
     {
-        const float c = 1.0f/(1 << 16);
         float a = x, b = y;
-        FIX16 z = (a*b)*c;
+        FIX16 z = (a*b)/65536.0f;
         return z;
     }
 }
@@ -208,29 +213,30 @@ float PathMgr::SetMiterLimit(float mlim)
 //---------------------------------------------------------------------
 //
 // Public function: Sets the dashed-line pattern used by the
-// StrokePath function. The pattern is specified by the dash array,
+// StrokePath function. The pattern is specified by the 'dash' array,
 // which is a zero-terminated character string. The array elements are
 // interpreted as a sequence of distances along a stroked path. These
 // elements alternately specify the lengths of the dashes and the gaps
 // between the dashes. The first element is a dash length, the second
 // is a gap length, and so on. Each byte in the dash array is treated
 // as an unsigned, 8-bit integer regardless of whether the compiler
-// defines type char to be signed or unsigned. Parameter mult is the
-// pattern length multiplier. For a given dash array element, the
-// length in pixels is determined by multiplying the element by the
-// mult parameter. For example, if dash[0] = 4, and mult = 5.2, the
-// corresponding dash length is 4*5.2 = 20.8 pixels. The offset
-// parameter is the starting offset into the pattern, and is
-// specified in the same distance units as the elements in the dash
-// array. The StrokePath function starts the dash pattern at this
-// offset for each new figure in a path. When the StrokePath function
-// reaches the end of the dash array, it resets to the start of the
-// array and continues interpreting the array. The maximum length of
-// the dash array is 32 elements, not counting the terminating zero.
-// The default line pattern is a solid line. This default can always
-// be restored by calling SetLineDash with the dash parameter set to
-// zero or pointing to an empty string. The function returns true if
-// it successfully updates the dash pattern. Otherwise, it returns
+// treats type char as signed or unsigned. Parameter 'mult' is the
+// pattern length multiplier. For a given 'dash' array element, the
+// length (in pixels) is determined by multiplying the element by
+// the 'mult' parameter. For example, if dash[0] = 4, and mult = 5.2,
+// the corresponding dash length is 4*5.2 = 20.8 pixels. The 'offset'
+// parameter is the starting offset into the pattern -- it is
+// specified in the same distance units as the elements in the 'dash'
+// array, and is similarly scaled by the 'mult' parameter. The
+// StrokePath function starts the dash pattern at this offset for each
+// new figure in a path. When the StrokePath function reaches the end
+// of the 'dash' array, it resets to the start of the array and
+// continues interpreting the array. The maximum length of the 'dash'
+// array is 32 elements, not counting the terminating zero. The
+// default line pattern is a solid line. This default can always be
+// restored by calling SetLineDash with the 'dash' parameter set to
+// zero, or by pointing to an empty string. The function returns true
+// if it successfully updates the dash pattern. Otherwise, it returns
 // false (after faulting if NDEBUG is undefined).
 //
 //---------------------------------------------------------------------
@@ -312,7 +318,9 @@ bool PathMgr::InitLineDash()
 // is a unit vector that points in the direction of the line. Output
 // parameter a is a vector of length _linewidth/2 that points in the
 // same direction as u. The return value is the length (in pixels) of
-// the line segment, expressed as a 16.16 fixed-point value.
+// the line segment, expressed as a 16.16 fixed-point value. If the
+// line length is zero, the function sets the x-y components of
+// vectors u and a to zero, and returns zero.
 //
 //----------------------------------------------------------------------
 
@@ -322,11 +330,16 @@ FIX16 PathMgr::LineLength(const VERT16& vs, const VERT16& ve, XY *u, VERT16 *a)
     float dy = ve.y - vs.y;
     float len = sqrt(dx*dx + dy*dy);
 
-    assert(len > 0);
+    if (len == 0)
+    {
+        u->x = u->y = 0;
+        a->x = a->y = 0;
+        return 0;
+    }
     u->x = dx/len;
     u->y = dy/len;
-    a->x = u->x*(_linewidth/2);
-    a->y = u->y*(_linewidth/2);
+    a->x = u->x*_linewidth/2;
+    a->y = u->y*_linewidth/2;
     FIX16 length = len;
     return length;
 }
@@ -454,7 +467,7 @@ void PathMgr::DashedLine(const VERT16& ve, const XY& u, const VERT16& a, FIX16 l
 //
 //----------------------------------------------------------------------
 
-void PathMgr::RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2)
+void PathMgr::RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2)
 {
     VERT16 *p, *q, v1, v2;
     int count;
@@ -498,15 +511,18 @@ void PathMgr::RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2)
 
 //---------------------------------------------------------------------
 //
-// Private function: Joins two connected line segments. Parameter v0 is
-// the vertex at which the two line segments are joined. Parameters ain
-// and aout are vectors of length _linewidth/2 that point in the
-// directions of the incoming and outgoing line segments, respectively.
+// Private function: Joins two connected line segments. Parameter 'v0'
+// is the vertex at which the two line segments are joined. Parameters
+// 'ain' and 'aout' are vectors of length _linewidth/2 that point in
+// the directions of the incoming and outgoing line segments,
+// respectively. Member variables _vin and _vout are the starting and
+// ending points for the stroked edges of the incoming line segment.
 //
 //----------------------------------------------------------------------
 
 void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 {
+    FIX16 xprod = Fix16Mult(ain.x, aout.y) - Fix16Mult(ain.y, aout.x);
     VERT16 v1, v2, v3, v4;
 
     // Begin by extending normals to v0 from points v1, v2, v3, v4 on
@@ -521,9 +537,72 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     v4.x -= aout.y;
     v4.y += aout.x;
 
-    // Connect the edges on the "inside" of the bend that's formed
-    // where the incoming and outgoing lines meet to form the join
-    FIX16 xprod = Fix16Mult(ain.x, aout.y) - Fix16Mult(ain.y, aout.x);
+    // Special case: The cross product is small if the incoming and
+    // outgoing line segments are nearly parallel (or zero if they
+    // are parallel). Frequently, if two short line segments are
+    // joined together along an arc or curve, they point in nearly
+    // the same direction. In such cases, a round join or miter
+    // join is indistinguishable from a simple bevel join, which
+    // allows us to avoid a lot of unnecessary calculation.
+    if (abs(xprod) < 0x0000007f)
+    {
+        // The joined line segments are nearly parallel. Do they
+        // point in the same direction or in opposite directions?
+        bool oppdir = (ain.x < 0) != (aout.x < 0) ||
+                      (ain.y < 0) != (aout.y < 0);
+        if (oppdir)
+        {
+            // The line segments point in opposite directions,
+            // fully exposing round joins and miter joins
+            if (_linejoin == LINEJOIN_ROUND)
+            {
+                if (xprod < 0)
+                {
+                    VERT16 a1 = aout, a2 = ain;
+
+                    FlipVector(a1);
+                    FlipVector(a2);
+                    RoundJoin(v0, a1, a2);
+                    _edge->AttachEdge(&v2, &v4);
+                }
+                else
+                {
+                    RoundJoin(v0, ain, aout);
+                    _edge->AttachEdge(&v3, &v1);
+                }
+            }
+            else if (_linejoin == LINEJOIN_MITER)
+            {
+                // Clip mitered join at miter limit
+                float mlim = _miterlimit/65536.0f;
+                if (xprod < 0)
+                {
+                    v2.x += mlim*ain.x;
+                    v2.y += mlim*ain.y;
+                    v4.x -= mlim*aout.x;
+                    v4.y -= mlim*aout.y;
+                }
+                else
+                {
+                    v1.x += mlim*ain.x;
+                    v1.y += mlim*ain.y;
+                    v3.x -= mlim*aout.x;
+                    v3.y -= mlim*aout.y;
+                }
+            }
+        }
+        _edge->AttachEdge(&_vin, &v1);
+        _edge->AttachEdge(&v2, &_vout);
+        _edge->AttachEdge(&v1, &v3);
+        _edge->AttachEdge(&v4, &v2);
+        _vin = v3;
+        _vout = v4;
+        return;  // all done with special case
+    }
+
+    // General case: Connect the edges on the "inside" of the angle
+    // that's formed where the incoming and outgoing line segments
+    // intersect. Connecting through v0 improves the appearance.
     if (xprod < 0)
     {
         // Stroke turns left (CCW) at join
@@ -536,7 +615,6 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         _edge->AttachEdge(&v4, &v0);
         _edge->AttachEdge(&v0, &v2);
     }
-
     // Check for bevel or round line join
     if (_linejoin == LINEJOIN_BEVEL || _linejoin == LINEJOIN_ROUND)
     {
@@ -573,11 +651,12 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     }
 
     // This is a miter join. Determine whether the miter length
-    // exceeds the current miter limit.
+    // exceeds the current miter limit. If the denominator is
+    // too small, we'll just assume the miter limit is exceeded.
     float t, numer, denom;
 
     denom = abs(ain.x + aout.x) + abs(ain.y + aout.y);
-    if (fabs(denom) > 0.00025f)  // verify denominator is not close to zero
+    if (fabs(denom) > 0.00025f)
     {
         numer = abs(ain.x - aout.x) + abs(ain.y - aout.y);
         t = numer/denom;  // linear interpolation param
@@ -626,9 +705,9 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         return;  // the dirty deed is done
     }
 
-    // LINEJOIN_MITER: This miter join will be properly clipped
-    VERT16 am, vm, vz = { 0, 0 };
-    XY unused;
+    // LINEJOIN_MITER: This miter join must be properly clipped.
+    // Set vector 'vm' to point from 'v0' to the miter point.
+    VERT16 vm;
     FIX16 dotprod = Fix16Mult(ain.x, aout.x) + Fix16Mult(ain.y, aout.y);
 
     // Set vector vm to point from v0 to the miter point
@@ -638,7 +717,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         vm.x = ain.x - aout.x;
         vm.y = ain.y - aout.y;
     }
-    else  // in/out lines form oblique angle at join
+    else  // Incoming/outgoing lines form oblique angle at join
     {
         if (xprod < 0)
         {
@@ -654,37 +733,43 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
         }
     }
 
-    // Adjust length of vector am to miter-limited length
+    // Adjust length of vector 'am' to miter-limited length
+    float mlim = _miterlimit/65536.0f;
+    VERT16 am, vz = { 0, 0 };
+    XY unused;
     LineLength(vz, vm, &unused, &am);
-    am.x = Fix16Mult(am.x, _miterlimit);
-    am.y = Fix16Mult(am.y, _miterlimit);
+    am.x *= mlim;
+    am.y *= mlim;
 
     // Extend sides of stroked lines to miter limit
     denom = abs(ain.x - aout.x) + abs(ain.y - aout.y);
-    if (fabs(denom) > 0.00025f)  // verify denominator is not close to zero
+    if (xprod < 0)
     {
-        if (xprod < 0)
+        // Stroke turns left (CCW) at join
+        if (fabs(denom) > 0.00025f)  // is denominator big enough?
         {
-            // Stroke turns left (CCW) at join
             numer = abs(2*am.x + ain.y + aout.y) + abs(2*am.y - ain.x - aout.x);
             t = numer/denom;  // linear interpolation parameter
             v2.x += t*ain.x;
             v2.y += t*ain.y;
             v4.x -= t*aout.x;
             v4.y -= t*aout.y;
-            _edge->AttachEdge(&v4, &v2);
         }
-        else
+        _edge->AttachEdge(&v4, &v2);
+    }
+    else
+    {
+        // Stroke turns right (CW) at join
+        if (fabs(denom) > 0.00025f)  // is denominator big enough?
         {
-            // Stroke turns right (CW) at join
             numer = abs(2*am.x - ain.y - aout.y) + abs(2*am.y + ain.x + aout.x);
             t = numer/denom;  // linear interpolation parameter
             v1.x += t*ain.x;
             v1.y += t*ain.y;
             v3.x -= t*aout.x;
             v3.y -= t*aout.y;
-            _edge->AttachEdge(&v1, &v3);
         }
+        _edge->AttachEdge(&v1, &v3);
     }
     _edge->AttachEdge(&_vin, &v1);
     _edge->AttachEdge(&v2, &_vout);
@@ -733,10 +818,10 @@ bool PathMgr::StrokePath()
         assert(vs != ve);  // figure has at least 2 points
         _figtmp = &_figtmp[-off];  // point to header for new figure
 
-        vs0 = vs;
+        vs0 = vs;  // save starting point
         linelen = LineLength(*vs, *ve, &uin, &ain);
+        u0 = uin;  // save starting direction
         a0 = ain;
-        u0 = uin;
 
         // Offset stroked edges _linewidth/2 from initial line segment
         if (dashon0)
@@ -764,7 +849,6 @@ bool PathMgr::StrokePath()
 
                 JoinLines(*vs, ain, aout);
             }
-
             if (_pdash != 0)
                 DashedLine(*ve, uout, aout, linelen);
 
@@ -813,7 +897,7 @@ bool PathMgr::StrokePath()
                     RoundJoin(*vs, ain, a2);
                 }
                 else
-                    _edge->AttachEdge(&v1, &v2);  // square or butt cap
+                    _edge->AttachEdge(&v1, &v2);  // square or flat cap
             }
             if (dashon0)
             {
@@ -831,7 +915,7 @@ bool PathMgr::StrokePath()
                         _edge->AttachEdge(&vin0, &v1);
                         _edge->AttachEdge(&v2, &vout0);
                     }
-                    _edge->AttachEdge(&vout0, &vin0);  // square or butt cap
+                    _edge->AttachEdge(&vout0, &vin0);  // square or flat cap
                 }
                 else
                 {
