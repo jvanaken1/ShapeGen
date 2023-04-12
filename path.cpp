@@ -596,20 +596,28 @@ bool PathMgr::GetFirstPoint(SGPoint *fpoint)
 //---------------------------------------------------------------------
 //
 // Public function: Retrieves the minimum bounding box for the current
-// path. If the path is not empty, the function writes the bounding box
-// coordinates, width, and height to the structure pointed to by bbox,
-// and then returns a count of the number of points in the path. If the
-// path is empty, the function immediately returns zero without writing
-// to the bbox structure. This function does not alter the path in any
-// way. By default, coordinates are integer values, but the user can
-// call SetFixedBits to switch to fixed-point coordinates.
+// path. If the path is not empty, the function writes the bounding
+// box coordinates, width, and height to the structure pointed to by
+// 'bbox', and then returns a count of the number of points in the
+// path. If the path is empty, the function immediately returns zero
+// without writing to the 'bbox' structure. The 'flags' parameter
+// allows the caller to modify the function's behavior; for example,
+// one flag bit instructs the function to calculate the what the
+// bounding box would be if the path were stroked with the current
+// stroke settings. This function does not alter the path in any way.
+// By default, coordinates are integer values, but the user can call
+// SetFixedBits to switch to using fixed-point coordinates, in which
+// case the values written to 'bbox' are fixed-point. Note that the
+// code below uses internal coordinates, which are in 16.16 fixed-
+// point format. Also, the function determines the bounding box from
+// the x-y coordinates in the path, and does not actually construct
+// any shapes.
 //
 //---------------------------------------------------------------------
 
-int PathMgr::GetBoundingBox(SGRect *bbox)
+int PathMgr::GetBoundingBox(SGRect *bbox, int flags)
 {
-    FIX16 xmin = 0x7fffffff, ymin = 0x7fffffff;
-    FIX16 xmax = 0x80000000, ymax = 0x80000000;
+    FIX16 xmin, ymin, xmax, ymax;
     FIGURE *fig;
     VERT16 *point;
     int offset, count = 0;
@@ -619,6 +627,8 @@ int PathMgr::GetBoundingBox(SGRect *bbox)
         assert(bbox != 0);
         return 0;
     }
+    xmin = ymin = 0x7fffffff;
+    xmax = ymax = 0x80000000;
     if (_cpoint == 0)
     {
         // Current figure is empty
@@ -631,7 +641,10 @@ int PathMgr::GetBoundingBox(SGRect *bbox)
     }
     else
     {
-        // Current figure is not empty, not finalized
+        // Current figure is not empty, not finalized. (Note that the
+        // function does not try to access the locations pointed to
+        // by the initial values of 'fig' and 'point' just below, so
+        // there is no risk of an unhandled path stack overflow.)
         fig = reinterpret_cast<FIGURE*>(_cpoint + 1);
         point = _cpoint + 2;
         offset = point - _fpoint;
@@ -652,14 +665,72 @@ int PathMgr::GetBoundingBox(SGRect *bbox)
         count += npts;
         offset = fig->offset;
     }
-    if (bbox != 0)
+    // Compensate for fuzzy edges of antialiased shapes
+    xmin += 0x00007fff;
+    ymin += 0x00007fff;
+    xmax += 0x00008000;
+    ymax += 0x00008000;
+    if (flags)
     {
-        FIX16 roundup = 0xffff >>_fixshift;
+        FIX16 xmin0, ymin0, xmax0, ymax0;
+        if (flags & FLAG_BBOX_STROKE)
+        {
+            FIX16 pad = 0;
+            if (_linewidth)
+            {
+                if (_linejoin == LINEJOIN_MITER || _linejoin == LINEJOIN_SVG_MITER)
+                {
+                   float mlim = _miterlimit/65536.0f;
+                   pad = sqrt(mlim*mlim + 1.0f)*_linewidth/2 + 0x00008000;
+                }
+                else if (_lineend == LINEEND_SQUARE)
+                {
+                    const float sqrt2 = 1.414213562373f;
+                    pad = sqrt2*_linewidth/2 + 0x00008000;
+                }
+                else
+                    pad = _linewidth/2;
+            }
+            else
+                pad = 0x00010000;
 
-        bbox->x = xmin >> _fixshift;
-        bbox->y = ymin >> _fixshift;
-        bbox->w = ((xmax + roundup) >> _fixshift) - bbox->x;
-        bbox->h = ((ymax + roundup) >> _fixshift) - bbox->y;
+            xmin -= pad;
+            ymin -= pad;
+            xmax += pad;
+            ymax += pad;
+        }
+        if (flags & FLAG_BBOX_CLIP)
+        {
+            xmin0 = _devicecliprect.x << 16;
+            ymin0 = _devicecliprect.y << 16;
+            xmax0 = xmin0 + (_devicecliprect.w << 16);
+            ymax0 = ymin0 + (_devicecliprect.h << 16);
+
+            xmin = max(xmin0, xmin);
+            ymin = max(ymin0, ymin);
+            xmax = min(xmax0, xmax);
+            ymax = min(ymax0, ymax);
+        }
+        if (flags & FLAG_BBOX_ACCUM)
+        {
+            xmin0 = bbox->x << _fixshift;
+            ymin0 = bbox->y << _fixshift;
+            xmax0 = xmin0 + (bbox->w << _fixshift);
+            ymax0 = ymin0 + (bbox->h << _fixshift);
+
+            xmin = min(xmin0, xmin);
+            ymin = min(ymin0, ymin);
+            xmax = max(xmax0, xmax);
+            ymax = max(ymax0, ymax);
+        }
     }
+    xmin &= 0xffff0000;
+    ymin &= 0xffff0000;
+    xmax &= 0xffff0000;
+    ymax &= 0xffff0000;
+    bbox->x = xmin >> _fixshift;
+    bbox->y = ymin >> _fixshift;
+    bbox->w = (xmax - xmin) >> _fixshift;
+    bbox->h = (ymax - ymin) >> _fixshift;
     return count;
 }

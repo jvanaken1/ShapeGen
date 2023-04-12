@@ -97,6 +97,11 @@ enum LINEEND {
 };
 const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end
 
+// Flag bits for ShapeGen::GetBoundingBox function
+const int FLAG_BBOX_STROKE = 1;  // get bbox for stroked shape
+const int FLAG_BBOX_CLIP = 2;    // clip bbox to device clip rect
+const int FLAG_BBOX_ACCUM = 4;   // accumulate multi-path bbox
+
 //---------------------------------------------------------------------
 //
 // Shape feeder: Breaks a shape into smaller pieces to feed to a
@@ -181,7 +186,7 @@ public:
     virtual void SetScrollPosition(int x, int y) = 0;
     virtual bool GetCurrentPoint(SGPoint *cpoint) = 0;
     virtual bool GetFirstPoint(SGPoint *fpoint) = 0;
-    virtual int GetBoundingBox(SGRect *bbox) = 0;
+    virtual int GetBoundingBox(SGRect *bbox, int flags = 0) = 0;
 
     // Clipping and masking
     virtual bool InitClipRegion(int width, int height) = 0;
