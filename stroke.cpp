@@ -241,7 +241,7 @@ float PathMgr::SetMiterLimit(float mlim)
 //
 //---------------------------------------------------------------------
 
-bool PathMgr::SetLineDash(char *dash, int offset, float mult)
+bool PathMgr::SetLineDash(const char dash[], int offset, float mult)
 {
     const int ixmax = ARRAY_LEN(_dasharray) - 1;  // max array index
     bool retval = true;

@@ -288,7 +288,7 @@ public:
     float SetMiterLimit(float mlim);
     LINEEND SetLineEnd(LINEEND capstyle);
     LINEJOIN SetLineJoin(LINEJOIN joinstyle);
-    bool SetLineDash(char *dash, int offset, float mult);
+    bool SetLineDash(const char dash[], int offset, float mult);
 
 private:
     // Stroked path internal functions

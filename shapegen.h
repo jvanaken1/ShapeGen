@@ -79,6 +79,7 @@ enum FILLRULE {
     FILLRULE_EVENODD,    // even-odd (aka "parity") fill rule
     FILLRULE_WINDING,    // nonzero winding number fill rule
 };
+const FILLRULE FILLRULE_DEFAULT = FILLRULE_EVENODD;
 
 // Join attribute values for stroked paths
 enum LINEJOIN {
@@ -182,7 +183,7 @@ public:
     virtual bool Line(SGCoord x, SGCoord y) = 0;
     virtual bool PolyLine(int npts, const SGPoint xy[]) = 0;
     virtual void Rectangle(const SGRect& rect) = 0;
-    virtual bool FillPath(FILLRULE fillrule) = 0;
+    virtual bool FillPath(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
     virtual void SetScrollPosition(int x, int y) = 0;
     virtual bool GetCurrentPoint(SGPoint *cpoint) = 0;
     virtual bool GetFirstPoint(SGPoint *fpoint) = 0;
@@ -191,24 +192,24 @@ public:
     // Clipping and masking
     virtual bool InitClipRegion(int width, int height) = 0;
     virtual void ResetClipRegion() = 0;
-    virtual bool SetClipRegion(FILLRULE fillrule) = 0;
-    virtual bool SetMaskRegion(FILLRULE fillrule) = 0;
+    virtual bool SetClipRegion(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
+    virtual bool SetMaskRegion(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
     virtual bool SaveClipRegion() = 0;
     virtual bool SwapClipRegion() = 0;
 
     // Basic path attributes
-    virtual float SetFlatness(float tol) = 0;
-    virtual int SetFixedBits(int nbits) = 0;
+    virtual float SetFlatness(float tol = FLATNESS_DEFAULT) = 0;
+    virtual int SetFixedBits(int nbits = FIXBITS_DEFAULT) = 0;
 
     // Stroked path construction
     virtual bool StrokePath() = 0;
 
     // Stroked path attributes
-    virtual float SetLineWidth(float width) = 0;
-    virtual float SetMiterLimit(float mlim) = 0;
-    virtual LINEEND SetLineEnd(LINEEND capstyle) = 0;
-    virtual LINEJOIN SetLineJoin(LINEJOIN joinstyle) = 0;
-    virtual bool SetLineDash(char *dash, int offset, float mult) = 0;
+    virtual float SetLineWidth(float width = LINEWIDTH_DEFAULT) = 0;
+    virtual float SetMiterLimit(float mlim = MITERLIMIT_DEFAULT) = 0;
+    virtual LINEEND SetLineEnd(LINEEND capstyle = LINEEND_DEFAULT) = 0;
+    virtual LINEJOIN SetLineJoin(LINEJOIN joinstyle = LINEJOIN_DEFAULT) = 0;
+    virtual bool SetLineDash(const char dash[] = 0, int offset = 0, float mult = 1.0f) = 0;
 
     // Ellipses and elliptic arcs
     virtual void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2) = 0;
