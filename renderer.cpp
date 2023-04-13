@@ -141,25 +141,26 @@ void BasicRenderer::SetColor(COLOR color)
 //---------------------------------------------------------------------
 namespace {
     // Premultiplies a 32-bit pixel's RGB components by its alpha
-    // value. The pixel is in BGRA format (that is, 0xaarrggbb).
+    // value. The pixel is in either BGRA format (that is,
+    // 0xaarrggbb) or RGBA format (0xaabbggrr).
     COLOR PremultAlpha(COLOR color)
     {
-        COLOR rb, ga, alfa = color >> 24;
+        COLOR rb, ga, alpha = color >> 24;
 
-        if (alfa == 255)
+        if (alpha == 255)
             return color;
 
-        if (alfa == 0)
+        if (alpha == 0)
             return 0;
 
         color |= 0xff000000;
         rb = color & 0x00ff00ff;
-        rb *= alfa;
+        rb *= alpha;
         rb += 0x00800080;
         rb += (rb >> 8) & 0x00ff00ff;
         rb = (rb >> 8) & 0x00ff00ff;
         ga = (color >> 8) & 0x00ff00ff;
-        ga *= alfa;
+        ga *= alpha;
         ga += 0x00800080;
         ga += (ga >> 8) & 0x00ff00ff;
         ga &= 0xff00ff00;
@@ -169,9 +170,9 @@ namespace {
 
     // Alpha-blends an array of 32-bit source pixels into an array of
     // 32-bit destination pixels. Parameter len is the array length.
-    // The source pixels are in BGRA format (that is, 0xaarrggbb),
-    // and have already been premultiplied by their alpha values.
-    // Destination pixels are assumed to be 100 percent opaque.
+    // Both source and destination pixels are in either BGRA format
+    // (that is, 0xaarrggbb) or RGBA format (0xaabbggrr), and have
+    // already been premultiplied by their alpha values.
     void AlphaBlender(COLOR *src, COLOR *dst, int len)
     {
         while (len--)
@@ -180,19 +181,30 @@ namespace {
 
             srcpix = *src++;
             anot = ~srcpix >> 24;
-            dstpix = *dst;
-            rb = dstpix & 0x00ff00ff;
-            rb *= anot;
-            rb += 0x00800080;
-            rb += (rb >> 8) & 0x00ff00ff;
-            rb = (rb >> 8) & 0x00ff00ff;
-            ga = (dstpix >> 8) & 0x00ff00ff;
-            ga *= anot;
-            ga += 0x00800080;
-            ga += (ga >> 8) & 0x00ff00ff;
-            ga &= 0xff00ff00;
-            dstpix = ga | rb;
-            *dst++ = dstpix + srcpix;
+            if (anot == 0)
+            {
+                *dst++ = srcpix;  // source alpha is 255
+            }
+            else if (anot == 255)
+            {
+                ++dst;  // source alpha is 0
+            }
+            else
+            {
+                dstpix = *dst;
+                rb = dstpix & 0x00ff00ff;
+                rb *= anot;
+                rb += 0x00800080;
+                rb += (rb >> 8) & 0x00ff00ff;
+                rb = (rb >> 8) & 0x00ff00ff;
+                ga = (dstpix >> 8) & 0x00ff00ff;
+                ga *= anot;
+                ga += 0x00800080;
+                ga += (ga >> 8) & 0x00ff00ff;
+                ga &= 0xff00ff00;
+                dstpix = ga | rb;
+                *dst++ = dstpix + srcpix;
+            }
         }
     }
 }
