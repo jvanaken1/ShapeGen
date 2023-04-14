@@ -233,11 +233,11 @@ class PathMgr : virtual public ShapeGen
     void FinalizeFigure(bool bclose);  // close or end a figure
 
     // Path memory management functions
-    void ExpandPath();
+    void GrowPath();
     void PathCheck(VERT16 *ptr)
     {
         if (ptr == &_path[_pathlength])  // detect path overflow
-            ExpandPath();
+            GrowPath();
     }
 
 protected:

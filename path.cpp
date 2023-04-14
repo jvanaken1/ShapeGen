@@ -118,7 +118,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 
 //---------------------------------------------------------------------
 //
-// Private function: Expands the size of the path memory in the event
+// Private function: Grows the size of the path memory in the event
 // of a path stack overflow. Allocates a larger stack and copies the
 // contents of the old stack to the new stack. The path management
 // functions are designed so that the only pointers that need to be
@@ -127,7 +127,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 //
 //---------------------------------------------------------------------
 
-void PathMgr::ExpandPath()
+void PathMgr::GrowPath()
 {
     int offset, oldlen = _pathlength;
     VERT16 *oldpath = _path;
