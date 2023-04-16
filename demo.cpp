@@ -2422,7 +2422,7 @@ void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     }
 }
 
-// Code example from UG topic "Creating a ShapeGen object"
+// First code example from UG topic "Creating a ShapeGen object"
 void MySub(ShapeGen *sg, SGRect& rect)
 {
     sg->BeginPath();
@@ -2431,6 +2431,39 @@ void MySub(ShapeGen *sg, SGRect& rect)
 }
 
 void MyTest(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+{
+    SimpleRenderer *rend = CreateSimpleRenderer(&bkbuf);
+    ShapeGen *sg = CreateShapeGen(rend, clip);
+    SGRect rect = { 100, 80, 250, 160 };
+
+    sg->BeginPath();
+    sg->Rectangle(clip);
+    rend->SetColor(RGBX(255,255,255));  // white
+    sg->FillPath(FILLRULE_EVENODD);
+
+    rend->SetColor(RGBX(255,40,20));  // red
+    MySub(sg, rect);
+
+    //-----  Label the output of this code example -----
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of 1st code example from \"Creating a "
+                "ShapeGen object\" topic in userdoc.pdf";
+    float scale = 0.3;
+    SGPoint xystart = { 24, 420 };
+    txt.SetTextSpacing(1.1);
+    sg->SetRenderer(&(*aarend));
+    aarend->SetColor(crText);
+    sg->SetLineWidth(3.0);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+
+    delete rend;
+    delete sg;
+}
+
+// Second code example from UG topic "Creating a ShapeGen object"
+void MyTest2(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
@@ -2448,7 +2481,7 @@ void MyTest(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "Output of code example from \"Creating a "
+    char *str = "Output of 2nd code example from \"Creating a "
                 "ShapeGen object\" topic in userdoc.pdf";
     float scale = 0.3;
     SGPoint xystart = { 24, 420 };
@@ -2462,7 +2495,6 @@ void MyTest(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // 1st code example from UG topic "Ellipses and elliptic arcs"
 void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[][4] = {  // the first three of four vertices
@@ -2539,7 +2571,6 @@ void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // 2nd code example from UG topic "Ellipses and elliptic arcs"
 void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     float percent[] = {
@@ -2628,7 +2659,6 @@ void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::Bezier2 reference topic
 void example01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
@@ -2666,7 +2696,6 @@ void example01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::Bezier3 reference topic
 void example02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 308 }, v1 = { 210, 70 },
@@ -2706,7 +2735,6 @@ void example02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::Ellipse reference topic
 void example03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[2][4] = {
@@ -2766,7 +2794,6 @@ void example03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::EllipticArc reference topic
 void example04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     float percent[] = {
@@ -2818,7 +2845,6 @@ void example04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::EllipticSpline reference topic
 void example05(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
@@ -2856,67 +2882,69 @@ void example05(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::GetBoundingBox reference topic
 void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
         { 130, 97 }, { 308, 265 }, { 326, 181 },
         { 100, 257 }, { 158, 312 }, { 206, 73 }
     };
-    float linewidth = 28.0;
-    COLOR ltblue = RGBX(135, 206, 235);
     SGRect bbox;
 
-    // Fill the shape with solid light blue
+    // Fill the shape with solid blue
+    aarend->SetColor(RGBX(0,190,255));  // blue
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
-    aarend->SetColor(ltblue);
+    sg->GetBoundingBox(&bbox, 0);
     sg->FillPath(FILLRULE_EVENODD);
 
-    // Get bounding box and outline it in black
-    sg->GetBoundingBox(&bbox);
-    sg->SetLineWidth(2.0);
-    sg->SetLineJoin(LINEJOIN_MITER);
+    // Overlay the bounding box on the filled shape
+    aarend->SetColor(RGBA(200,180,160,90));  // beige
     sg->BeginPath();
     sg->Rectangle(bbox);
-    aarend->SetColor(RGBX(0,0,0));
-    sg->StrokePath();
+    sg->FillPath(FILLRULE_EVENODD);
 
     // Move the shape to the right
     for (int i = 0; i < 6; ++i)
-        xy[i].x += 335;
+        xy[i].x += 320;
 
-    // Stroke the shape in light blue
+    // Stroke the shape with round joins
+    aarend->SetColor(RGBX(0,190,255));  // blue
     sg->SetLineJoin(LINEJOIN_ROUND);
-    sg->SetLineWidth(linewidth);
+    sg->SetLineWidth(28.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
     sg->CloseFigure();
-    aarend->SetColor(ltblue);
+    sg->GetBoundingBox(&bbox, FLAG_BBOX_STROKE);
     sg->StrokePath();
 
-    // Get the bounding box and outline it in black
-    sg->GetBoundingBox(&bbox);
-    sg->SetLineWidth(2.0);
+    // Overlay the bounding box on the stroked shape
+    aarend->SetColor(RGBA(200,180,160,90));  // beige
+    sg->BeginPath();
+    sg->Rectangle(bbox);
+    sg->FillPath(FILLRULE_EVENODD);
+
+    // Move the shape to the right
+    for (int i = 0; i < 6; ++i)
+        xy[i].x += 345;
+
+    // Stroke the shape with mitered joins
+    aarend->SetColor(RGBX(0,190,255));  // blue
     sg->SetLineJoin(LINEJOIN_MITER);
+    sg->SetMiterLimit(1.6);
     sg->BeginPath();
-    sg->Rectangle(bbox);
-    aarend->SetColor(RGBX(0,0,0));
+    sg->Move(xy[0].x, xy[0].y);
+    sg->PolyLine(5, &xy[1]);
+    sg->CloseFigure();
+    sg->GetBoundingBox(&bbox, FLAG_BBOX_STROKE);
     sg->StrokePath();
 
-    // Expand each side of the bounding box by half the line width
-    bbox.x -= linewidth/2;
-    bbox.y -= linewidth/2;
-    bbox.w += linewidth;
-    bbox.h += linewidth;
-
-    // Outline the expanded bounding box in red
+    // Overlay the bounding box on the stroked shape
+    aarend->SetColor(RGBA(200,180,160,90));  // beige
     sg->BeginPath();
     sg->Rectangle(bbox);
-    aarend->SetColor(RGBX(255,80,80));
-    sg->StrokePath();
+    sg->FillPath(FILLRULE_EVENODD);
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -2934,7 +2962,6 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::PolyBezier2 reference topic
 void example07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
@@ -2982,7 +3009,6 @@ void example07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::PolyBezier3 reference topic
 void example08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
@@ -3034,7 +3060,6 @@ void example08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::PolyEllipticSpline reference topic
 void example09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
@@ -3176,7 +3201,6 @@ void example11(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::SetClipRegion reference topic
 void example12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     const float t = 0.8*PI;
@@ -3237,7 +3261,6 @@ void example12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::SetLineDash reference topic
 void example13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint xy[] = {
@@ -3283,7 +3306,6 @@ void example13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::SetLineEnd reference topic
 void example14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     LINEEND cap[] = { LINEEND_FLAT, LINEEND_ROUND, LINEEND_SQUARE };
@@ -3321,7 +3343,6 @@ void example14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::SetLineJoin reference topic
 void example15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     LINEJOIN join[] = { LINEJOIN_BEVEL, LINEJOIN_ROUND, LINEJOIN_MITER };
@@ -3360,7 +3381,6 @@ void example15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::SetMaskRegion reference topic
 void example16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     const float t = 0.8*PI;
@@ -3415,7 +3435,6 @@ void example16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Code example from ShapeGen::SetMiterLimit reference topic
 void example17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    //SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint vert[] = { { 120, 300 }, { 204, 114 }, { 252, 324 } };
@@ -3915,7 +3934,7 @@ void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
     demo17,
 
     // Code examples from userdoc.pdf
-    MyTest, EggRoll, PieToss,
+    MyTest, MyTest2, EggRoll, PieToss,
     example01, example02, example03,
     example04, example05, example06,
     example07, example08, example09,
