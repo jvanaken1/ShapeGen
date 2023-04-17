@@ -5,12 +5,10 @@
 //    AA4x8Renderer classes declared in renderer.h. This rendering
 //    code is platform-INdependent: the renderers write directly to
 //    a window-backing buffer (or back buffer) that is described by a
-//    BACK_BUFFER structure. The only platform-dependent code needed
+//    PIXEL_BUFFER structure. The only platform-dependent code needed
 //    is the BitBlt function call (contained in separate module) that
 //    copies the back buffer to the window on the display. The back
-//    buffer has a 32-bit BGRA pixel format (that is, 0xaarrggbb), but
-//    its 8-bit alpha channel is never inspected and always assumed to
-//    be 0xff (100 percent opaque).
+//    buffer has a 32-bit BGRA pixel format (that is, 0xaarrggbb).
 //
 //---------------------------------------------------------------------
 
@@ -20,16 +18,90 @@
 
 //---------------------------------------------------------------------
 //
+// Utilities for manipulating pixel buffers
+//
+//---------------------------------------------------------------------
+
+// Allocates a memory buffer that can hold enough 32-bit pixels to
+// store a rectangular image of width 'w' and height 'h', where the
+// rows occupy contiguous memory. Fills the allocated memory with byte
+// value 'fill', which is typically set to either 0 (for transparent
+// black) or 0xff (for opaque white). Parameter 'fill' is optional;
+// it defaults to 0. The function returns a pointer to the buffer.
+COLOR* AllocateRawPixels(int w, int h, char fill)
+{
+    COLOR *pixbuf = new COLOR[w*h];
+    assert(pixbuf);
+    memset(pixbuf, fill, w*h*sizeof(pixbuf[0]));
+    return pixbuf;
+}
+
+// Deletes a buffer that was previously allocated by the
+// AllocateRawPixels function. Always returns zero.
+COLOR* DeleteRawPixels(COLOR *buf)
+{
+    if (buf) { delete[] buf; }
+    return 0;
+}
+
+// Allocates memory for a caller-supplied pixel-buffer descriptor,
+// 'buf', and fills in the fields of this descriptor to describe the
+// allocated memory. The previous contents of descriptor 'buf' are
+// overwritten. The allocated memory is large enough to contain an
+// image of width 'w' and height 'h', and is filled with byte value
+// 'fill', which the caller typically sets to either 0 (to fill with
+// transparent black) or 0xff (opaque white). Parameter 'fill' is
+// optional; it defaults to 0. The function returns a pointer to the
+// allocated memory.
+COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, char fill)
+{
+    buf.pixels = AllocateRawPixels(w, h, fill);
+    buf.width = w;
+    buf.height = h;
+    buf.depth = 32;
+    buf.pitch = w*sizeof(COLOR);
+    return buf.pixels;
+}
+
+// Deletes the pixel memory previously allocated for pixel buffer
+// descriptor 'buf' by the AllocatePixelBuffer function. Sets the
+// 'pixels' field in descriptor 'buf' to 0. Always returns 0.
+COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf)
+{
+    DeleteRawPixels(buf.pixels);
+    buf.pixels = 0;
+    return 0;
+}
+
+// Fills in the fields of pixel-buffer descriptor 'subbuf' to
+// describe a rectangular subregion of the pixel memory described
+// by pixel-buffer descriptor 'buf'. The x-y coordinates of this
+// subregion are specified in bounding box 'bbox'. The previous
+// contents of descriptor 'buf' are overwritten. No clipping is
+// performed, and the caller is responsible for ensuring that
+// the subregion described by 'bbox' is valid. No return value.
+void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox)
+{
+    int stride = buf.pitch/sizeof(COLOR);
+    subbuf.width = bbox.w;
+    subbuf.height = bbox.h;
+    subbuf.pitch = buf.pitch;
+    subbuf.depth = buf.depth;
+    subbuf.pixels = &buf.pixels[bbox.x + stride*bbox.y];
+}
+
+//---------------------------------------------------------------------
+//
 // BasicRenderer functions - This renderer does solid color fills with
 // no antialiasing or alpha blending, but can fill large areas faster
 // than the enhanced renderer
 //
 //---------------------------------------------------------------------
 
-BasicRenderer::BasicRenderer(BACK_BUFFER *backbuf)
+BasicRenderer::BasicRenderer(const PIXEL_BUFFER *backbuf)
 {
     _backbuf = *backbuf;
-    _backbuf.pitch /= 4;  // convert from bytes to 32-bit pixels
+    _stride = _backbuf.pitch/sizeof(COLOR);
     SetColor(RGBX(0,0,0));
 }
 
@@ -40,14 +112,14 @@ void BasicRenderer::RenderShape(ShapeFeeder *feeder)
 
     while (feeder->GetNextSDLRect(&rect))
     {
-        COLOR *p = &_backbuf.pixels[rect.y*_backbuf.pitch + rect.x];
+        COLOR *prow = &_backbuf.pixels[rect.y*_stride + rect.x];
         for (int j = 0; j < rect.h; ++j)
         {
-            COLOR *q = p;
+            COLOR *pixel = prow;
             for (int i = 0; i < rect.w; ++i)
-                *q++ = _color;
+                *pixel++ = _color;
 
-            p = &p[_backbuf.pitch];
+            prow = &prow[_stride];
         }
     }
 }
@@ -69,25 +141,26 @@ void BasicRenderer::SetColor(COLOR color)
 //---------------------------------------------------------------------
 namespace {
     // Premultiplies a 32-bit pixel's RGB components by its alpha
-    // value. The pixel is in BGRA format (that is, 0xaarrggbb).
+    // value. The pixel is in either BGRA format (that is,
+    // 0xaarrggbb) or RGBA format (0xaabbggrr).
     COLOR PremultAlpha(COLOR color)
     {
-        COLOR rb, ga, alfa = color >> 24;
+        COLOR rb, ga, alpha = color >> 24;
 
-        if (alfa == 255)
+        if (alpha == 255)
             return color;
 
-        if (alfa == 0)
+        if (alpha == 0)
             return 0;
 
         color |= 0xff000000;
         rb = color & 0x00ff00ff;
-        rb *= alfa;
+        rb *= alpha;
         rb += 0x00800080;
         rb += (rb >> 8) & 0x00ff00ff;
         rb = (rb >> 8) & 0x00ff00ff;
         ga = (color >> 8) & 0x00ff00ff;
-        ga *= alfa;
+        ga *= alpha;
         ga += 0x00800080;
         ga += (ga >> 8) & 0x00ff00ff;
         ga &= 0xff00ff00;
@@ -97,9 +170,9 @@ namespace {
 
     // Alpha-blends an array of 32-bit source pixels into an array of
     // 32-bit destination pixels. Parameter len is the array length.
-    // The source pixels are in BGRA format (that is, 0xaarrggbb),
-    // and have already been premultiplied by their alpha values.
-    // Destination pixels are assumed to be 100 percent opaque.
+    // Both source and destination pixels are in either BGRA format
+    // (that is, 0xaarrggbb) or RGBA format (0xaabbggrr), and have
+    // already been premultiplied by their alpha values.
     void AlphaBlender(COLOR *src, COLOR *dst, int len)
     {
         while (len--)
@@ -108,19 +181,30 @@ namespace {
 
             srcpix = *src++;
             anot = ~srcpix >> 24;
-            dstpix = *dst | 0xff000000;
-            rb = dstpix & 0x00ff00ff;
-            rb *= anot;
-            rb += 0x00800080;
-            rb += (rb >> 8) & 0x00ff00ff;
-            rb = (rb >> 8) & 0x00ff00ff;
-            ga = (dstpix >> 8) & 0x00ff00ff;
-            ga *= anot;
-            ga += 0x00800080;
-            ga += (ga >> 8) & 0x00ff00ff;
-            ga &= 0xff00ff00;
-            dstpix = ga | rb;
-            *dst++ = dstpix + srcpix;
+            if (anot == 0)
+            {
+                *dst++ = srcpix;  // source alpha is 255
+            }
+            else if (anot == 255)
+            {
+                ++dst;  // source alpha is 0
+            }
+            else
+            {
+                dstpix = *dst;
+                rb = dstpix & 0x00ff00ff;
+                rb *= anot;
+                rb += 0x00800080;
+                rb += (rb >> 8) & 0x00ff00ff;
+                rb = (rb >> 8) & 0x00ff00ff;
+                ga = (dstpix >> 8) & 0x00ff00ff;
+                ga *= anot;
+                ga += 0x00800080;
+                ga += (ga >> 8) & 0x00ff00ff;
+                ga &= 0xff00ff00;
+                dstpix = ga | rb;
+                *dst++ = dstpix + srcpix;
+            }
         }
     }
 }
@@ -133,7 +217,7 @@ namespace {
 // before being processed.
 //
 //---------------------------------------------------------------------
-AA4x8Renderer::AA4x8Renderer(BACK_BUFFER *backbuf)
+AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *backbuf)
                   : _width(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _alpha(255),
                     _xscroll(0), _yscroll(0)
@@ -504,5 +588,32 @@ void AA4x8Renderer::SetTransform(const float xform[])
     else
         _pxform = 0;
 }
+
+//---------------------------------------------------------------------
+//
+// Each of the following functions creates a SimpleRenderer or
+// EnhancedRender object and returns a pointer to this object. The
+// caller is responsible for deleting this object when it is no
+// longer needed (hint: you can use a smart pointer; see the SmartPtr
+// class template in shapegen.h).
+//
+//---------------------------------------------------------------------
+
+SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *bkbuf)
+{
+    SimpleRenderer *rend = new BasicRenderer(bkbuf);
+    assert(rend != 0);  // out of memory?
+
+    return rend;
+}
+
+EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *bkbuf)
+{
+    EnhancedRenderer *aarend = new AA4x8Renderer(bkbuf);
+    assert(aarend != 0);  // out of memory?
+
+    return aarend;
+}
+
 
 

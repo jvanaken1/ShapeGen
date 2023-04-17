@@ -199,21 +199,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hwnd, &ps);
         if (hbmp)
         {
-            // Pass back-buffer descriptor to both renderers
-            BACK_BUFFER bkbuf;
+            // Back-buffer descriptor will be passed to renderers
+            PIXEL_BUFFER bkbuf;
             bkbuf.pixels = (COLOR*)bmpixels;
             bkbuf.width  = cliprect.w;
             bkbuf.height = cliprect.h;
             bkbuf.depth  = 32;
             bkbuf.pitch  = 4*cliprect.w;  // pitch specified in bytes
-            BasicRenderer rend(&bkbuf);
-            AA4x8Renderer aarend(&bkbuf);
 
             // Render next frame into back buffer
-            testnum = runtest(testnum, &rend, &aarend, cliprect);
+            testnum = RunTest(testnum, bkbuf, cliprect);
             if (testnum < 0)
             {
-                PostQuitMessage(0);
+                PostQuitMessage(0);  // negative retval means quit
                 return 0;
             }
 
@@ -223,8 +221,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             BitBlt(hdc, 0, 0, cliprect.w, cliprect.h, hdcMem, 0, 0, SRCCOPY);
             DeleteDC(hdcMem);
 
-            // Clear back buffer (set background color = white)
-            memset(bmpixels, 0xff, 4*cliprect.w*cliprect.h);
+            // Set background color to opaque white
+            memset(bmpixels, 0xff, cliprect.w*cliprect.h*sizeof(COLOR));
         }
         EndPaint(hwnd, &ps);
         return 0;

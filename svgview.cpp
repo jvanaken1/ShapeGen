@@ -30,10 +30,10 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include "demo.h"
 #define NANOSVG_IMPLEMENTATION
 #define NANOSVG_ALL_COLOR_KEYWORDS
 #include "nanosvg.h"
+#include "demo.h"
 
 namespace {
     //-------------------------------------------------------------------
@@ -101,9 +101,14 @@ namespace {
 //
 //---------------------------------------------------------------------
 
-int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect)
+int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    SGPtr sg(aarend, cliprect);
+    SGRect cliprect = clip;
+    cliprect.w = (bkbuf.width < clip.w) ? bkbuf.width : clip.w;
+    cliprect.h = (bkbuf.height < clip.h) ? bkbuf.height : clip.h;
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), cliprect));
     NSVGimage* image;
     float scale, scale16;
     UserMessage umsg;
@@ -189,7 +194,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             bool bEvenOdd = (shape->fillRule == NSVG_FILLRULE_EVENODD);
             FILLRULE rule = (bEvenOdd) ? FILLRULE_EVENODD : FILLRULE_WINDING;
 
-            PreparePaint(&shape->fill, scale, aarend);
+            PreparePaint(&shape->fill, scale, &(*aarend));
             sg->FillPath(rule);
         }
 
@@ -246,7 +251,7 @@ int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const S
             else
                 sg->SetLineDash(0,0,0);
 
-            PreparePaint(&shape->stroke, scale, aarend);
+            PreparePaint(&shape->stroke, scale, &(*aarend));
             sg->StrokePath();
         }
     }

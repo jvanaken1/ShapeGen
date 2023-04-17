@@ -33,6 +33,8 @@
 #include "shapepri.h"
 #include <stdlib.h>
 
+#define sign(x)   ((x)<0?-1:1)       // sign (plus or minus) of value
+
 namespace {
     //---------------------------------------------------------------------
     //

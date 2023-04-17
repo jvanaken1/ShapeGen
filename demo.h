@@ -48,10 +48,6 @@ const int DEMO_HEIGHT =  960;
 #undef max
 #endif
 #define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
-#ifdef sign
-#undef sign
-#endif
-#define sign(x)   ((x)<0?-1:1)       // sign (plus or minus) of value
 
 // Make command-line args globally accessible
 extern int _argc_;
@@ -81,7 +77,7 @@ inline void GetRgbValues(const COLOR color, int *r, int *g, int *b)
 //
 //---------------------------------------------------------------------
 
-extern int runtest(int testnum, SimpleRenderer *rend, EnhancedRenderer *aarend, const SGRect& cliprect);
+extern int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect);
 
 //---------------------------------------------------------------------
 //

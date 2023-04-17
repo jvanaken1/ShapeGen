@@ -46,10 +46,6 @@
   #undef max
 #endif
 #define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
-#ifdef sign
-  #undef sign
-#endif
-#define sign(x)   ((x)<0?-1:1)       // sign (plus or minus) of value
 
 //---------------------------------------------------------------------
 //
@@ -195,7 +191,7 @@ protected:
 
 class PathMgr : virtual public ShapeGen
 {
-    friend SGPtr;
+    friend ShapeGen* CreateShapeGen(Renderer*, const SGRect&);
 
     Renderer *_renderer;
     EdgeMgr *_edge;     // manages lists of polygonal edges
@@ -233,11 +229,11 @@ class PathMgr : virtual public ShapeGen
     void FinalizeFigure(bool bclose);  // close or end a figure
 
     // Path memory management functions
-    void ExpandPath();
+    void GrowPath();
     void PathCheck(VERT16 *ptr)
     {
         if (ptr == &_path[_pathlength])  // detect path overflow
-            ExpandPath();
+            GrowPath();
     }
 
 protected:
@@ -260,7 +256,7 @@ public:
     void SetScrollPosition(int x, int y);
     bool GetCurrentPoint(SGPoint *cpoint);
     bool GetFirstPoint(SGPoint *fpoint);
-    int GetBoundingBox(SGRect *bbox);
+    int GetBoundingBox(SGRect *bbox, int flags);
 
     // Clipping and masking
     bool InitClipRegion(int width, int height);
@@ -288,13 +284,13 @@ public:
     float SetMiterLimit(float mlim);
     LINEEND SetLineEnd(LINEEND capstyle);
     LINEJOIN SetLineJoin(LINEJOIN joinstyle);
-    bool SetLineDash(char *dash, int offset, float mult);
+    bool SetLineDash(const char dash[], int offset, float mult);
 
 private:
     // Stroked path internal functions
     bool InitLineDash();
     FIX16 LineLength(const VERT16& vs, const VERT16& ve, XY *u, VERT16 *a);
-    void RoundJoin(const VERT16& v0, VERT16 a1, VERT16 a2);
+    void RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2);
     void JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout);
     void DashedLine(const VERT16& ve, const XY& u, const VERT16& a, FIX16 linelen);
     bool ThinStrokePath();
@@ -322,7 +318,7 @@ public:
     bool PolyBezier3(int npts, const SGPoint xy[]);
 
 private:
-    // Internal functions for for checking flatness of splines
+    // Internal functions for checking flatness of splines
     bool IsFlatQuadratic(const VERT16 v[]);
     bool IsFlatCubic(const VERT16 v[]);
 };

@@ -6,7 +6,7 @@
 LIBFILES = user32.lib gdi32.lib Winmm.lib Msimg32.lib
 OBJFILES = winmain.obj textapp.obj bmpfile.obj pattern.obj gradient.obj renderer.obj\
            arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
-BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp star.bmp
+BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
@@ -125,9 +125,6 @@ fleur.bmp : ..\fleur.bmp
 
 honeycomb.bmp : ..\honeycomb.bmp
 	copy /y ..\honeycomb.bmp
-
-star.bmp : ..\star.bmp
-	copy /y ..\star.bmp
 
 clean:
 	@del *.exe

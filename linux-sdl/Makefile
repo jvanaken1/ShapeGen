@@ -6,7 +6,7 @@ CC = g++
 
 OBJS = sdlmain.o bmpfile.o textapp.o gradient.o pattern.o renderer.o \
        arc.o curve.o edge.o path.o stroke.o thinline.o
-BMPS = bricks.bmp fleur.bmp honeycomb.bmp star.bmp
+BMPS = bricks.bmp fleur.bmp honeycomb.bmp
 
 all : .PHONY svgview $(BMPS) demo
 

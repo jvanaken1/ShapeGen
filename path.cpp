@@ -33,11 +33,11 @@
 
 //---------------------------------------------------------------------
 //
-// Private function: Creates a ShapeGen object and returns a pointer
+// Creates a ShapeGen object and returns a pointer to this object
 //
 //---------------------------------------------------------------------
 
-ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
+ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 {
     ShapeGen *sg = new PathMgr(renderer, cliprect);
     assert(sg != 0);  // out of memory?
@@ -47,7 +47,7 @@ ShapeGen* SGPtr::CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 
 //---------------------------------------------------------------------
 //
-// PathMgr constructor and destructor (both protected) 
+// PathMgr constructor and destructor (both protected)
 //
 //---------------------------------------------------------------------
 
@@ -64,10 +64,10 @@ PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
     assert(_edge != 0);  // out of memory?
     SetRenderer(renderer);
     InitClipRegion(cliprect.w, cliprect.h);
-    SetFixedBits(0); 
+    SetFixedBits(0);
     SetLineDash(0, 0, 0);
     SetFlatness(FLATNESS_DEFAULT);
-    SetLineWidth(LINEWIDTH_DEFAULT); 
+    SetLineWidth(LINEWIDTH_DEFAULT);
     SetLineEnd(LINEEND_DEFAULT);
     SetLineJoin(LINEJOIN_DEFAULT);
     SetMiterLimit(MITERLIMIT_DEFAULT);
@@ -91,7 +91,7 @@ bool PathMgr::SetRenderer(Renderer *renderer)
 {
     if (_edge->SetRenderer(renderer) == false)
         return false;
-    
+
     ResetClipRegion();  // N.B.: new renderer can change y resolution
     renderer->SetMaxWidth(_devicecliprect.w);
     renderer->SetScrollPosition(_devicecliprect.x, _devicecliprect.y);
@@ -105,7 +105,7 @@ bool PathMgr::SetRenderer(Renderer *renderer)
 // Parameters x and y specify the x-y displacements to subtract from
 // the points in any path before they are drawn. This feature permits
 // the viewer to scroll and pan through a constructed image that is
-// larger than the display window. 
+// larger than the display window.
 //
 //---------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 
 //---------------------------------------------------------------------
 //
-// Private function: Expands the size of the path memory in the event
+// Private function: Grows the size of the path memory in the event
 // of a path stack overflow. Allocates a larger stack and copies the
 // contents of the old stack to the new stack. The path management
 // functions are designed so that the only pointers that need to be
@@ -127,7 +127,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 //
 //---------------------------------------------------------------------
 
-void PathMgr::ExpandPath()
+void PathMgr::GrowPath()
 {
     int offset, oldlen = _pathlength;
     VERT16 *oldpath = _path;
@@ -214,7 +214,7 @@ int PathMgr::SetFixedBits(int nbits)
 
 void PathMgr::BeginPath()
 {
-    _figure = reinterpret_cast<FIGURE*>(&_path[0]);   
+    _figure = reinterpret_cast<FIGURE*>(&_path[0]);
     _figure->offset = 0;
     _figure->isclosed = false;
     _fpoint = &_path[1];
@@ -234,10 +234,10 @@ void PathMgr::FinalizeFigure(bool bclose)
     if (_cpoint != 0)
     {
         if (_cpoint != _fpoint)
-        { 
+        {
             int count = _cpoint - _fpoint;
             VERT16 *p = _fpoint, *q = p;
-        
+
             // Before starting a new figure, remove any redundant
             // points from the current figure
             for (int i = 0; i < count; ++i)
@@ -257,7 +257,7 @@ void PathMgr::FinalizeFigure(bool bclose)
                     _figure->isclosed = true;
                 }
                 _cpoint = p;
-                
+
                 // Start a new figure in the same path
                 PathCheck(++_cpoint);
                 _figure = reinterpret_cast<FIGURE*>(_cpoint);
@@ -279,12 +279,12 @@ void PathMgr::FinalizeFigure(bool bclose)
 // empty figure in the same path. If the current figure is empty (that
 // is, its first point is undefined), a CloseFigure call has no effect.
 // If the current figure contains only a single point, the current
-// figure is replaced by a new, initially empty figure. 
+// figure is replaced by a new, initially empty figure.
 //
 //----------------------------------------------------------------------
 
 void PathMgr::CloseFigure()
-{   
+{
     FinalizeFigure(true);
 }
 
@@ -365,7 +365,7 @@ bool PathMgr::PolyLine(int npts, const SGPoint xy[])
         return false;
     }
     for (int i = 0; i < npts; ++i)
-    {   
+    {
         PathCheck(++_cpoint);
         _cpoint->x = xy[i].x << _fixshift;
         _cpoint->y = xy[i].y << _fixshift;
@@ -375,7 +375,7 @@ bool PathMgr::PolyLine(int npts, const SGPoint xy[])
 
 //---------------------------------------------------------------------
 //
-// Public function: Appends a rectangle to the current path. First, the 
+// Public function: Appends a rectangle to the current path. First, the
 // function terminates the current figure (equivalent to an EndFigure
 // call), if it is not empty. Then it adds the rectangle to the path
 // as a closed figure. Rotation direction = clockwise.
@@ -383,7 +383,7 @@ bool PathMgr::PolyLine(int npts, const SGPoint xy[])
 //----------------------------------------------------------------------
 
 void PathMgr::Rectangle(const SGRect& rect)
-{    
+{
     SGCoord x, y;
 
     x = rect.x;
@@ -403,7 +403,7 @@ void PathMgr::Rectangle(const SGRect& rect)
 // Private function: Converts the points in the current path to a list
 // of polygonal edges. To prepare for a fill operation, this function
 // always closes the figure by adding a line segment to connect the
-// figure's start and end points. 
+// figure's start and end points.
 //
 //----------------------------------------------------------------------
 
@@ -413,7 +413,7 @@ bool PathMgr::PathToEdges()
     EndFigure();
     if (_figure->offset == 0)
         return false;  // path is empty
-    
+
     // Convert points in path stack to linked list of edges for
     // polygon. Each iteration processes one figure (or subpath).
     // Always force a figure to be closed by connecting its start
@@ -488,7 +488,7 @@ bool PathMgr::SetClipRegion(FILLRULE fillrule)
 //
 // Public function: Sets the new clipping region to the intersection
 // of the current clipping region and the _exterior_ of the current
-// path. Returns true if the new clipping region is not empty; 
+// path. Returns true if the new clipping region is not empty;
 // otherwise, returns false.
 //
 //---------------------------------------------------------------------
@@ -558,7 +558,7 @@ bool PathMgr::GetCurrentPoint(SGPoint *cpoint)
     if (cpoint != 0)
     {
         FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
-    
+
         cpoint->x = (_cpoint->x + roundoff) >> _fixshift;
         cpoint->y = (_cpoint->y + roundoff) >> _fixshift;
     }
@@ -586,7 +586,7 @@ bool PathMgr::GetFirstPoint(SGPoint *fpoint)
     if (fpoint != 0)
     {
         FIX16 roundoff = (_fixshift == 0) ? 0 : (1 << (_fixshift - 1));
-    
+
         fpoint->x = (_fpoint->x + roundoff) >> _fixshift;
         fpoint->y = (_fpoint->y + roundoff) >> _fixshift;
     }
@@ -596,42 +596,50 @@ bool PathMgr::GetFirstPoint(SGPoint *fpoint)
 //---------------------------------------------------------------------
 //
 // Public function: Retrieves the minimum bounding box for the current
-// path. If the path is not empty, the function writes the bounding box
-// coordinates, width, and height to the structure pointed to by bbox,
-// and then returns a count of the number of points in the path. If the
-// path is empty, the function immediately returns zero without writing
-// to the bbox structure. This function does not alter the path in any
-// way. By default, coordinates are integer values, but the user can
-// call SetFixedBits to switch to fixed-point coordinates.
+// path. If the path is not empty, the function writes the bounding
+// box coordinates, width, and height to the structure pointed to by
+// 'bbox', and then returns a count of the number of points in the
+// path. If the path is empty, the function immediately returns zero
+// without writing to the 'bbox' structure. The 'flags' parameter
+// allows the caller to modify the function's behavior; for example,
+// one flag bit instructs the function to calculate the what the
+// bounding box would be if the path were stroked with the current
+// stroke settings. This function does not alter the path in any way.
+// By default, coordinates are integer values, but the user can call
+// SetFixedBits to switch to using fixed-point coordinates, in which
+// case the values written to 'bbox' are fixed-point. Note that the
+// code below uses internal coordinates, which are in 16.16 fixed-
+// point format. Also, the function determines the bounding box from
+// the x-y coordinates in the path, and does not actually construct
+// any shapes.
 //
 //---------------------------------------------------------------------
 
-int PathMgr::GetBoundingBox(SGRect *bbox)
+int PathMgr::GetBoundingBox(SGRect *bbox, int flags)
 {
-    FIX16 xmin = 0x7fffffff, ymin = 0x7fffffff;
-    FIX16 xmax = 0x80000000, ymax = 0x80000000;
+    FIX16 xmin, ymin, xmax, ymax;
     FIGURE *fig;
     VERT16 *point;
     int offset, count = 0;
-    
-    if (!bbox)
-    {
-        assert(bbox != 0);
-        return 0;
-    }
+
+    xmin = ymin = 0x7fffffff;
+    xmax = ymax = 0x80000000;
     if (_cpoint == 0)
     {
         // Current figure is empty
         offset = _figure->offset;
         if (offset == 0)
             return 0;  // current path is empty
-            
+
         fig = _figure;
         point = _fpoint;
     }
     else
     {
-        // Current figure is not empty, not finalized
+        // Current figure is not empty, not finalized. (Note that the
+        // function does not try to access the locations pointed to
+        // by the initial values of 'fig' and 'point' just below, so
+        // there is no risk of an unhandled path stack overflow.)
         fig = reinterpret_cast<FIGURE*>(_cpoint + 1);
         point = _cpoint + 2;
         offset = point - _fpoint;
@@ -652,14 +660,84 @@ int PathMgr::GetBoundingBox(SGRect *bbox)
         count += npts;
         offset = fig->offset;
     }
-    if (bbox != 0)
+
+    // The bbox argument can be null (zero) if the caller simply wants
+    // a count of the number of points in the path
+    if (!bbox)
+        return count;
+
+    // Compensate for fuzzy edges of antialiased shapes
+    xmin -= 0x00008000;
+    ymin -= 0x00008000;
+    xmax += 0x00008000;
+    ymax += 0x00008000;
+    if (flags)
     {
-        FIX16 roundup = 0xffff >>_fixshift;
-    
-        bbox->x = xmin >> _fixshift;
-        bbox->y = ymin >> _fixshift;
-        bbox->w = ((xmax + roundup) >> _fixshift) - bbox->x;
-        bbox->h = ((ymax + roundup) >> _fixshift) - bbox->y;
+        FIX16 xmin0, ymin0, xmax0, ymax0;
+        if (flags & FLAG_BBOX_STROKE)
+        {
+            FIX16 pad = 0;
+            if (_linewidth)
+            {
+                if (_linejoin == LINEJOIN_MITER || _linejoin == LINEJOIN_SVG_MITER)
+                {
+                   float mlim = _miterlimit/65536.0f;
+                   pad = sqrt(mlim*mlim + 1.0f)*_linewidth/2;
+                }
+                else if (_lineend == LINEEND_SQUARE)
+                {
+                    const float sqrt2 = 1.414213562373f;
+                    pad = sqrt2*_linewidth/2;
+                }
+                else
+                    pad = _linewidth/2;
+            }
+            xmin -= pad;
+            ymin -= pad;
+            xmax += pad;
+            ymax += pad;
+        }
+        if (flags & FLAG_BBOX_CLIP)
+        {
+            xmin0 = _devicecliprect.x << 16;
+            ymin0 = _devicecliprect.y << 16;
+            xmax0 = xmin0 + (_devicecliprect.w << 16);
+            ymax0 = ymin0 + (_devicecliprect.h << 16);
+
+            xmin = max(xmin0, xmin);
+            ymin = max(ymin0, ymin);
+            xmax = min(xmax0, xmax);
+            ymax = min(ymax0, ymax);
+
+            if ((xmax - xmin) <= 0 || (ymax - ymin) <= 0)
+                return 0;  // clipped path is empty
+        }
+        if ((flags & FLAG_BBOX_ACCUM) && (bbox->w > 0) && (bbox->h > 0))
+        {
+            xmin0 = bbox->x << _fixshift;
+            ymin0 = bbox->y << _fixshift;
+            xmax0 = xmin0 + (bbox->w << _fixshift);
+            ymax0 = ymin0 + (bbox->h << _fixshift);
+
+            xmin = min(xmin0, xmin);
+            ymin = min(ymin0, ymin);
+            xmax = max(xmax0, xmax);
+            ymax = max(ymax0, ymax);
+        }
     }
+
+    // Extend sides of bbox outward to next pixel boundary
+    xmax += 0x0000ffff;
+    ymax += 0x0000ffff;
+    xmin &= 0xffff0000;
+    ymin &= 0xffff0000;
+    xmax &= 0xffff0000;
+    ymax &= 0xffff0000;
+
+    // Convert coordinates to user's current integer/fixed-point format
+    bbox->x = xmin >> _fixshift;
+    bbox->y = ymin >> _fixshift;
+    bbox->w = (xmax - xmin) >> _fixshift;
+    bbox->h = (ymax - ymin) >> _fixshift;
     return count;
 }
