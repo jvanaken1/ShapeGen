@@ -30,10 +30,10 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include "demo.h"
 #define NANOSVG_IMPLEMENTATION
 #define NANOSVG_ALL_COLOR_KEYWORDS
 #include "nanosvg.h"
+#include "demo.h"
 
 namespace {
     //-------------------------------------------------------------------
@@ -104,8 +104,8 @@ namespace {
 int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SGRect cliprect = clip;
-    cliprect.w = min(bkbuf.width, clip.w);
-    cliprect.h = min(bkbuf.height, clip.h);
+    cliprect.w = (bkbuf.width < clip.w) ? bkbuf.width : clip.w;
+    cliprect.h = (bkbuf.height < clip.h) ? bkbuf.height : clip.h;
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), cliprect));

@@ -622,11 +622,6 @@ int PathMgr::GetBoundingBox(SGRect *bbox, int flags)
     VERT16 *point;
     int offset, count = 0;
 
-    if (!bbox)
-    {
-        assert(bbox != 0);
-        return 0;
-    }
     xmin = ymin = 0x7fffffff;
     xmax = ymax = 0x80000000;
     if (_cpoint == 0)
@@ -665,6 +660,12 @@ int PathMgr::GetBoundingBox(SGRect *bbox, int flags)
         count += npts;
         offset = fig->offset;
     }
+
+    // The bbox argument can be null (zero) if the caller simply wants
+    // a count of the number of points in the path
+    if (!bbox)
+        return count;
+
     // Compensate for fuzzy edges of antialiased shapes
     xmin -= 0x00008000;
     ymin -= 0x00008000;

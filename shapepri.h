@@ -46,10 +46,6 @@
   #undef max
 #endif
 #define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
-#ifdef sign
-  #undef sign
-#endif
-#define sign(x)   ((x)<0?-1:1)       // sign (plus or minus) of value
 
 //---------------------------------------------------------------------
 //
