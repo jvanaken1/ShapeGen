@@ -2663,7 +2663,7 @@ void example01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint v0 = { 140, 250 }, v1 = { 280, 75 }, v2 = { 322, 348 };
 
-    // Draw quadratic Bezier spline in red
+    // Draw quadratic Bezier spline in blue
     aarend->SetColor(RGBX(135,206,250));
     sg->SetLineWidth(12.0);
     sg->BeginPath();
@@ -2702,7 +2702,7 @@ void example02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             v2 = { 364, 308 }, v3 = { 461, 70 };
 
     // Draw cubic Bezier spline in red
-    aarend->SetColor(RGBX(255,160,122));
+    aarend->SetColor(RGBX(255,100,90));
     sg->SetLineWidth(12.0);
     sg->BeginPath();
     sg->Move(v0.x, v0.y);
