@@ -123,7 +123,7 @@ void PathMgr::SetScrollPosition(int x, int y)
 // contents of the old stack to the new stack. The path management
 // functions are designed so that the only pointers that need to be
 // updated are _cpoint, _fpoint, _figure, and _figtmp. The path data
-// itself contains no pointers.
+// itself contains no pointers, only path-relative offsets.
 //
 //---------------------------------------------------------------------
 
@@ -602,16 +602,16 @@ bool PathMgr::GetFirstPoint(SGPoint *fpoint)
 // path. If the path is empty, the function immediately returns zero
 // without writing to the 'bbox' structure. The 'flags' parameter
 // allows the caller to modify the function's behavior; for example,
-// one flag bit instructs the function to calculate the what the
-// bounding box would be if the path were stroked with the current
-// stroke settings. This function does not alter the path in any way.
-// By default, coordinates are integer values, but the user can call
-// SetFixedBits to switch to using fixed-point coordinates, in which
-// case the values written to 'bbox' are fixed-point. Note that the
-// code below uses internal coordinates, which are in 16.16 fixed-
-// point format. Also, the function determines the bounding box from
-// the x-y coordinates in the path, and does not actually construct
-// any shapes.
+// one flag bit instructs the function to calculate what the bounding
+// box would be if the path were stroked with the current stroke
+// attributes. This function does not alter the path in any way. By
+// default, user coordinates are integer values, but the user can call
+// the SetFixedBits function to switch to using fixed-point coordi-
+// nates, in which case the values written to 'bbox' are fixed-point.
+// The code below uses ShapeGen-internal coordinates, which are in
+// 16.16 fixed-point format. Also, the function calculates the
+// bounding box based on the x-y coordinates in the path, and does not
+// actually construct any shapes.
 //
 //---------------------------------------------------------------------
 

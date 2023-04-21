@@ -24,15 +24,21 @@
 
 // Allocates a memory buffer that can hold enough 32-bit pixels to
 // store a rectangular image of width 'w' and height 'h', where the
-// rows occupy contiguous memory. Fills the allocated memory with byte
-// value 'fill', which is typically set to either 0 (for transparent
-// black) or 0xff (for opaque white). Parameter 'fill' is optional;
-// it defaults to 0. The function returns a pointer to the buffer.
-COLOR* AllocateRawPixels(int w, int h, char fill)
+// rows occupy contiguous memory. Fills the allocated memory with
+// pixel value 'fill', which is typically set to either 0 (for
+// transparent black) or 0xffffffff (for opaque white). Parameter
+// 'fill' is optional; it defaults to 0. The function returns a
+// pointer to the buffer.
+COLOR* AllocateRawPixels(int w, int h, COLOR fill)
 {
-    COLOR *pixbuf = new COLOR[w*h];
+    assert(w >= 0 && h >= 0);
+    int len = w*h;
+    COLOR *pixbuf = new COLOR[len];
     assert(pixbuf);
-    memset(pixbuf, fill, w*h*sizeof(pixbuf[0]));
+    COLOR *p = pixbuf;
+    for (int i = 0; i < len; ++i)
+        *p++ = fill;
+
     return pixbuf;
 }
 
@@ -48,12 +54,12 @@ COLOR* DeleteRawPixels(COLOR *buf)
 // 'buf', and fills in the fields of this descriptor to describe the
 // allocated memory. The previous contents of descriptor 'buf' are
 // overwritten. The allocated memory is large enough to contain an
-// image of width 'w' and height 'h', and is filled with byte value
+// image of width 'w' and height 'h', and is filled with pixel value
 // 'fill', which the caller typically sets to either 0 (to fill with
-// transparent black) or 0xff (opaque white). Parameter 'fill' is
-// optional; it defaults to 0. The function returns a pointer to the
-// allocated memory.
-COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, char fill)
+// transparent black) or 0xffffffff (opaque white). Parameter 'fill'
+// is optional; it defaults to 0. The function returns a pointer to
+// the allocated memory.
+COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, COLOR fill)
 {
     buf.pixels = AllocateRawPixels(w, h, fill);
     buf.width = w;
@@ -219,7 +225,7 @@ namespace {
 //---------------------------------------------------------------------
 AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *backbuf)
                   : _width(0), _linebuf(0), _aabuf(0), _paintgen(0),
-                    _stopCount(0), _pxform(0), _alpha(255),
+                    _stopCount(0), _pxform(0), _color(0), _alpha(255),
                     _xscroll(0), _yscroll(0)
 {
     assert(backbuf->depth == 32);
@@ -436,6 +442,7 @@ void AA4x8Renderer::SetColor(COLOR color)
 {
     COLOR opacity = _alpha*(color >> 24);
 
+    _color = color;
     if (_paintgen)
     {
         _paintgen->~PaintGen();
@@ -460,6 +467,15 @@ void AA4x8Renderer::BlendConstantAlphaLUT()
 {
     memset(_lut, 0, sizeof(_lut));
     BlendLUT(_alpha);
+}
+
+void AA4x8Renderer::SetConstantAlpha(COLOR alpha)
+{
+    _alpha = alpha & 255;
+    if (_paintgen)
+        BlendConstantAlphaLUT();
+    else
+        SetColor(_color);
 }
 
 // The patterns and gradients in painted shapes must follow the

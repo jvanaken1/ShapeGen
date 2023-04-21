@@ -91,9 +91,9 @@ struct PIXEL_BUFFER
 };
 
 // Utilities for manipulating pixel buffers
-extern COLOR* AllocateRawPixels(int w, int h, char fill = 0);
+extern COLOR* AllocateRawPixels(int w, int h, COLOR fill = 0);
 extern COLOR* DeleteRawPixels(COLOR *buf);
-extern COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, char fill = 0);
+extern COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, COLOR fill = 0);
 extern COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf);
 extern void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox);
 
@@ -307,6 +307,7 @@ class AA4x8Renderer : public EnhancedRenderer
     PIXEL_BUFFER _backbuf;  // back buffer descriptor
     COLOR *_linebuf;   // pixel data bits in scanline buffer
     COLOR _alpha;      // source constant alpha
+    COLOR _color;      // current color for solid color fills
     int _width;        // width (in pixels) of device clipping rect
     int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
     int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
@@ -347,7 +348,7 @@ public:
     void AddColorStop(float offset, COLOR color);
     void ResetColorStops() { _stopCount = 0; }
     void SetTransform(const float xform[]);
-    void SetConstantAlpha(COLOR alpha) { _alpha = alpha & 255; }
+    void SetConstantAlpha(COLOR alpha);
 };
 
 //---------------------------------------------------------------------
