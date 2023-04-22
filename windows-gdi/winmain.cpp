@@ -148,6 +148,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         case VK_ESCAPE:
             if (mod)
             {
+                if (hbmp)
+                {
+                    DeleteObject(hbmp);
+                    hbmp = 0;
+                }
                 PostQuitMessage(0);
                 return 0;
             }
@@ -184,6 +189,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 UserMessage usrmsg;
                 usrmsg.ShowMessage("Failed to allocate back buffer",
                                    "ShapeGen demo - out of memory", MESSAGECODE_ERROR);
+                if (hbmp)
+                {
+                    DeleteObject(hbmp);
+                    hbmp = 0;
+                }
                 PostQuitMessage(0);
                 return 0;
             }
@@ -199,13 +209,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hwnd, &ps);
         if (hbmp)
         {
-            // Back-buffer descriptor will be passed to renderers
+            // Back-buffer descriptor will be passed to renderers.
+            // Note that pitch is specified in bytes, not pixels.
             PIXEL_BUFFER bkbuf;
             bkbuf.pixels = (COLOR*)bmpixels;
             bkbuf.width  = cliprect.w;
             bkbuf.height = cliprect.h;
             bkbuf.depth  = 32;
-            bkbuf.pitch  = 4*cliprect.w;  // pitch specified in bytes
+            bkbuf.pitch  = sizeof(COLOR)*cliprect.w;
 
             // Render next frame into back buffer
             testnum = RunTest(testnum, bkbuf, cliprect);
@@ -228,6 +239,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_DESTROY:
+        if (hbmp)
+        {
+            DeleteObject(hbmp);
+            hbmp = 0;
+        }
         PostQuitMessage(0);
         return 0;
     }
