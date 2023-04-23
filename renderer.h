@@ -93,8 +93,6 @@ struct PIXEL_BUFFER
 // Utilities for manipulating pixel buffers
 COLOR* AllocateRawPixels(int w, int h, COLOR fill = 0);
 COLOR* DeleteRawPixels(COLOR *buf);
-COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, COLOR fill = 0);
-COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf);
 void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox);
 
 //---------------------------------------------------------------------
@@ -143,6 +141,7 @@ public:
 class EnhancedRenderer : public SimpleRenderer
 {
 public:
+    virtual bool GetPixelBuffer(PIXEL_BUFFER *pixbuf) = 0;
     virtual void SetColor(COLOR color) = 0;
     virtual void SetLinearGradient(float x0, float y0, float x1, float y1,
                                    SPREAD_METHOD spread, int flags) = 0;
@@ -304,11 +303,13 @@ class AA4x8Renderer : public EnhancedRenderer
 {
     friend ShapeGen;
 
-    PIXEL_BUFFER _backbuf;  // back buffer descriptor
+    PIXEL_BUFFER _pixbuf;  // pixel buffer descriptor
+    int _stride;       // stride in pixels = pitch/sizeof(COLOR)
+    bool _useralloc;   // true if user allocated pixel memory
     COLOR *_linebuf;   // pixel data bits in scanline buffer
     COLOR _alpha;      // source constant alpha
     COLOR _color;      // current color for solid color fills
-    int _width;        // width (in pixels) of device clipping rect
+    int _maxwidth;     // width (in pixels) of device clipping rect
     int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
     int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
     int _lut[33];      // look-up table for source alpha/RGB values
@@ -327,14 +328,15 @@ class AA4x8Renderer : public EnhancedRenderer
 protected:
     // Interface to ShapeGen object
     void RenderShape(ShapeFeeder *feeder);
-    bool SetMaxWidth(int width);
+    bool SetMaxWidth(int maxwidth);
     int QueryYResolution() { return 2; }
     bool SetScrollPosition(int x, int y);
 
 public:
     // Application interface
-    AA4x8Renderer(const PIXEL_BUFFER *backbuf);
+    AA4x8Renderer(const PIXEL_BUFFER *pixbuf);
     ~AA4x8Renderer();
+    bool GetPixelBuffer(PIXEL_BUFFER *pixbuf);
     void SetColor(COLOR color);
     void SetPattern(const COLOR *pattern, float u0, float v0,
                     int w, int h, int stride, int flags);

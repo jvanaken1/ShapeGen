@@ -31,10 +31,18 @@
 // pointer to the buffer.
 COLOR* AllocateRawPixels(int w, int h, COLOR fill)
 {
-    assert(w >= 0 && h >= 0);
+    if (w <= 0 || h <= 0)
+    {
+        assert(w > 0 && h > 0);
+        return 0;  // bad parameters
+    }
     int len = w*h;
     COLOR *pixbuf = new COLOR[len];
-    assert(pixbuf);
+    if (!pixbuf)
+    {
+        assert(pixbuf);
+        return 0;  // out of memory
+    }
     COLOR *p = pixbuf;
     for (int i = 0; i < len; ++i)
         *p++ = fill;
@@ -50,42 +58,13 @@ COLOR* DeleteRawPixels(COLOR *buf)
     return 0;
 }
 
-// Allocates memory for a caller-supplied pixel-buffer descriptor,
-// 'buf', and fills in the fields of this descriptor to describe the
-// allocated memory. The previous contents of descriptor 'buf' are
-// overwritten. The allocated memory is large enough to contain an
-// image of width 'w' and height 'h', and is filled with pixel value
-// 'fill', which the caller typically sets to either 0 (to fill with
-// transparent black) or 0xffffffff (opaque white). Parameter 'fill'
-// is optional; it defaults to 0. The function returns a pointer to
-// the allocated memory.
-COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, COLOR fill)
-{
-    buf.pixels = AllocateRawPixels(w, h, fill);
-    buf.width = w;
-    buf.height = h;
-    buf.depth = 32;
-    buf.pitch = w*sizeof(COLOR);
-    return buf.pixels;
-}
-
-// Deletes the pixel memory previously allocated for pixel buffer
-// descriptor 'buf' by the AllocatePixelBuffer function. Sets the
-// 'pixels' field in descriptor 'buf' to 0. Always returns 0.
-COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf)
-{
-    DeleteRawPixels(buf.pixels);
-    buf.pixels = 0;
-    return 0;
-}
-
 // Fills in the fields of pixel-buffer descriptor 'subbuf' to
 // describe a rectangular subregion of the pixel memory described
 // by pixel-buffer descriptor 'buf'. The x-y coordinates of this
 // subregion are specified in bounding box 'bbox'. The previous
 // contents of descriptor 'buf' are overwritten. No clipping is
 // performed, and the caller is responsible for ensuring that
-// the subregion described by 'bbox' is valid. No return value.
+// the subregion described by 'bbox' is valid.
 void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox)
 {
     int stride = buf.pitch/sizeof(COLOR);
@@ -223,14 +202,35 @@ namespace {
 // before being processed.
 //
 //---------------------------------------------------------------------
-AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *backbuf)
-                  : _width(0), _linebuf(0), _aabuf(0), _paintgen(0),
+AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf)
+                  : _maxwidth(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _color(0), _alpha(255),
-                    _xscroll(0), _yscroll(0)
+                    _xscroll(0), _yscroll(0), _useralloc(true)
 {
-    assert(backbuf->depth == 32);
-    _backbuf = *backbuf;
-    _backbuf.pitch /= sizeof(COLOR);  // convert from bytes to pixels
+    if (pixbuf->width <= 0 || pixbuf->height <= 0 || pixbuf->depth != 32 ||
+        pixbuf->pitch < pixbuf->width*sizeof(COLOR))
+    {
+        assert(0);
+        return;
+    }
+    _pixbuf = *pixbuf;
+    if (_pixbuf.pixels == 0)
+    {
+        // The user wants us to allocate a pixel buffer
+        _pixbuf.pixels = AllocateRawPixels(_pixbuf.width, _pixbuf.height, RGBA(0,0,0,0));
+        if (_pixbuf.pixels == 0)
+        {
+            memset(&_pixbuf, 0, sizeof(_pixbuf));  // out of memory
+            return;
+        }
+        _pixbuf.pitch = _pixbuf.width*sizeof(COLOR);
+        _stride = _pixbuf.width;
+        _useralloc = false;  // remember that we allocated the buffer
+    }
+    else
+    {
+        _stride = _pixbuf.pitch/sizeof(COLOR);
+    }
     memset(&_lut[0], 0, sizeof(_lut));
     memset(&_aarow[0], 0, sizeof(_aarow));
     memset(&_cstop[0], 0, sizeof(_cstop));
@@ -242,8 +242,21 @@ AA4x8Renderer::~AA4x8Renderer()
 {
     delete[] _aabuf;
     delete[] _linebuf;
+    if (_useralloc = false)
+        DeleteRawPixels(_pixbuf.pixels);
     if (_paintgen)
         _paintgen->~PaintGen();
+}
+
+// The caller wants to see our pixel-buffer descriptor
+bool AA4x8Renderer::GetPixelBuffer(PIXEL_BUFFER *pixbuf)
+{
+    if (_pixbuf.pixels)
+    {
+        *pixbuf = _pixbuf;
+        return true;
+    }
+    return false;
 }
 
 // ShapeGen calls this function to notify the renderer when the width
@@ -255,23 +268,23 @@ bool AA4x8Renderer::SetMaxWidth(int width)
     width = (width + 3) & ~3;
     assert(width > 0);  // assumption: width is never zero
 
-    if (_width != width)
+    if (_maxwidth != width)
     {
-        _width = width;
+        _maxwidth = width;
 
         // Allocate buffer to store one scan line of BGRA pixels
         delete[] _linebuf;
-        _linebuf = new COLOR[_width];
+        _linebuf = new COLOR[_maxwidth];
         assert(_linebuf);
-        memset(_linebuf, 0, _width*sizeof(_linebuf[0]));
+        memset(_linebuf, 0, _maxwidth*sizeof(_linebuf[0]));
 
         // Allocate the new AA-buffer
         delete[] _aabuf;
-        _aabuf = new int[_width];
+        _aabuf = new int[_maxwidth];
         assert(_aabuf);
-        memset(_aabuf, 0, _width*sizeof(_aabuf[0]));
+        memset(_aabuf, 0, _maxwidth*sizeof(_aabuf[0]));
         for (int i = 0; i < 4; ++i)
-            _aarow[i] = &_aabuf[i*_width/4];
+            _aarow[i] = &_aabuf[i*_maxwidth/4];
     }
     return true;
 }
@@ -408,7 +421,7 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
         _paintgen->FillSpan(xleft, yscan, len, srcbuf, srcbuf);
 
     // Alpha-blend the painted pixels into the back buffer
-    COLOR *dest = &_backbuf.pixels[yscan*_backbuf.pitch + xleft];
+    COLOR *dest = &_pixbuf.pixels[yscan*_stride + xleft];
     AlphaBlender(srcbuf, dest, len);
     memset(&_linebuf[xleft], 0, len*sizeof(_linebuf[0]));
 }
