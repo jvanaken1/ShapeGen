@@ -91,11 +91,11 @@ struct PIXEL_BUFFER
 };
 
 // Utilities for manipulating pixel buffers
-extern COLOR* AllocateRawPixels(int w, int h, COLOR fill = 0);
-extern COLOR* DeleteRawPixels(COLOR *buf);
-extern COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, COLOR fill = 0);
-extern COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf);
-extern void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox);
+COLOR* AllocateRawPixels(int w, int h, COLOR fill = 0);
+COLOR* DeleteRawPixels(COLOR *buf);
+COLOR* AllocatePixelBuffer(PIXEL_BUFFER& buf, int w, int h, COLOR fill = 0);
+COLOR* DeletePixelBuffer(PIXEL_BUFFER& buf);
+void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox);
 
 //---------------------------------------------------------------------
 //
