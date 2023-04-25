@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2022 Jerry R. VanAken
+  Copyright (C) 2022-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -263,7 +263,7 @@ extern RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
 //---------------------------------------------------------------------
 //
 // BasicRenderer class: A platform-independent implementation of the
-// SimpleRenderer virtual base class defined above.
+// SimpleRenderer virtual base class defined above
 //
 //---------------------------------------------------------------------
 
@@ -305,7 +305,7 @@ class AA4x8Renderer : public EnhancedRenderer
 
     PIXEL_BUFFER _pixbuf;  // pixel buffer descriptor
     int _stride;       // stride in pixels = pitch/sizeof(COLOR)
-    bool _useralloc;   // true if user allocated pixel memory
+    bool _pixalloc;    // true if we allocated the pixel memory
     COLOR *_linebuf;   // pixel data bits in scanline buffer
     COLOR _alpha;      // source constant alpha
     COLOR _color;      // current color for solid color fills
@@ -355,12 +355,12 @@ public:
 
 //---------------------------------------------------------------------
 //
-// Each of the following functions creates a SimpleRenderer or
-// EnhancedRender object and returns a pointer to this object
+// The following functions create a SimpleRenderer or EnhancedRender
+// object and return a pointer to this object
 //
 //---------------------------------------------------------------------
 
-SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *bkbuf);
-EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *bkbuf);
+SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *pixbuf);
+EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *pixbuf);
 
 #endif // RENDERER_H

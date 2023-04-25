@@ -1,3 +1,24 @@
+/*
+  Copyright (C) 2022-2023 Jerry R. VanAken
+
+  This software is provided 'as-is', without any express or implied
+  warranty. In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+
+  3. This notice may not be removed or altered from any source distribution.
+*/
 //---------------------------------------------------------------------
 //
 //  renderer.cpp:
@@ -153,11 +174,11 @@ namespace {
         return color;
     }
 
-    // Alpha-blends an array of 32-bit source pixels into an array of
-    // 32-bit destination pixels. Parameter len is the array length.
-    // Both source and destination pixels are in either BGRA format
-    // (that is, 0xaarrggbb) or RGBA format (0xaabbggrr), and have
-    // already been premultiplied by their alpha values.
+    // Alpha-blends a 1-D array of 32-bit source pixels into a 1-D
+    // array of 32-bit destination pixels. Parameter len is the array
+    // length. Both source and destination pixels are in either BGRA
+    // format (that is, 0xaarrggbb) or RGBA format (0xaabbggrr), and
+    // have already been premultiplied by their alpha values.
     void AlphaBlender(COLOR *src, COLOR *dst, int len)
     {
         while (len--)
@@ -205,32 +226,29 @@ namespace {
 AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf)
                   : _maxwidth(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _color(0), _alpha(255),
-                    _xscroll(0), _yscroll(0), _useralloc(true)
+                    _xscroll(0), _yscroll(0), _pixalloc(false)
 {
     if (pixbuf->width <= 0 || pixbuf->height <= 0 || pixbuf->depth != 32 ||
-        pixbuf->pitch < pixbuf->width*sizeof(COLOR))
+        (pixbuf->pitch/sizeof(COLOR) < pixbuf->width && pixbuf->pixels))
     {
         assert(0);
-        return;
+        _pixbuf.pixels = 0;
+        return;  // bad parameter
     }
     _pixbuf = *pixbuf;
     if (_pixbuf.pixels == 0)
     {
-        // The user wants us to allocate a pixel buffer
+        // The caller wants us to allocate a pixel buffer
         _pixbuf.pixels = AllocateRawPixels(_pixbuf.width, _pixbuf.height, RGBA(0,0,0,0));
         if (_pixbuf.pixels == 0)
         {
-            memset(&_pixbuf, 0, sizeof(_pixbuf));  // out of memory
-            return;
+            assert(_pixbuf.pixels);
+            return;  // out of memory
         }
+        _pixalloc = true;  // don't forget we allocated pixel memory
         _pixbuf.pitch = _pixbuf.width*sizeof(COLOR);
-        _stride = _pixbuf.width;
-        _useralloc = false;  // remember that we allocated the buffer
     }
-    else
-    {
-        _stride = _pixbuf.pitch/sizeof(COLOR);
-    }
+    _stride = _pixbuf.pitch/sizeof(COLOR);
     memset(&_lut[0], 0, sizeof(_lut));
     memset(&_aarow[0], 0, sizeof(_aarow));
     memset(&_cstop[0], 0, sizeof(_cstop));
@@ -242,13 +260,13 @@ AA4x8Renderer::~AA4x8Renderer()
 {
     delete[] _aabuf;
     delete[] _linebuf;
-    if (_useralloc = false)
+    if (_pixalloc)
         DeleteRawPixels(_pixbuf.pixels);
     if (_paintgen)
         _paintgen->~PaintGen();
 }
 
-// The caller wants to see our pixel-buffer descriptor
+// Public function: The caller wants a copy of our pixel-buffer info
 bool AA4x8Renderer::GetPixelBuffer(PIXEL_BUFFER *pixbuf)
 {
     if (_pixbuf.pixels)
@@ -259,15 +277,15 @@ bool AA4x8Renderer::GetPixelBuffer(PIXEL_BUFFER *pixbuf)
     return false;
 }
 
-// ShapeGen calls this function to notify the renderer when the width
-// of the device clipping rectangle changes. This function rebuilds
-// the AA-buffer and the scan-line buffer to accommodate the new width.
+// Protected function: ShapeGen calls this function to notify the
+// renderer when the width of the device clipping rectangle changes.
+// This function rebuilds the AA-buffer and the scan-line buffer to
+// accommodate the new width.
 bool AA4x8Renderer::SetMaxWidth(int width)
 {
     // Pad out specified width to be multiple of four
     width = (width + 3) & ~3;
     assert(width > 0);  // assumption: width is never zero
-
     if (_maxwidth != width)
     {
         _maxwidth = width;
@@ -289,9 +307,16 @@ bool AA4x8Renderer::SetMaxWidth(int width)
     return true;
 }
 
-// Fills a series of horizontal spans that comprise a shape
+// Protected function: Called by ShapeGen to fill a series of
+// horizontal spans that comprise a shape
 void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
 {
+    if (_pixbuf.pixels == 0)
+    {
+        assert(_pixbuf.pixels);
+        return;  // not a valid pixel buffer
+    }
+
     const int FIX_BIAS = 0x00007fff;
     const int YSCAN_INVALID = 0x80000000;
     int yscan = YSCAN_INVALID;
@@ -336,10 +361,10 @@ void AA4x8Renderer::RenderShape(ShapeFeeder *feeder)
         RenderAbuffer(xmin, xmax, yscan);
 }
 
-// Fills a subpixel span (horizontal string of bits) in the AA-buffer.
-// The span starting and ending x coordinates, xL and xR, are
-// fixed-point values with 3 fractional (subpixel) bits. The span
-// y coordinate, ysub, is a fixed-point value with 2 fractional bits.
+// Private function: Fills a subpixel span (horizontal string of bits)
+// in the AA-buffer. The span starting and ending x coordinates, xL and
+// xR, are fixed-point values with 3 fractional (subpixel) bits. The
+// span's y coordinate, ysub, is fixed-point with 2 fractional bits.
 void AA4x8Renderer::FillSubpixelSpan(int xL, int xR, int ysub)
 {
     // To speed up AA-buffer accesses, we write 4 bytes at a time
@@ -367,8 +392,8 @@ void AA4x8Renderer::FillSubpixelSpan(int xL, int xR, int ysub)
         prow[iL] |= maskL & maskR;
 }
 
-// Use the data in the AA-buffer to paint the antialiased pixels in
-// the scan line that was just completed
+// Private function: Uses the data in the AA-buffer to paint the
+// antialiased pixels in the scan line that was just completed
 void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
 {
     int iL = xmin >> 5;         // index of first 4-byte block
@@ -426,10 +451,10 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     memset(&_linebuf[xleft], 0, len*sizeof(_linebuf[0]));
 }
 
-// Loads an RGB color component or alpha value into the look-up
-// table in the _lut array. The array is loaded with 33 elements
-// corresponding to all possible per-pixel alpha values (0/32,
-// 1/32, ... , 32/32) obtained from a pixel's 32-bit coverage
+// Private function: Loads an RGB color component or alpha value into
+// the look-up table in the _lut array. The array is loaded with 33
+// elements corresponding to all possible per-pixel alpha values
+// (0/32, 1/32, ... , 32/32) obtained from a pixel's 32-bit coverage
 // bitmask in the AA-buffer. The motivation here is to substitute
 // table lookups for multiplications during fill operations.
 void AA4x8Renderer::BlendLUT(COLOR component)
@@ -444,12 +469,23 @@ void AA4x8Renderer::BlendLUT(COLOR component)
     }
 }
 
-// Sets up the renderer to do solid color fills. This function
-// loads the _lut array with the premultiplied-alpha pixel values
-// for all possible per-pixel alpha values (0/32, 1/32, ... ,
-// 32/32) obtained from a pixel's coverage bitmask in the AA-buffer.
-// In the process, the pixel's color is converted from RGBA (that
-// is, 0xaabbggrr) to BGRA (0xaarrggbb) format. Note that the
+// Private function: Loads the _lut array with the product of the
+// current source-constant alpha and all possible per-pixel alpha
+// values (0/32, 1/32, ... , 32/32) obtained from a pixel's 32-bit
+// coverage bitmask in the AA-buffer. Then we can substitute table
+// lookups for multiplications during fill operations.
+void AA4x8Renderer::BlendConstantAlphaLUT()
+{
+    memset(_lut, 0, sizeof(_lut));
+    BlendLUT(_alpha);
+}
+
+// Public function: Sets up the renderer to do solid color fills. This
+// function loads the _lut array with the premultiplied-alpha pixel
+// values for all possible per-pixel alpha values (0/32, 1/32, ... ,
+// 32/32) obtained from a pixel's 32-bit coverage bitmask in the
+// AA-buffer. In the process, the pixel's color is converted from RGBA
+// (that is, 0xaabbggrr) to BGRA (0xaarrggbb) format. Note that the
 // source-constant alpha is first mixed with the per-pixel alpha.
 void AA4x8Renderer::SetColor(COLOR color)
 {
@@ -471,17 +507,6 @@ void AA4x8Renderer::SetColor(COLOR color)
         BlendLUT((color >> shift) & 255);
 }
 
-// Loads the _lut array with the product of the current source-
-// constant alpha and all possible per-pixel alpha values (0/32,
-// 1/32, ... , 32/32) obtained from a pixel's 32-bit coverage
-// bitmask in the AA-buffer. The motivation here is to substitute
-// table lookups for multiplications during fill operations.
-void AA4x8Renderer::BlendConstantAlphaLUT()
-{
-    memset(_lut, 0, sizeof(_lut));
-    BlendLUT(_alpha);
-}
-
 void AA4x8Renderer::SetConstantAlpha(COLOR alpha)
 {
     _alpha = alpha & 255;
@@ -491,8 +516,9 @@ void AA4x8Renderer::SetConstantAlpha(COLOR alpha)
         SetColor(_color);
 }
 
-// The patterns and gradients in painted shapes must follow the
-// shapes as they are scrolled horizontally and vertically.
+// Protected function: ShapeGen calls this function so that the
+// patterns and gradients in painted shapes can follow the shapes
+// as they are scrolled horizontally and vertically.
 bool AA4x8Renderer::SetScrollPosition(int x, int y)
 {
     _xscroll = x, _yscroll = y;
@@ -502,8 +528,8 @@ bool AA4x8Renderer::SetScrollPosition(int x, int y)
     return true;
 }
 
-// Prepares the renderer to do tiled-pattern fills from a pixel array
-// containing a 2-D image
+// Public function: Prepares the renderer to do tiled-pattern fills
+// from a pixel array containing a 2-D image
 void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
                                int w, int h, int stride, int flags)
 {
@@ -525,8 +551,8 @@ void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Prepares the renderer to use the 2-D image from a bitmap file
-// to do tiled-pattern fills
+// Public function: Sets up the renderer to use the 2-D image from a
+// bitmap file or 2-D matrix to do tiled-pattern fills
 void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
                                int w, int h, int flags)
 {
@@ -548,7 +574,7 @@ void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Prepares the renderer to do linear gradient fills
+// Public function: Prepares the renderer to do linear gradient fills
 void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
                                       SPREAD_METHOD spread, int flags)
 {
@@ -568,7 +594,7 @@ void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Prepares the renderer to do radial gradient fills
+// Public function: Prepares the renderer to do radial gradient fills
 void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
                                       float x1, float y1, float r1,
                                       SPREAD_METHOD spread, int flags)
@@ -589,9 +615,9 @@ void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
 
-// Adds a gradient color stop. In the process, the 32-bit stop
-// color is converted from RGBA (that is, 0xaabbggrr) to BGRA
-// (0xaarrggbb) pixel format.
+// Public function: Adds a gradient color stop. In the process, the
+// 32-bit stop color is converted from RGBA (that is, 0xaabbggrr) to
+// BGRA (0xaarrggbb) pixel format.
 void AA4x8Renderer::AddColorStop(float offset, COLOR color)
 {
     if (_stopCount < STOPARRAY_MAXLEN)
@@ -606,7 +632,12 @@ void AA4x8Renderer::AddColorStop(float offset, COLOR color)
     }
 }
 
-// Sets the transformation matrix to use for patterns and gradients
+// Public function: Specifies the transformation matrix that will be
+// applied to patterns and gradients. If the same transformation is
+// applied to painted shapes, the patterns and gradients in the shapes
+// will stay in sync with the transformed shapes. Setting the 'xform'
+// parameter to 0 has the same effect as specifying the identify
+// matrix, but avoids unnecessary matrix calculations.
 void AA4x8Renderer::SetTransform(const float xform[])
 {
     if (xform)
@@ -620,25 +651,26 @@ void AA4x8Renderer::SetTransform(const float xform[])
 
 //---------------------------------------------------------------------
 //
-// Each of the following functions creates a SimpleRenderer or
-// EnhancedRender object and returns a pointer to this object. The
-// caller is responsible for deleting this object when it is no
-// longer needed (hint: you can use a smart pointer; see the SmartPtr
-// class template in shapegen.h).
+// The following functions create a SimpleRenderer or EnhancedRender
+// object and return a pointer to this object. The caller is
+// responsible for deleting this object when it is no longer needed
+// (hint: you can use a smart pointer; see the SmartPtr class template
+// in shapegen.h). The 'pixbuf' parameter specifies the frame buffer,
+// back buffer, or layer buffer that is to be the rendering target.
 //
 //---------------------------------------------------------------------
 
-SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *bkbuf)
+SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *pixbuf)
 {
-    SimpleRenderer *rend = new BasicRenderer(bkbuf);
+    SimpleRenderer *rend = new BasicRenderer(pixbuf);
     assert(rend != 0);  // out of memory?
 
     return rend;
 }
 
-EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *bkbuf)
+EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *pixbuf)
 {
-    EnhancedRenderer *aarend = new AA4x8Renderer(bkbuf);
+    EnhancedRenderer *aarend = new AA4x8Renderer(pixbuf);
     assert(aarend != 0);  // out of memory?
 
     return aarend;
