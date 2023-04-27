@@ -162,4 +162,67 @@ public:
     float GetTextWidth(float scale, const char *str);
 };
 
+//---------------------------------------------------------------------
+//
+// An AlphaBlur object uses a Gaussian filter to blur images, and is
+// typically used to draw drop shadows. The AlphaBlur class is
+// implemented in alfablur.cpp.
+//
+//---------------------------------------------------------------------
+
+class AlphaBlur : public ImageReader
+{
+    float _stddev;   // standard deviation
+    COLOR *_kcoeff;  // kernel coefficients
+    int _kwidth;     // kernel width
+    COLOR _color;    // fill color
+    COLOR *_pixels;  // pointer to blurred image pixels
+    int _width;      // width of blurred image
+    int _height;     // height of blurred image
+    int _numpixels;  // number of pixels in blurred image
+    int _index;      // current index into blurred image
+
+    void ApplyGaussianFilter(COLOR dst[], const COLOR src[], int len);
+
+public:
+    AlphaBlur(float stddev = 0, int kwidth = 0) :
+        _color(0), _pixels(0), _width(0), _height(0), _numpixels(0), _index(0)
+    {
+        CreateFilterKernel(stddev, kwidth);
+    }
+
+    ~AlphaBlur();
+
+    void GetBlurredBoundingBox(SGRect& blurbbox, const SGRect& bbox);
+
+    int CreateFilterKernel(float stddev = 0, int kwidth = 0);
+
+    float GetStandardDeviation() { return _stddev; }
+
+    int GetKernelWidth() { return _kwidth; }
+
+    COLOR SetColor(COLOR color = 0)
+    {
+        _color = color & 0x00ffffff;
+        return _color;
+    }
+
+    bool BlurImage(const PIXEL_BUFFER& srcimage);
+
+    int GetImageInfo(int *width, int *height)
+    {
+        *width  = _width;
+        *height = _height;
+        return 0;
+    }
+
+    int ReadPixels(COLOR *buffer, int count);
+
+    int RewindData()
+    {
+        _index = 0;
+        return 0;
+    }
+};
+
 #endif // DEMO_H

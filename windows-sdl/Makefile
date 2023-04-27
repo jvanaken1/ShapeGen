@@ -8,8 +8,8 @@
 INCDIR = C:\SDL2\include
 LIBDIR = C:\SDL2\lib\x86
 LIBFILES = $(LIBDIR)\SDL2main.lib $(LIBDIR)\SDL2.lib shell32.lib
-OBJFILES = sdlmain.obj bmpfile.obj textapp.obj gradient.obj pattern.obj renderer.obj \
-           arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
+OBJFILES = sdlmain.obj bmpfile.obj textapp.obj gradient.obj pattern.obj alfablur.obj \
+           renderer.obj arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
 BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp
 CC = cl.exe
 CDEBUG = -Zi
@@ -42,6 +42,9 @@ gradient.obj : gradient.cpp shapegen.h renderer.h
 
 pattern.obj : pattern.cpp shapegen.h renderer.h
 	$(CC) $(CDEBUG) -c pattern.cpp
+
+alfablur.obj : alfablur.cpp shapegen.h renderer.h
+	$(CC) $(CDEBUG) -c alfablur.cpp
 
 arc.obj : arc.cpp shapegen.h shapepri.h
 	$(CC) $(CDEBUG) -c arc.cpp
@@ -99,6 +102,9 @@ edge.cpp : ..\edge.cpp
 
 pattern.cpp : ..\pattern.cpp
 	copy /y ..\pattern.cpp
+
+alfablur.cpp : ..\alfablur.cpp
+	copy /y ..\alfablur.cpp
 
 gradient.cpp : ..\gradient.cpp
 	copy /y ..\gradient.cpp

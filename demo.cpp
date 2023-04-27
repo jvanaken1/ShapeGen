@@ -3923,9 +3923,139 @@ void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
+//---------------------------------------------------------------------
+//
+// Code example to render Gaussian-blurred drop shadow
+//
+//---------------------------------------------------------------------
+
+// Strokes five interconnected circles of different colors. This
+// function is called by the DropShadow function.
+void OlympicRings(ShapeGen *sg, EnhancedRenderer *aarend, SGRect *bbox)
+{
+    SGCoord rad = 74, gap = 28;
+    SGCoord x0 = 170, y0 = 170;
+    SGPoint xy[5] = {
+        { x0, y0 },
+        { x0+2*rad+gap, y0 },
+        { x0+4*rad+2*gap, y0 },
+        { x0+rad+gap/2, y0+rad },
+        { x0+3*rad+3*gap/2, y0+rad },
+    };
+    COLOR color[5] = {
+        RGBX(0,122,190), RGBX(0,0,0), RGBX(226,48,74), RGBX(239,168,47), RGBX(0,158,77)
+    };
+    SGRect rect[4] = {
+        { x0, y0-rad/2, rad+gap/2, rad },
+        { x0+2*rad+gap, y0-rad/2, rad+gap/2, rad },
+        { x0+3*rad/2+gap, y0+rad/2, rad/2, rad },
+        { x0+3*rad/2+gap+2*rad+gap, y0+rad/2, rad/2, rad }
+    };
+
+    sg->SetLineWidth(15.0f);
+    bbox->x = bbox->y = bbox->w = bbox->h = 0;
+    for (int i = 0; i < 5; ++i)
+    {
+        SGPoint v0, v1, v2;
+        v0 = v1 = v2 = xy[i];
+        v1.x += rad, v2.y += rad;
+        sg->BeginPath();
+        sg->Ellipse(v0, v1, v2);
+        aarend->SetColor(color[i]);
+        sg->GetBoundingBox(bbox, FLAG_BBOX_STROKE | FLAG_BBOX_CLIP | FLAG_BBOX_ACCUM);
+        sg->StrokePath();
+    }
+
+    sg->SetLineWidth(0);
+    sg->BeginPath();
+    sg->Rectangle(rect[0]);
+    sg->Rectangle(rect[1]);
+    sg->Rectangle(rect[2]);
+    sg->Rectangle(rect[3]);
+    sg->SetClipRegion(FILLRULE_EVENODD);
+
+    sg->SetLineWidth(15.0f);
+    for (int i = 0; i < 3; ++i)
+    {
+        SGPoint v0, v1, v2;
+        v0 = v1 = v2 = xy[i];
+        v1.x += rad, v2.y += rad;
+        sg->BeginPath();
+        sg->Ellipse(v0, v1, v2);
+        aarend->SetColor(color[i]);
+        sg->StrokePath();
+    }
+    sg->ResetClipRegion();
+}
+
+// Code example from the "Compositing and filtering with layers" topic
+void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+{
+    // 1. Dedicate a renderer and ShapeGen object to the back buffer
+    //
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
+
+    // 2. Create dedicated renderer and ShapeGen objects to manage a
+    //    layer buffer, which is initialized to transparent black
+    //
+    SGRect clip2 = { 0, 0, 640, 480 };  // device clipping rect
+    PIXEL_BUFFER layerbuf;
+    layerbuf.pixels = 0;  // renderer will allocate pixel memory
+    layerbuf.width = clip2.w;
+    layerbuf.height = clip2.h;
+    layerbuf.depth = 32;
+    SmartPtr<EnhancedRenderer> aarend2(CreateEnhancedRenderer(&layerbuf));
+    SmartPtr<ShapeGen> sg2(CreateShapeGen(&(*aarend2), clip2));
+
+    // 3. Render OlympicRings image into layer, and get image's bbox
+    //
+    SGRect bbox;
+    OlympicRings(&(*sg2), &(*aarend2), &bbox);
+
+    // 4. Get subregion of layer that contains original, unblurred image
+    //
+    PIXEL_BUFFER subbuf;
+    bool status = aarend2->GetPixelBuffer(&layerbuf);
+    assert(status);
+    DefineSubregion(subbuf, layerbuf, bbox);
+
+    // 5. Apply Gaussian blur to alpha values in OlympicRings image
+    //
+    float stddev = 5.2f;
+    AlphaBlur ablur(stddev);
+    status = ablur.BlurImage(subbuf);
+    assert(status);
+
+    // 6. Get the expanded bounding box for the blurred image
+    //
+    SGRect blurbbox;
+    ablur.GetBlurredBoundingBox(blurbbox, bbox);
+
+    // 7. Use blurred image as pattern for rendering to back buffer
+    //
+    blurbbox.x += 10, blurbbox.y += 12;
+    aarend->SetPattern(&ablur, blurbbox.x, blurbbox.y,
+                       blurbbox.w, blurbbox.h, 0);
+    sg->BeginPath();
+    sg->Rectangle(blurbbox);
+    aarend->SetConstantAlpha(160);
+    sg->FillPath(FILLRULE_EVENODD);
+    aarend->SetConstantAlpha(255);
+
+    // 8. Use the original, unblurred image as the next fill pattern
+    //
+    aarend->SetPattern(subbuf.pixels,
+                       bbox.x, bbox.y, bbox.w, bbox.h,
+                       subbuf.pitch/sizeof(COLOR), FLAG_IMAGE_BGRA32);
+    sg->BeginPath();
+    sg->Rectangle(bbox);
+    sg->FillPath(FILLRULE_EVENODD);
+}
+
 // Array of pointers to all demo functions
 void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
-{
+{   DropShadow,
     // Demo frames
     demo01, demo02, demo03, demo04,
     demo05, demo06, demo07, demo08,

@@ -4,8 +4,8 @@
 
 CC = g++
 
-OBJS = sdlmain.o bmpfile.o textapp.o gradient.o pattern.o renderer.o \
-       arc.o curve.o edge.o path.o stroke.o thinline.o
+OBJS = sdlmain.o bmpfile.o textapp.o gradient.o pattern.o alfablur.o \
+       renderer.o arc.o curve.o edge.o path.o stroke.o thinline.o
 BMPS = bricks.bmp fleur.bmp honeycomb.bmp
 
 all : .PHONY svgview $(BMPS) demo
@@ -24,6 +24,9 @@ svgview.o : svgview.cpp shapegen.h renderer.h demo.h nanosvg.h
 
 sdlmain.o : sdlmain.cpp shapegen.h renderer.h
 	$(CC) -w -c sdlmain.cpp
+
+alfablur.o : alfablur.cpp shapegen.h renderer.h demo.h
+	$(CC) -w -c alfablur.cpp
 
 bmpfile.o : bmpfile.cpp shapegen.h renderer.h demo.h
 	$(CC) -w -c bmpfile.cpp
