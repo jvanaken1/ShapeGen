@@ -2749,8 +2749,9 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     // 5. Apply Gaussian blur to alpha values in OlympicRings image
     //
-    float stddev = 5.2f;
+    float stddev = 4.2f;
     AlphaBlur ablur(stddev);
+    ablur.SetColor(RGBA(0,0,0,160));
     status = ablur.BlurImage(subbuf);
     assert(status);
 
@@ -2761,20 +2762,18 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     // 7. Use blurred image as pattern for rendering to back buffer
     //
-    blurbbox.x += 10, blurbbox.y += 12;
+    blurbbox.x += 6, blurbbox.y += 8;
     aarend->SetPattern(&ablur, blurbbox.x, blurbbox.y,
                        blurbbox.w, blurbbox.h, 0);
     sg->BeginPath();
     sg->Rectangle(blurbbox);
-    aarend->SetConstantAlpha(160);
     sg->FillPath(FILLRULE_EVENODD);
-    aarend->SetConstantAlpha(255);
 
     // 8. Use the original, unblurred image as the next fill pattern
     //
-    aarend->SetPattern(subbuf.pixels,
-                       bbox.x, bbox.y, bbox.w, bbox.h,
-                       subbuf.pitch/sizeof(COLOR), FLAG_IMAGE_BGRA32);
+    aarend->SetPattern(subbuf.pixels, bbox.x, bbox.y,
+                       bbox.w, bbox.h, subbuf.pitch/sizeof(COLOR),
+                       FLAG_IMAGE_BGRA32 | FLAG_PREMULTALPHA);
     sg->BeginPath();
     sg->Rectangle(bbox);
     sg->FillPath(FILLRULE_EVENODD);
@@ -4061,7 +4060,7 @@ void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
 // Array of pointers to all demo functions
 void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
-{
+{   DropShadow,
     // Demo frames
     demo01, demo02, demo03, demo04,
     demo05, demo06, demo07, demo08,

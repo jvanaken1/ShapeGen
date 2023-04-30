@@ -22,11 +22,30 @@
 //
 //---------------------------------------------------------------------
 
+// Public constructor
+AlphaBlur::AlphaBlur(float stddev, int kwidth) :
+             _pixels(0), _width(0), _height(0), _numpixels(0), _index(0)
+{
+    SetColor(RGBA(0,0,0,160));  // <-- default alpha = 160
+    CreateFilterKernel(stddev, kwidth);
+}
+
 AlphaBlur::~AlphaBlur()
 {
     DeleteRawPixels(_pixels);
     if (_kcoeff)
         delete[] _kcoeff;
+}
+
+// Public function: Sets the solid-fill color. The alpha field in the
+// 8 most-significant bits of the 'color' parameter will be multiplied
+// by the 16-bit alpha values in the blurred image.
+void AlphaBlur::SetColor(COLOR color)
+{
+    _rgba = color;
+    _alpha = color >> 24;
+    _rgb = color & 0x00ffffff;
+
 }
 
 // Public function: Calculates the bounding box that would be needed
@@ -64,10 +83,10 @@ int AlphaBlur::CreateFilterKernel(float stddev, int kwidth)
 {
     assert(stddev >= 0 && kwidth >= 0);
     if (stddev == 0)
-        stddev = 2.0f;
+        stddev = 3.0f;  // <-- default stddev = 3.0
 
     if (kwidth == 0)
-        kwidth = 3.25f*stddev + 0.85f;
+        kwidth = 3.25f*stddev + 0.85f;  // <-- default kernel width
 
     kwidth |= 1;  // must be odd integer
     int r = kwidth/2;
@@ -199,7 +218,7 @@ bool AlphaBlur::BlurImage(const PIXEL_BUFFER& inimg)
         for (int j = 0; j < _height; ++j)
             *pout = *psrc++, pout = &pout[outstride];
     }
-    delete[] scratch;
+    DeleteRawPixels(scratch);
 
     // So far, vertical filtering has increased the height of the
     // image by 2*r. Next, this intermediate image will be filtered
@@ -231,14 +250,44 @@ bool AlphaBlur::BlurImage(const PIXEL_BUFFER& inimg)
         ApplyGaussianFilter(pdst, psrc, inimg.width);
         psrc = pdst;
 
-        // Copy blurred alpha values from scratch buffer to next row
-        // of destination image. Convert alphas from 16 to 8 bits.
+        // Combine the 16-bit alpha values from the current row of the
+        // blurred image with the 8-bit alpha field in the fill color
         COLOR *pout = poutrow;
         poutrow = &poutrow[outstride];
-        for (int i = 0; i < _width; ++i)
+        if (_alpha == 255)
         {
-            COLOR alpha = *psrc++ >> 8;
-            *pout++ = (alpha << 24) | _color;
+            // The fill color is fully opaque, so just truncate the
+            // 16-bit alpha to 8 bits and plug it into the fill color
+            for (int i = 0; i < _width; ++i)
+            {
+                COLOR ablur = *psrc++ >> 8;
+                *pout++ = (ablur << 24) | _rgb;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _width; ++i)
+            {
+                COLOR ablur16 = *psrc++;
+                COLOR ablur8 = ablur16 >> 8;
+                if (ablur8 == 0)
+                {
+                    *pout++ = 0;
+                }
+                else if (ablur8 == 255)
+                {
+                    *pout++ = _rgba;
+                }
+                else
+                {
+                    // Multiply the 8-bit alpha from the fill color
+                    // by the 16-bit alpha from the blurred image
+                    int alpha = _alpha*ablur16;
+                    alpha += 0x00008000;
+                    alpha >>= 16;
+                    *pout++ = (alpha << 24) | _rgb;
+                }
+            }
         }
     }
     DeleteRawPixels(scratch);

@@ -175,7 +175,7 @@ class AlphaBlur : public ImageReader
     float _stddev;   // standard deviation
     COLOR *_kcoeff;  // kernel coefficients
     int _kwidth;     // kernel width
-    COLOR _color;    // fill color
+    COLOR _rgba, _rgb, _alpha;  // fill color components
     COLOR *_pixels;  // pointer to blurred image pixels
     int _width;      // width of blurred image
     int _height;     // height of blurred image
@@ -185,11 +185,7 @@ class AlphaBlur : public ImageReader
     void ApplyGaussianFilter(COLOR dst[], const COLOR src[], int len);
 
 public:
-    AlphaBlur(float stddev = 0, int kwidth = 0) :
-        _color(0), _pixels(0), _width(0), _height(0), _numpixels(0), _index(0)
-    {
-        CreateFilterKernel(stddev, kwidth);
-    }
+    AlphaBlur(float stddev, int kwidth = 0);
 
     ~AlphaBlur();
 
@@ -201,11 +197,7 @@ public:
 
     int GetKernelWidth() { return _kwidth; }
 
-    COLOR SetColor(COLOR color = 0)
-    {
-        _color = color & 0x00ffffff;
-        return _color;
-    }
+    void SetColor(COLOR color = 0);
 
     bool BlurImage(const PIXEL_BUFFER& srcimage);
 
