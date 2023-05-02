@@ -2745,7 +2745,8 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     PIXEL_BUFFER subbuf;
     bool status = aarend2->GetPixelBuffer(&layerbuf);
     assert(status);
-    DefineSubregion(subbuf, layerbuf, bbox);
+    status = DefineSubregion(subbuf, layerbuf, bbox);
+    assert(status);
 
     // 5. Apply Gaussian blur to alpha values in OlympicRings image
     //
@@ -4060,7 +4061,7 @@ void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
 // Array of pointers to all demo functions
 void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
-{   DropShadow,
+{
     // Demo frames
     demo01, demo02, demo03, demo04,
     demo05, demo06, demo07, demo08,

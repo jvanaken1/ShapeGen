@@ -93,7 +93,7 @@ struct PIXEL_BUFFER
 // Utilities for manipulating pixel buffers
 COLOR* AllocateRawPixels(int w, int h, COLOR fill = 0);
 COLOR* DeleteRawPixels(COLOR *buf);
-void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox);
+bool DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, const SGRect& bbox);
 
 //---------------------------------------------------------------------
 //

@@ -79,21 +79,38 @@ COLOR* DeleteRawPixels(COLOR *buf)
     return 0;
 }
 
-// Fills in the fields of pixel-buffer descriptor 'subbuf' to
-// describe a rectangular subregion of the pixel memory described
-// by pixel-buffer descriptor 'buf'. The x-y coordinates of this
-// subregion are specified in bounding box 'bbox'. The previous
-// contents of descriptor 'buf' are overwritten. No clipping is
-// performed, and the caller is responsible for ensuring that
-// the subregion described by 'bbox' is valid.
-void DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& buf, SGRect& bbox)
+// Given a PIXEL_BUFFER structure 'bigbuf' that describes a pixel
+// buffer, and a bounding box 'bbox' that specifies a rectangular
+// subregion in the buffer, this function writes a description of the
+// subregion to the PIXEL_BUFFER structure 'subbuf', overwriting its
+// original contents. The 'pixels' member of the 'subbuf' structure
+// is set to the memory address of the pixel at the top-left corner
+// of the subregion (do not try to delete this memory!). The bounding
+// box coordinates in 'bbox' must be integers; i.e., fixed-point
+// coordinates are _not_ supported. The x-y coordinates at the top-left
+// corner of bounding box 'bbox' are specified relative to the top-left
+// corner of rectangular pixel buffer specified by 'bigbuf'. Thus,
+// the first pixel in 'bigbuf' is located at x-y coordinates (0,0). The
+// function returns true if the 'subbuf' pixel buffer fits within the
+// bounds of the 'bigbuf' pixel buffer. Otherwise, it returns false. If
+// the contents of 'bigbuf' or 'bbox' are not valid, the results are
+// undefined.
+bool DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& bigbuf, const SGRect& bbox)
 {
-    int stride = buf.pitch/sizeof(COLOR);
+    int xmax = bbox.x + bbox.w;
+    int ymax = bbox.y + bbox.h;
+    bool retval = bbox.x >= 0 && bbox.y >= 0 &&
+                  xmax < bigbuf.width && ymax < bigbuf.height;
+    int stride = bigbuf.pitch/sizeof(COLOR);
     subbuf.width = bbox.w;
     subbuf.height = bbox.h;
-    subbuf.pitch = buf.pitch;
-    subbuf.depth = buf.depth;
-    subbuf.pixels = &buf.pixels[bbox.x + stride*bbox.y];
+    subbuf.pitch = bigbuf.pitch;
+    subbuf.depth = bigbuf.depth;
+    if (bigbuf.pixels)
+        subbuf.pixels = &bigbuf.pixels[bbox.x + stride*bbox.y];
+    else
+        subbuf.pixels = 0;
+    return retval;
 }
 
 //---------------------------------------------------------------------
@@ -675,6 +692,4 @@ EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *pixbuf)
 
     return aarend;
 }
-
-
 
