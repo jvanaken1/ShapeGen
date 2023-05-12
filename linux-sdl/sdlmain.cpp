@@ -42,7 +42,6 @@ int main(int argc, char *argv[])
     SDL_Surface *rgbsurf = 0;
     int testnum = 0;
     SGRect cliprect = { 0, 0, DEMO_WIDTH, DEMO_HEIGHT};
-    bool quit = false;
     bool formatsMatch = false;
 
     printf("Starting SDL2 app...\n");
@@ -82,17 +81,45 @@ int main(int argc, char *argv[])
     for (;;)
     {
         bool redraw = true;
-        SDL_Event evt;
+        SDL_Event evt, evtbuf[8];
+        int count;
 
         SDL_WaitEvent(&evt);
         if (evt.type == SDL_QUIT)
+            break;  // quit main loop, exit program
+
+        // Flush pending events that we ignore; flush events that we
+        // handle but that are just repeats of the current 'evt' value
+        do
         {
-            quit = true;
-        }
-        else if (evt.type == SDL_KEYDOWN)
+            int numevts = SDL_PeepEvents(&evtbuf[0], ARRAY_LEN(evtbuf), SDL_PEEKEVENT,
+                                         SDL_FIRSTEVENT, SDL_LASTEVENT);
+            for (count = 0; count < numevts; ++count)
+            {
+                if (evtbuf[count].type == SDL_QUIT)
+                    goto exit_program;
+
+                if (evtbuf[count].type != SDL_KEYDOWN && evtbuf[count].type != SDL_WINDOWEVENT)
+                    continue;  // we can ignore this event
+
+                if (evtbuf[count].type != evt.type)
+                    break;  // we have to look at this event
+
+                if (evt.type == SDL_KEYDOWN && evtbuf[count].key.keysym.sym != evt.key.keysym.sym)
+                    break;  // we have to look at this event
+
+                if (evt.type == SDL_WINDOWEVENT && evtbuf[count].window.event != evt.window.event)
+                    break;  // we have to look at this event
+            }
+            if (count)  // do the flush
+                SDL_PeepEvents(&evtbuf[0], count, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT);
+
+        } while (count == ARRAY_LEN(evtbuf));
+
+        if (evt.type == SDL_KEYDOWN)
         {
             int flags = KMOD_ALT | KMOD_SHIFT | KMOD_CTRL;
-            bool mod = flags & SDL_GetModState();
+            bool mod = flags & evt.key.keysym.mod;
 
             switch (evt.key.keysym.sym)
             {
@@ -128,7 +155,7 @@ int main(int argc, char *argv[])
                 break;
             case SDLK_ESCAPE:
                 if (mod)
-                    quit = true, redraw = false;
+                    goto exit_program;
                 else
                     testnum = 0;
                 break;
@@ -166,7 +193,7 @@ int main(int argc, char *argv[])
                     if (rgbsurf)
                         SDL_FreeSurface(rgbsurf);
 
-                    // Our two renderers require a back buffer
+                    // Our example renderers require a back buffer
                     // with a 32-bit BGRA pixel format
                     rgbsurf = SDL_CreateRGBSurface(
                                     0,
@@ -223,15 +250,12 @@ int main(int argc, char *argv[])
                 SDL_FillRect(surf, 0, 0xffffffff);
             }
             else
-                quit = true;
+                break;  // quit main loop, exit program
         }
-        if (quit)
-        {
-            printf("Quitting SDL2 app...\n");
-            SDL_DestroyWindow(window);
-            SDL_Quit();
-            break;  // exit main loop
-        }
-    }
+    }  // end main loop
+exit_program:
+    printf("Quitting SDL2 app...\n");
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }
