@@ -795,15 +795,15 @@ bool PathMgr::StrokePath()
     if (_figure->offset == 0)
         return false;  // path is empty
 
-    if (_linewidth == 0)  // special case: Mimic Bresenham line
+    if (_linewidth == 0)  // special case: mimic Bresenham line
         return ThinStrokePath();
 
     _figtmp = _figure;  // this empty figure terminates the path
 
     // Each while-loop iteration below processes one figure (aka
     // subpath), starting with the last figure in the path
-    int off;
-    while ((off = _figtmp->offset) != 0)
+    int offset;
+    while ((offset = _figtmp->offset) != 0)
     {
         bool dashon0 = InitLineDash();  // initial _dashon state
         VERT16 *vs0, a0, vin0, vout0;  // save initial values
@@ -811,12 +811,12 @@ bool PathMgr::StrokePath()
         VERT16 ain, aout;  // vectors of length = _linewidth/2
         FIX16 linelen;     // length of current line segment
         VERT16 *fpt = reinterpret_cast<VERT16*>(_figtmp + 1);
-        VERT16 *vs = &fpt[-off];  // start of 1st line segment
+        VERT16 *vs = &fpt[-offset];  // start of 1st line segment
         VERT16 *ve = &vs[1];    // end of 1st line segment
-        int nlines = off - 2;  // number of line segments
+        int nlines = offset - 2;  // number of line segments
 
         assert(vs != ve);  // figure has at least 2 points
-        _figtmp = &_figtmp[-off];  // point to header for new figure
+        _figtmp = &_figtmp[-offset];  // point to header for new figure
 
         vs0 = vs;  // save starting point
         linelen = LineLength(*vs, *ve, &uin, &ain);

@@ -89,7 +89,7 @@ COLOR* DeleteRawPixels(COLOR *buf)
 // box coordinates in 'bbox' must be integers; i.e., fixed-point
 // coordinates are _not_ supported. The x-y coordinates at the top-left
 // corner of bounding box 'bbox' are specified relative to the top-left
-// corner of rectangular pixel buffer specified by 'bigbuf'. Thus,
+// corner of the rectangular pixel buffer specified by 'bigbuf'. E.g.,
 // the first pixel in 'bigbuf' is located at x-y coordinates (0,0). The
 // function returns true if the 'subbuf' pixel buffer fits within the
 // bounds of the 'bigbuf' pixel buffer. Otherwise, it returns false. If
@@ -212,9 +212,12 @@ namespace {
             {
                 ++dst;  // source alpha is 0
             }
+            else if ((dstpix = *dst) == 0)
+            {
+                *dst++ = srcpix;  // dest alpha is 0
+            }
             else
             {
-                dstpix = *dst;
                 rb = dstpix & 0x00ff00ff;
                 rb *= anot;
                 rb += 0x00800080;
@@ -230,7 +233,7 @@ namespace {
             }
         }
     }
-}
+}  // end namespace
 
 //---------------------------------------------------------------------
 //

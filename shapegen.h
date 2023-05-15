@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -38,19 +38,22 @@
 // 32-bit fixed-point value with 16-bit fraction (16.16 fixed point)
 typedef int FIX16;
 
-// Coordinates, points, rectangles, and spans
+// Coordinates, points, rectangles, and subpixel spans
 typedef int SGCoord;
+
 struct SGPoint {
     SGCoord x;
     SGCoord y;
 };
+
 struct SGRect {
     SGCoord x;
     SGCoord y;
     SGCoord w;
     SGCoord h;
 };
-struct SGSpan {  // <-- used only by a renderer
+
+struct SGSpan {  // <-- used only in the ShapeGen/renderer interface
     FIX16 xL;
     FIX16 xR;
     int y;
@@ -83,20 +86,20 @@ const FILLRULE FILLRULE_DEFAULT = FILLRULE_EVENODD;
 
 // Join attribute values for stroked paths
 enum LINEJOIN {
-    LINEJOIN_BEVEL,  // beveled join between two line segments
-    LINEJOIN_ROUND,  // rounded join between two line segments
-    LINEJOIN_MITER,  // mitered join between two line segments
+    LINEJOIN_BEVEL,  // beveled join connecting two line segments
+    LINEJOIN_ROUND,  // rounded join connecting two line segments
+    LINEJOIN_MITER,  // mitered join connecting two line segments
     LINEJOIN_SVG_MITER  // default join in SVG spec at W3.org
 };
 const LINEJOIN LINEJOIN_DEFAULT = LINEJOIN_BEVEL;  // default line join
 
 // Line end cap attribute values for stroked paths
 enum LINEEND {
-    LINEEND_FLAT,   // flat line end (butt line cap)
-    LINEEND_ROUND,  // rounded line end (round cap)
-    LINEEND_SQUARE  // squared line end (projecting cap)
+    LINEEND_FLAT,   // flat line end cap (butt cap)
+    LINEEND_ROUND,  // rounded line end cap (round cap)
+    LINEEND_SQUARE  // squared line end cap (projecting cap)
 };
-const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end
+const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end cap
 
 // Flag bits for ShapeGen::GetBoundingBox function
 const int FLAG_BBOX_STROKE = 1;  // get bbox for stroked shape
