@@ -97,29 +97,53 @@ COLOR* DeleteRawPixels(COLOR *buf)
 // undefined.
 bool DefineSubregion(PIXEL_BUFFER& subbuf, const PIXEL_BUFFER& bigbuf, const SGRect& bbox)
 {
-    int xmax = bbox.x + bbox.w;
-    int ymax = bbox.y + bbox.h;
-    bool retval = bbox.x >= 0 && bbox.y >= 0 &&
-                  xmax < bigbuf.width && ymax < bigbuf.height;
+    int xmax = bbox.x + bbox.w - 1;
+    int ymax = bbox.y + bbox.h - 1;
+    bool valid = bigbuf.pixels &&
+                 bbox.x >= 0 && bbox.y >= 0 &&
+                 xmax < bigbuf.width && ymax < bigbuf.height;
     int stride = bigbuf.pitch/sizeof(COLOR);
     subbuf.width = bbox.w;
     subbuf.height = bbox.h;
     subbuf.pitch = bigbuf.pitch;
     subbuf.depth = bigbuf.depth;
-    if (bigbuf.pixels)
+    if (valid)
         subbuf.pixels = &bigbuf.pixels[bbox.x + stride*bbox.y];
     else
         subbuf.pixels = 0;
-    return retval;
+    return valid;
 }
 
 //---------------------------------------------------------------------
 //
-// BasicRenderer functions - This renderer does solid color fills with
-// no antialiasing or alpha blending, but can fill large areas faster
-// than the enhanced renderer
+// BasicRenderer class: A platform-independent implementation of the
+// 'SimpleRenderer' virtual base class defined in renderer.h. This
+// renderer does solid color fills with no antialiasing or alpha
+// blending, but can fill large areas faster than the enhanced
+// renderer.
 //
 //---------------------------------------------------------------------
+
+class BasicRenderer : public SimpleRenderer
+{
+    friend ShapeGen;
+
+    PIXEL_BUFFER _backbuf;
+    int _stride;
+    COLOR _color;
+
+protected:
+    // Interface to ShapeGen object
+    void RenderShape(ShapeFeeder *feeder);
+
+public:
+    // Application interface
+    BasicRenderer(const PIXEL_BUFFER *backbuf);
+    ~BasicRenderer()
+    {
+    }
+    void SetColor(COLOR color);
+};
 
 BasicRenderer::BasicRenderer(const PIXEL_BUFFER *backbuf)
 {
@@ -200,7 +224,7 @@ namespace {
     {
         while (len--)
         {
-            COLOR srcpix, dstpix, rb, ga, anot;
+            COLOR srcpix, dstpix, anot;
 
             srcpix = *src++;
             anot = ~srcpix >> 24;
@@ -218,12 +242,12 @@ namespace {
             }
             else
             {
-                rb = dstpix & 0x00ff00ff;
+                COLOR rb = dstpix & 0x00ff00ff;
+                COLOR ga = (dstpix ^ rb) >> 8;
                 rb *= anot;
                 rb += 0x00800080;
                 rb += (rb >> 8) & 0x00ff00ff;
                 rb = (rb >> 8) & 0x00ff00ff;
-                ga = (dstpix >> 8) & 0x00ff00ff;
                 ga *= anot;
                 ga += 0x00800080;
                 ga += (ga >> 8) & 0x00ff00ff;
@@ -237,12 +261,72 @@ namespace {
 
 //---------------------------------------------------------------------
 //
-// EnhancedRenderer functions - To perform alpha blending, this
-// renderer uses an internal 32-bit BGRA pixel format (that is,
-// 0xaarrggbb). Input pixels in RGBA format are converted to BGRA
-// before being processed.
+// AA4x8Renderer class: A platform-independent implementation of the
+// 'EnhancedRenderer' virtual base class defined in renderer.h. To
+// support antialiasing and alpha blending, this class uses an
+// 'AA-buffer' to keep track of pixel coverage. The AA-buffer
+// dedicates a 32-bit bitmask (organized as 4 rows of 8 bits) to
+// each pixel in the current scan line. Internally, this renderer
+// uses an internal 32-bit BGRA pixel format (that is, 0xaarrggbb).
+// Before being processed, input pixels in RGBA (0xaabbggrr) format
+// are converted to BGRA format and premultiplied by their alphas.
 //
 //---------------------------------------------------------------------
+
+class AA4x8Renderer : public EnhancedRenderer
+{
+    friend ShapeGen;
+
+    PIXEL_BUFFER _pixbuf;  // pixel buffer descriptor
+    int _stride;       // stride in pixels = pitch/sizeof(COLOR)
+    bool _pixalloc;    // true if we allocated the pixel memory
+    COLOR *_linebuf;   // pixel data bits in scanline buffer
+    COLOR _alpha;      // source constant alpha
+    COLOR _color;      // current color for solid color fills
+    int _maxwidth;     // width (in pixels) of device clipping rect
+    int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
+    int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
+    int _lut[33];      // look-up table for source alpha/RGB values
+    PaintGen *_paintgen;  // paint generator (gradients, patterns)
+    COLOR_STOP _cstop[STOPARRAY_MAXLEN+1];  // color-stop array
+    int _stopCount;    // Number of elements in color-stop array
+    float _xform[6];   // Transform matrix (gradients, patterns)
+    float *_pxform;    // Pointer to transform matrix
+    int _xscroll, _yscroll;  // Scroll position coordinates
+
+    void FillSubpixelSpan(int xL, int xR, int ysub);
+    void RenderAbuffer(int xmin, int xmax, int yscan);
+    void BlendLUT(COLOR component);
+    void BlendConstantAlphaLUT();
+
+protected:
+    // Interface to ShapeGen object
+    void RenderShape(ShapeFeeder *feeder);
+    bool SetMaxWidth(int maxwidth);
+    int QueryYResolution() { return 2; }
+    bool SetScrollPosition(int x, int y);
+
+public:
+    // Application interface
+    AA4x8Renderer(const PIXEL_BUFFER *pixbuf);
+    ~AA4x8Renderer();
+    bool GetPixelBuffer(PIXEL_BUFFER *pixbuf);
+    void SetColor(COLOR color);
+    void SetPattern(const COLOR *pattern, float u0, float v0,
+                    int w, int h, int stride, int flags);
+    void SetPattern(ImageReader *imgrdr, float u0, float v0,
+                    int w, int h, int flags);
+    void SetLinearGradient(float x0, float y0, float x1, float y1,
+                           SPREAD_METHOD spread, int flags);
+    void SetRadialGradient(float x0, float y0, float r0,
+                           float x1, float y1, float r1,
+                           SPREAD_METHOD spread, int flags);
+    void AddColorStop(float offset, COLOR color);
+    void ResetColorStops() { _stopCount = 0; }
+    void SetTransform(const float xform[]);
+    void SetConstantAlpha(COLOR alpha);
+};
+
 AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf)
                   : _maxwidth(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _color(0), _alpha(255),
