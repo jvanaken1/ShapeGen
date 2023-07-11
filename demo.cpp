@@ -4092,11 +4092,13 @@ void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
 int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect)
 {
     const int len = ARRAY_LEN(testfunc);
-    SGRect clip = cliprect;
 
-    clip.w = min(bkbuf.width, cliprect.w);
-    clip.h = min(bkbuf.height, cliprect.h);
+    if (cliprect.w > bkbuf.width || cliprect.h > bkbuf.height)
+    {
+        assert(cliprect.w <= bkbuf.width || cliprect.h <= bkbuf.height);
+        return -1;  // configuration error
+    }
     testnum = (testnum + len) % len;
-    testfunc[testnum](bkbuf, clip);
+    testfunc[testnum](bkbuf, cliprect);
     return testnum;
 }

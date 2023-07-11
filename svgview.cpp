@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -101,11 +101,13 @@ namespace {
 //
 //---------------------------------------------------------------------
 
-int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect)
 {
-    SGRect cliprect = clip;
-    cliprect.w = (bkbuf.width < clip.w) ? bkbuf.width : clip.w;
-    cliprect.h = (bkbuf.height < clip.h) ? bkbuf.height : clip.h;
+    if (cliprect.w > bkbuf.width || cliprect.h > bkbuf.height)
+    {
+        assert(cliprect.w <= bkbuf.width || cliprect.h <= bkbuf.height);
+        return -1;  // configuration error
+    }
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), cliprect));
