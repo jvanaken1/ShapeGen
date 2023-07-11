@@ -174,12 +174,12 @@ int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             for (int i = 0; i < path->npts-1; i += 3)
             {
                 p = &path->pts[i*2];
-                v[1].x = scale16*p[2] + cliprect.x;
-                v[1].y = scale16*p[3] + cliprect.y;
-                v[2].x = scale16*p[4] + cliprect.x;
-                v[2].y = scale16*p[5] + cliprect.y;
-                v[3].x = scale16*p[6] + cliprect.x;
-                v[3].y = scale16*p[7] + cliprect.y;
+                v[1].x = scale16*p[2];
+                v[1].y = scale16*p[3];
+                v[2].x = scale16*p[4];
+                v[2].y = scale16*p[5];
+                v[3].x = scale16*p[6];
+                v[3].y = scale16*p[7];
                 sg->Bezier3(v[1], v[2], v[3]);
             }
             if (path->closed)
