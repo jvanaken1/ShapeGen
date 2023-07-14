@@ -192,7 +192,7 @@ namespace {
     // 0xaarrggbb) or RGBA format (0xaabbggrr).
     COLOR PremultAlpha(COLOR color)
     {
-        COLOR rb, ga, alpha = color >> 24;
+        COLOR alpha = color >> 24;
 
         if (alpha == 255)
             return color;
@@ -201,12 +201,12 @@ namespace {
             return 0;
 
         color |= 0xff000000;
-        rb = color & 0x00ff00ff;
+        COLOR rb = color & 0x00ff00ff;
+        COLOR ga = (color ^ rb) >> 8;
         rb *= alpha;
         rb += 0x00800080;
         rb += (rb >> 8) & 0x00ff00ff;
         rb = (rb >> 8) & 0x00ff00ff;
-        ga = (color >> 8) & 0x00ff00ff;
         ga *= alpha;
         ga += 0x00800080;
         ga += (ga >> 8) & 0x00ff00ff;
@@ -504,7 +504,6 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     int iR = (xmax + 31) >> 5;  // index just past last 4-byte block
 
     assert(iL < iR);
-    memset(&_linebuf[iL], 0, (iR-iL)*sizeof(_linebuf[0]));
 
     // Count the coverage bits per pixel in the AA-buffer. To speed
     // things up, we'll tally the counts for four adjacent pixels at
@@ -518,13 +517,16 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
 
         for (int j = 0; j < 4; ++j)
         {
-            int val = _aarow[j][i];
+            unsigned int v0, v1 = _aarow[j][i];
 
             _aarow[j][i] = 0;  // <-- clears this AA-buffer element
-            val = (val & 0x55555555) + ((val >> 1) & 0x55555555);
-            val = (val & 0x33333333) + ((val >> 2) & 0x33333333);
-            val = (val & 0x0f0f0f0f) + ((val >> 4) & 0x0f0f0f0f);
-            count += val;
+            v0 = v1 & 0x55555555;
+            v0 += (v0 ^ v1) >> 1;
+            v1 = v0 & 0x33333333;
+            v1 += (v1 ^ v0) >> 2;
+            v0 = v1 & 0x0f0f0f0f;
+            v0 += (v0 ^ v1) >> 4;
+            count += v0;
         }
 
         // The four bytes in the 'count' variable contain the
@@ -542,7 +544,7 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     }
 
     // If this fill uses a paint generator, call its FillSpan function
-    int xleft = xmin/8, xright = (xmax+7)/8;
+    int xleft = xmin/8, xright = (xmax + 7)/8;
     int len = xright - xleft;
     COLOR *srcbuf = &_linebuf[xleft];
 
@@ -552,7 +554,6 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     // Alpha-blend the painted pixels into the back buffer
     COLOR *dest = &_pixbuf.pixels[yscan*_stride + xleft];
     AlphaBlender(srcbuf, dest, len);
-    memset(&_linebuf[xleft], 0, len*sizeof(_linebuf[0]));
 }
 
 // Private function: Loads an RGB color component or alpha value into
