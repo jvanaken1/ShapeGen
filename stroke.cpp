@@ -538,66 +538,28 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     v4.y += aout.x;
 
     // Special case: The cross product is small if the incoming and
-    // outgoing line segments are nearly parallel (or zero if they
-    // are parallel). Frequently, if two short line segments are
-    // joined together along an arc or curve, they point in nearly
-    // the same direction. In such cases, a round join or miter
-    // join is indistinguishable from a simple bevel join, which
-    // allows us to avoid a lot of unnecessary calculation.
-    if (abs(xprod) < 0x0000007f)
-    {
-        // The joined line segments are nearly parallel. Do they
-        // point in the same direction or in opposite directions?
-        bool oppdir = (ain.x < 0) != (aout.x < 0) ||
-                      (ain.y < 0) != (aout.y < 0);
-        if (oppdir)
-        {
-            // The line segments point in opposite directions,
-            // fully exposing round joins and miter joins
-            if (_linejoin == LINEJOIN_ROUND)
-            {
-                if (xprod < 0)
-                {
-                    VERT16 a1 = aout, a2 = ain;
+    // outgoing line segments are nearly parallel. Frequently, if two
+    // short line segments are joined together along an arc or curve,
+    // they point in nearly the same direction. In such cases, a
+    // round join or miter join is indistinguishable from a simple
+    // bevel join, and we can avoid a lot of unnecessary calculation.
 
-                    FlipVector(a1);
-                    FlipVector(a2);
-                    RoundJoin(v0, a1, a2);
-                    _edge->AttachEdge(&v2, &v4);
-                }
-                else
-                {
-                    RoundJoin(v0, ain, aout);
-                    _edge->AttachEdge(&v3, &v1);
-                }
-            }
-            else if (_linejoin == LINEJOIN_MITER)
-            {
-                // Clip mitered join at miter limit
-                float mlim = _miterlimit/65536.0f;
-                if (xprod < 0)
-                {
-                    v2.x += mlim*ain.x;
-                    v2.y += mlim*ain.y;
-                    v4.x -= mlim*aout.x;
-                    v4.y -= mlim*aout.y;
-                }
-                else
-                {
-                    v1.x += mlim*ain.x;
-                    v1.y += mlim*ain.y;
-                    v3.x -= mlim*aout.x;
-                    v3.y -= mlim*aout.y;
-                }
-            }
+    if (abs(xprod) < 0x00010000)
+    {
+        // The joined line segments are nearly parallel. If they
+        // point in the same direction, optimize for this case.
+        bool samedir = (ain.x < 0) == (aout.x < 0) &&
+                       (ain.y < 0) == (aout.y < 0);
+        if (samedir)
+        {
+            _edge->AttachEdge(&_vin, &v1);
+            _edge->AttachEdge(&v2, &_vout);
+            _edge->AttachEdge(&v1, &v3);
+            _edge->AttachEdge(&v4, &v2);
+            _vin = v3;
+            _vout = v4;
+            return;  // end special case
         }
-        _edge->AttachEdge(&_vin, &v1);
-        _edge->AttachEdge(&v2, &_vout);
-        _edge->AttachEdge(&v1, &v3);
-        _edge->AttachEdge(&v4, &v2);
-        _vin = v3;
-        _vout = v4;
-        return;  // all done with special case
     }
 
     // General case: Connect the edges on the "inside" of the angle
