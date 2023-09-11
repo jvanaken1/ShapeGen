@@ -407,7 +407,7 @@ void PathMgr::Rectangle(const SGRect& rect)
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::PathToEdges()
+bool PathMgr::FilledShape()
 {
     // Tie up any loose ends in final figure of current path
     EndFigure();
@@ -443,9 +443,6 @@ bool PathMgr::PathToEdges()
             vs = ve++;
         }
     }
-    if ((_devicecliprect.x | _devicecliprect.y) != 0)
-        _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
-
     return true;
 }
 
@@ -457,10 +454,33 @@ bool PathMgr::PathToEdges()
 
 bool PathMgr::FillPath(FILLRULE fillrule)
 {
-    if (PathToEdges() == false)
+    if (FilledShape() == false)
         return false;  // path is empty
 
+    if ((_devicecliprect.x | _devicecliprect.y) != 0)
+        _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
+
     _edge->NormalizeEdges(fillrule);
+    _edge->ClipEdges(FILLRULE_INTERSECT);
+    return _edge->FillEdgeList();
+}
+
+//---------------------------------------------------------------------
+//
+// Public function: Strokes the current path
+//
+//----------------------------------------------------------------------
+
+bool PathMgr::StrokePath()
+{
+    if (StrokedShape() == false)
+        return false;  // path is empty
+
+    // Fill within the polygonal boundaries of the stroked path
+    if ((_devicecliprect.x | _devicecliprect.y) != 0)
+        _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
+
+    _edge->NormalizeEdges(FILLRULE_WINDING);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->FillEdgeList();
 }
@@ -476,8 +496,11 @@ bool PathMgr::FillPath(FILLRULE fillrule)
 
 bool PathMgr::SetClipRegion(FILLRULE fillrule)
 {
-    if (PathToEdges() == false)
+    if (FilledShape() == false)
         return false;  // path is empty
+
+    if ((_devicecliprect.x | _devicecliprect.y) != 0)
+        _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
 
     _edge->NormalizeEdges(fillrule);
     _edge->ClipEdges(FILLRULE_INTERSECT);
@@ -495,8 +518,11 @@ bool PathMgr::SetClipRegion(FILLRULE fillrule)
 
 bool PathMgr::SetMaskRegion(FILLRULE fillrule)
 {
-    if (PathToEdges() == false)
+    if (FilledShape() == false)
         return false;  // path is empty
+
+    if ((_devicecliprect.x | _devicecliprect.y) != 0)
+        _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
 
     _edge->NormalizeEdges(fillrule);
     _edge->ReverseEdges();

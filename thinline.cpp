@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -39,8 +39,8 @@ namespace {
     // (dx,dy). Quadrant boundaries are defined by +/- 45-degree
     // diagonals. Any pair of adjacent line segments that are both in
     // the same quadrant are naturally joined. Note that the
-    // ThinJoinLines function is called only to join two adjacent
-    // segments that are in different quadrants. 
+    // JoinThinLines function is called only to join two adjacent
+    // segments that are in different quadrants.
     //
     //------------------------------------------------------------------
 
@@ -87,10 +87,10 @@ namespace {
 //
 //----------------------------------------------------------------------
 
-void PathMgr::ThinJoinLines(const VERT16 *vert, int inquad, int outquad)
+void PathMgr::JoinThinLines(const VERT16 *vert, int inquad, int outquad)
 {
     VERT16 cdir = offset[outquad];  // offset vector for incoming line
-    VERT16 pdir = offset[inquad];   // offset vector for outgoing line 
+    VERT16 pdir = offset[inquad];   // offset vector for outgoing line
     VERT16 v1, v2, xy[4];
 
     v1 = v2 = *vert;
@@ -139,7 +139,7 @@ void PathMgr::ThinJoinLines(const VERT16 *vert, int inquad, int outquad)
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::ThinStrokePath()
+bool PathMgr::ThinStroke()
 {
     FIGURE *fig = _figure;  // empty figure terminates path
     VERT16 *fpt = _fpoint;  // first point (has undefined value)
@@ -198,19 +198,14 @@ bool PathMgr::ThinStrokePath()
             if (quad != prevquad)
             {
                 // Join two line segments that are in different quadrants
-                ThinJoinLines(vs, prevquad, quad);
+                JoinThinLines(vs, prevquad, quad);
                 prevquad = quad;
             }
             vs = ve++;
         }
         if (fig->isclosed == false)
-            ThinJoinLines(vs, prevquad, 4);  // "4" means "cap this line end"
+            JoinThinLines(vs, prevquad, 4);  // "4" means "cap this line end"
     }
-
-    // Fill the stroked path and initialize current path to empty
-    _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
-    _edge->NormalizeEdges(FILLRULE_WINDING);
-    _edge->ClipEdges(FILLRULE_INTERSECT);
-    return _edge->FillEdgeList();
+    return true;
 }
 

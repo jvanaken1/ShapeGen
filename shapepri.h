@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -225,7 +225,6 @@ class PathMgr : virtual public ShapeGen
     FIX16 _mitercheck;  // precomputed parameter for miter-limit check
     FIX16 _angle;       // angle between line segments at round join
 
-    bool PathToEdges();   // convert a path to an edge list
     void FinalizeFigure(bool bclose);  // close or end a figure
 
     // Path memory management functions
@@ -252,7 +251,10 @@ public:
     bool Line(SGCoord x, SGCoord y);
     bool PolyLine(int npts, const SGPoint xy[]);
     void Rectangle(const SGRect& rect);
-    bool FillPath(FILLRULE fillrule);
+
+    // Basic path attributes
+    float SetFlatness(float tol);
+    int SetFixedBits(int nbits);
     void SetScrollPosition(int x, int y);
     bool GetCurrentPoint(SGPoint *cpoint);
     bool GetFirstPoint(SGPoint *fpoint);
@@ -272,11 +274,8 @@ public:
         return _edge->SwapClipRegion();
     }
 
-    // Basic path attributes
-    float SetFlatness(float tol);
-    int SetFixedBits(int nbits);
-
-    // Stroked path construction
+    // Rendering of filled and stroked shapes
+    bool FillPath(FILLRULE fillrule);
     bool StrokePath();
 
     // Stroked path attributes
@@ -287,14 +286,16 @@ public:
     bool SetLineDash(const char dash[], int offset, float mult);
 
 private:
-    // Stroked path internal functions
+    // Internal functions for filled and stroked paths
+    bool FilledShape();
+    bool StrokedShape();
     bool InitLineDash();
     FIX16 LineLength(const VERT16& vs, const VERT16& ve, XY *u, VERT16 *a);
     void RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2);
     void JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout);
     void DashedLine(const VERT16& ve, const XY& u, const VERT16& a, FIX16 linelen);
-    bool ThinStrokePath();
-    void ThinJoinLines(const VERT16 *vert, int inquad, int outquad);
+    bool ThinStroke();
+    void JoinThinLines(const VERT16 *vert, int inquad, int outquad);
 
 public:
     // Ellipses and elliptic arcs
@@ -319,8 +320,8 @@ public:
 
 private:
     // Internal functions for checking flatness of splines
-    bool IsFlatQuadratic(const VERT16 v[]);
-    bool IsFlatCubic(const VERT16 v[]);
+    bool IsFlatQuadratic(const VERT16 v[3]);
+    bool IsFlatCubic(const VERT16 v[4]);
 };
 
 #endif SHAPEPRI_H

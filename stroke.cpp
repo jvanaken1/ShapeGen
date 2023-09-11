@@ -741,16 +741,16 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 
 //---------------------------------------------------------------------
 //
-// Public function: Strokes the current path. First, the sides of the
-// stroked path are offset by _linewidth/2 from the line segments
-// defined in the original path. Joins are constructed to connect the
-// sides of adjoining stroked segments, and any open line ends are
-// capped. Then the points in the stroked path are converted to a list
-// of polygonal edges.
+// Private function: Converts the current path into a list of edges
+// for a stroked version of the path. First, the sides of the stroked
+// line segments are offset by _linewidth/2 from the segments defined
+// in the original path. Joins are constructed to connect the sides of
+// adjoining stroked segments, and any open line ends are capped. Then
+// the segments in the stroked path are added to the edge list.
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::StrokePath()
+bool PathMgr::StrokedShape()
 {
     // Tie up any loose ends in the final figure of the current path
     EndFigure();
@@ -758,7 +758,7 @@ bool PathMgr::StrokePath()
         return false;  // path is empty
 
     if (_linewidth == 0)  // special case: mimic Bresenham line
-        return ThinStrokePath();
+        return ThinStroke();
 
     _figtmp = _figure;  // this empty figure terminates the path
 
@@ -891,10 +891,6 @@ bool PathMgr::StrokePath()
         }
     }
     _figtmp = 0;
-
-    // Fill within the polygonal boundaries of the stroked path
-    _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
-    _edge->NormalizeEdges(FILLRULE_WINDING);
-    _edge->ClipEdges(FILLRULE_INTERSECT);
-    return _edge->FillEdgeList();
+    return true;
 }
+

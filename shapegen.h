@@ -168,12 +168,8 @@ public:
 class ShapeGen
 {
 public:
-    ShapeGen()
-    {
-    }
-    virtual ~ShapeGen()
-    {
-    }
+    ShapeGen() {}
+    virtual ~ShapeGen() {}
 
     // Renderer object
     virtual bool SetRenderer(Renderer *renderer) = 0;
@@ -186,7 +182,10 @@ public:
     virtual bool Line(SGCoord x, SGCoord y) = 0;
     virtual bool PolyLine(int npts, const SGPoint xy[]) = 0;
     virtual void Rectangle(const SGRect& rect) = 0;
-    virtual bool FillPath(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
+
+    // Basic path attributes
+    virtual float SetFlatness(float tol = FLATNESS_DEFAULT) = 0;
+    virtual int SetFixedBits(int nbits = FIXBITS_DEFAULT) = 0;
     virtual void SetScrollPosition(int x, int y) = 0;
     virtual bool GetCurrentPoint(SGPoint *cpoint) = 0;
     virtual bool GetFirstPoint(SGPoint *fpoint) = 0;
@@ -200,11 +199,8 @@ public:
     virtual bool SaveClipRegion() = 0;
     virtual bool SwapClipRegion() = 0;
 
-    // Basic path attributes
-    virtual float SetFlatness(float tol = FLATNESS_DEFAULT) = 0;
-    virtual int SetFixedBits(int nbits = FIXBITS_DEFAULT) = 0;
-
-    // Stroked path construction
+    // Rendering of filled and stroked shapes
+    virtual bool FillPath(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
     virtual bool StrokePath() = 0;
 
     // Stroked path attributes

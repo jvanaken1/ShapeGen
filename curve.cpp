@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -70,7 +70,7 @@ namespace {
 //
 //--------------------------------------------------------------------
 
-bool PathMgr::IsFlatQuadratic(const VERT16 v[])
+bool PathMgr::IsFlatQuadratic(const VERT16 v[3])
 {
     FIX16 dx = iabs(v[0].x - 2*v[1].x + v[2].x);
     FIX16 dy = iabs(v[0].y - 2*v[1].y + v[2].y);
@@ -197,7 +197,7 @@ bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
 //
 //--------------------------------------------------------------------
 
-bool PathMgr::IsFlatCubic(const VERT16 v[])
+bool PathMgr::IsFlatCubic(const VERT16 v[4])
 {
 
     FIX16 ux = iabs(2*(v[1].x - v[0].x) + v[1].x - v[3].x);
