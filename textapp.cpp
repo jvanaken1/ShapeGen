@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -1931,7 +1931,7 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
             p += 1;
             break;
         case _POLYLINE_:
-            sg->PolyLine(p[1], &xy[p[2]]);
+            sg->PolyLine(&xy[p[2]], p[1]);
             p += 3;
             break;
         case _ELLIPSE_:
@@ -1944,7 +1944,7 @@ void TextApp::DrawGlyph(ShapeGen *sg, char *displist, SGPoint xy[])
             p += 6;
             break;
         case _POLYELLIPTICSPLINE_:
-            sg->PolyEllipticSpline(p[1], &xy[p[2]]);
+            sg->PolyEllipticSpline(&xy[p[2]], p[1]);
             p += 3;
             break;
         case _DRAWADOT_:

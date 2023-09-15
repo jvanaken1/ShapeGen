@@ -250,7 +250,7 @@ public:
     void EndFigure();
     void Move(SGCoord x, SGCoord y);
     bool Line(SGCoord x, SGCoord y);
-    bool PolyLine(int npts, const SGPoint xy[]);
+    bool PolyLine(const SGPoint xy[], int npts);
     void Rectangle(const SGRect& rect);
 
     // Basic path attributes
@@ -304,7 +304,7 @@ public:
     void Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2);
     void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, float aStart, float aSweep);
     bool EllipticSpline(const SGPoint& v1, const SGPoint& v2);
-    bool PolyEllipticSpline(int npts, const SGPoint xy[]);
+    bool PolyEllipticSpline(const SGPoint xy[], int npts);
     void RoundedRectangle(const SGRect& rect, const SGPoint& round);
 
 private:
@@ -316,9 +316,9 @@ private:
 public:
     // Bezier splines (quadratic and cubic)
     bool Bezier2(const SGPoint& v1, const SGPoint& v2);
-    bool PolyBezier2(int npts, const SGPoint xy[]);
+    bool PolyBezier2(const SGPoint xy[], int npts);
     bool Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3);
-    bool PolyBezier3(int npts, const SGPoint xy[]);
+    bool PolyBezier3(const SGPoint xy[], int npts);
 
 private:
     // Internal functions for checking flatness of splines

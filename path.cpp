@@ -357,7 +357,7 @@ bool PathMgr::Line(SGCoord x, SGCoord y)
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::PolyLine(int npts, const SGPoint xy[])
+bool PathMgr::PolyLine(const SGPoint xy[], int npts)
 {
     if (_cpoint == 0 || npts < 0 || xy == 0)
     {

@@ -187,7 +187,7 @@ public:
     virtual void EndFigure() = 0;
     virtual void Move(SGCoord x, SGCoord y) = 0;
     virtual bool Line(SGCoord x, SGCoord y) = 0;
-    virtual bool PolyLine(int npts, const SGPoint xy[]) = 0;
+    virtual bool PolyLine(const SGPoint xy[], int npts) = 0;
     virtual void Rectangle(const SGRect& rect) = 0;
 
     // Basic path attributes
@@ -223,14 +223,14 @@ public:
     virtual void EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2,
                              float aStart, float aSweep) = 0;
     virtual bool EllipticSpline(const SGPoint& v1, const SGPoint& v2) = 0;
-    virtual bool PolyEllipticSpline(int npts, const SGPoint xy[]) = 0;
+    virtual bool PolyEllipticSpline(const SGPoint xy[], int npts) = 0;
     virtual void RoundedRectangle(const SGRect& rect, const SGPoint& round) = 0;
 
     // Bezier splines (quadratic and cubic)
     virtual bool Bezier2(const SGPoint& v1, const SGPoint& v2) = 0;
-    virtual bool PolyBezier2(int npts, const SGPoint xy[]) = 0;
+    virtual bool PolyBezier2(const SGPoint xy[], int npts) = 0;
     virtual bool Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3) = 0;
-    virtual bool PolyBezier3(int npts, const SGPoint xy[]) = 0;
+    virtual bool PolyBezier3(const SGPoint xy[], int npts) = 0;
 };
 
 //---------------------------------------------------------------------

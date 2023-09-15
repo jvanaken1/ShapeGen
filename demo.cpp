@@ -346,7 +346,7 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, 0.333, "Hit space bar to continue");
     sg->BeginPath();
     sg->Move(arrow[0].x, arrow[0].y);
-    sg->PolyLine(ARRAY_LEN(arrow)-1, &arrow[1]);
+    sg->PolyLine(&arrow[1], ARRAY_LEN(arrow)-1);
     sg->FillPath();
 
     // Draw letters "ShapeGen" with slanted text and shadowing
@@ -447,7 +447,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetFixedBits(16);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
+    sg->PolyLine(&xy[1], ARRAY_LEN(xy)-1);
     sg->CloseFigure();
     aarend->SetColor(crFill);
     sg->FillPath();
@@ -459,7 +459,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     FitBbox(&bbdst[1], len, xy, &bbsrc, star);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
+    sg->PolyLine(&xy[1], ARRAY_LEN(xy)-1);
     sg->CloseFigure();
     aarend->SetColor(crFill);
     sg->SetFillRule(FILLRULE_WINDING);
@@ -475,7 +475,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(28.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
+    sg->PolyLine(&xy[1], ARRAY_LEN(xy)-1);
     sg->CloseFigure();
     aarend->SetColor(crFill);
     sg->StrokePath();
@@ -576,7 +576,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     FitBbox(&bbdst[1], len, xy, &bbsrc, star);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(len-1, &xy[1]);
+    sg->PolyLine(&xy[1], len-1);
     sg->SetFillRule(FILLRULE_WINDING);
     sg->SetMaskRegion();
 
@@ -585,7 +585,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(rect[1]);
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(len-1, &xy[1]);
+    sg->PolyLine(&xy[1], len-1);
     sg->SetClipRegion();
 
     // Paint linear gradient inside new clipping region
@@ -901,10 +901,10 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->BeginPath();
     sg->Move(blade[0][0].x, blade[0][0].y);
-    sg->PolyBezier3(ARRAY_LEN(blade[0])-1, &blade[0][1]);
+    sg->PolyBezier3(&blade[0][1], ARRAY_LEN(blade[0])-1);
     sg->CloseFigure();  // tie off this figure, start a new one
     sg->Move(blade[1][0].x, blade[1][0].y);
-    sg->PolyBezier3(ARRAY_LEN(blade[1])-1, &blade[1][1]);
+    sg->PolyBezier3(&blade[1][1], ARRAY_LEN(blade[1])-1);
     aarend->SetColor(RGBX(144,238,144));
     sg->CloseFigure();
     sg->FillPath();
@@ -936,7 +936,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_BEVEL);
     sg->BeginPath();
     sg->Move(stretch[0].x, stretch[0].y);
-    sg->PolyBezier3(ARRAY_LEN(stretch)-1, &stretch[1]);
+    sg->PolyBezier3(&stretch[1], ARRAY_LEN(stretch)-1);
     sg->CloseFigure();
     aarend->SetColor(RGBX(144,238,144));
     sg->FillPath();
@@ -964,7 +964,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(120,210,100));
     sg->BeginPath();
     sg->Move(clubs[0].x, clubs[0].y);
-    sg->PolyBezier3(15, &clubs[1]);
+    sg->PolyBezier3(&clubs[1], 15);
     sg->CloseFigure();
     sg->FillPath();
     sg->SetLineWidth(8.0);
@@ -993,7 +993,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetFixedBits(0);
     sg->BeginPath();
     sg->Move(shape[0].x, shape[0].y);
-    sg->PolyLine(ARRAY_LEN(shape)-1, &shape[1]);
+    sg->PolyLine(&shape[1], ARRAY_LEN(shape)-1);
     sg->CloseFigure();
     sg->StrokePath();
 
@@ -1028,7 +1028,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineJoin(LINEJOIN_BEVEL);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyEllipticSpline(64, &xy[1]);
+    sg->PolyEllipticSpline(&xy[1], 64);
     aarend->SetColor(RGBX(0,100,0));
     sg->SetLineWidth(16.0);
     sg->SetLineDash(dashedLineDashDoubleDot, 0, 4.6);
@@ -1122,7 +1122,7 @@ void demo07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     rend->SetColor(RGBX(0,0,80));
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
-    sg->PolyLine(ARRAY_LEN(point)-1, &point[1]);
+    sg->PolyLine(&point[1], ARRAY_LEN(point)-1);
     sg->SetLineWidth(0);
     sg->CloseFigure();
     sg->StrokePath();
@@ -1223,7 +1223,7 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     sg->SetLineWidth(width);
     sg->BeginPath();
     sg->Move(glyph[0].x, glyph[0].y);
-    sg->PolyBezier3(ARRAY_LEN(glyph)-1, &glyph[1]);
+    sg->PolyBezier3(&glyph[1], ARRAY_LEN(glyph)-1);
     sg->CloseFigure();
     sg->StrokePath();
     sg->SetLineWidth(width - 6);
@@ -1288,7 +1288,7 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     sg->SetFixedBits(16);
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
-    sg->PolyBezier3(15, &point[1]);
+    sg->PolyBezier3(&point[1], 15);
     sg->CloseFigure();
     sg->FillPath();
 
@@ -1304,7 +1304,7 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     // Outline control polygon for club suit symbol
     sg->BeginPath();
     sg->Move(point[0].x, point[0].y);
-    sg->PolyLine(ARRAY_LEN(point)-1, &point[1]);
+    sg->PolyLine(&point[1], ARRAY_LEN(point)-1);
     aarend->SetColor(RGBX(200,0,0));
     sg->SetLineWidth(1.0);
     sg->StrokePath();
@@ -1408,7 +1408,7 @@ void demo09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->BeginPath();
         sg->Ellipse(xy[2], xy[3], xy[4]);
         sg->Move(xy[5].x, xy[5].y);
-        sg->PolyEllipticSpline(12, &xy[6]);
+        sg->PolyEllipticSpline(&xy[6], 12);
         sg->StrokePath();
         xoffset += xoffset + 24;
         scale += 1.2*scale;
@@ -1429,7 +1429,7 @@ void demo09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->Line(xy[2].x, xy[2].y);
     sg->Line(xy[4].x, xy[4].y);
     sg->Move(xy[5].x, xy[5].y);
-    sg->PolyLine(12, &xy[6]);
+    sg->PolyLine(&xy[6], 12);
     sg->StrokePath();
 
     // Highlight vertices of control polygon
@@ -1793,9 +1793,9 @@ void demo12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     {
         sg->BeginPath();
         sg->Move(xy[0].x, xy[0].y);
-        sg->PolyLine(2, &xy[1]);
+        sg->PolyLine(&xy[1], 2);
         sg->Move(xy[3].x, xy[3].y);
-        sg->PolyLine(3, &xy[4]);
+        sg->PolyLine(&xy[4], 3);
         aarend->SetColor(rgb[i]);
         sg->SetLineWidth(linewidth);
         sg->StrokePath();
@@ -2523,7 +2523,7 @@ void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->SetLineWidth(2.0);
         sg->BeginPath();
         sg->Move(xy[i][0].x, xy[i][0].y);
-        sg->PolyLine(3, &xy[i][1]);
+        sg->PolyLine(&xy[i][1], 3);
         sg->CloseFigure();
         aarend->SetColor(RGBX(237,235,233));
         sg->FillPath();
@@ -2608,7 +2608,7 @@ void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         xy[i][3].y = xy[i][0].y - xy[i][1].y + xy[i][2].y;
         sg->BeginPath();
         sg->Move(xy[i][0].x, xy[i][0].y);
-        sg->PolyLine(3, &xy[i][1]);
+        sg->PolyLine(&xy[i][1], 3);
         sg->CloseFigure();
         aarend->SetColor(RGBX(237,235,233));
         sg->FillPath();
@@ -2907,7 +2907,7 @@ void example03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         aarend->SetColor(RGBX(240,225,220));
         sg->FillPath();
         sg->Move(xy[i][0].x, xy[i][0].y);
-        sg->PolyLine(3, &xy[i][1]);
+        sg->PolyLine(&xy[i][1], 3);
         sg->CloseFigure();
         aarend->SetColor(RGBX(200,215,240));
         sg->FillPath();
@@ -3034,7 +3034,7 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(0,190,255));  // blue
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(5, &xy[1]);
+    sg->PolyLine(&xy[1], 5);
     sg->GetBoundingBox(&bbox, 0);
     sg->FillPath();
 
@@ -3054,7 +3054,7 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(28.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(5, &xy[1]);
+    sg->PolyLine(&xy[1], 5);
     sg->CloseFigure();
     sg->GetBoundingBox(&bbox, FLAG_BBOX_STROKE);
     sg->StrokePath();
@@ -3075,7 +3075,7 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetMiterLimit(1.6);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(5, &xy[1]);
+    sg->PolyLine(&xy[1], 5);
     sg->CloseFigure();
     sg->GetBoundingBox(&bbox, FLAG_BBOX_STROKE);
     sg->StrokePath();
@@ -3114,7 +3114,7 @@ void example07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(14.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyBezier2(6, &xy[1]);
+    sg->PolyBezier2(&xy[1], 6);
     sg->StrokePath();
 
     // Outline the spline skeleton in black
@@ -3122,7 +3122,7 @@ void example07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(1.25);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(6, &xy[1]);
+    sg->PolyLine(&xy[1], 6);
     for (int i = 0; i < 7; ++i)
     {
         // Mark the knots and control points
@@ -3161,7 +3161,7 @@ void example08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(14.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyBezier3(9, &xy[1]);
+    sg->PolyBezier3(&xy[1], 9);
     sg->StrokePath();
 
     // Draw the spline handles in black
@@ -3212,7 +3212,7 @@ void example09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(16.0);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyEllipticSpline(6, &xy[1]);
+    sg->PolyEllipticSpline(&xy[1], 6);
     sg->StrokePath();
 
     // Outline the spline skeleton in black
@@ -3220,7 +3220,7 @@ void example09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetLineWidth(1.25);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
-    sg->PolyLine(6, &xy[1]);
+    sg->PolyLine(&xy[1], 6);
     for (int i = 0; i < 7; ++i)
     {
         // Mark the knots and control points
@@ -3425,7 +3425,7 @@ void example13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->SetLineDash(pattern[i], 0, linewidth/2.0);
         sg->BeginPath();
         sg->EllipticArc(xy[0], xy[1], xy[2], 0, PI);  // PI = 3.14159...
-        sg->PolyBezier3(3, &xy[3]);
+        sg->PolyBezier3(&xy[3], 3);
         sg->Line(xy[6].x, xy[6].y);
         sg->StrokePath();
         for (int j = 0; j < 7; ++j)
@@ -3458,7 +3458,7 @@ void example14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     {
         sg->BeginPath();
         sg->Move(vert[0].x, vert[0].y);
-        sg->PolyLine(2, &vert[1]);
+        sg->PolyLine(&vert[1], 2);
         sg->SetLineWidth(48.0);
         sg->SetLineEnd(cap[i]);
         aarend->SetColor(RGBX(135,206,235));
@@ -3495,7 +3495,7 @@ void example15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     {
         sg->BeginPath();
         sg->Move(vert[0].x, vert[0].y);
-        sg->PolyLine(2, &vert[1]);
+        sg->PolyLine(&vert[1], 2);
         sg->SetLineWidth(48.0);
         sg->SetLineJoin(join[i]);
         sg->CloseFigure();
@@ -3590,7 +3590,7 @@ void example17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     {
         sg->BeginPath();
         sg->Move(vert[0].x, vert[0].y);
-        sg->PolyLine(2, &vert[1]);
+        sg->PolyLine(&vert[1], 2);
         sg->SetLineWidth(48.0);
         aarend->SetColor(RGBX(173,215,87));
         sg->StrokePath();
@@ -4043,7 +4043,7 @@ void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         // parallelogram that is to be filled
         sg->BeginPath();
         sg->Move(vert[i][0].x, vert[i][0].y);
-        sg->PolyLine(3, &vert[i][1]);
+        sg->PolyLine(&vert[i][1], 3);
         sg->CloseFigure();
         aarend->SetPattern(image, 0,0, w,h,w, 0);
         sg->FillPath();

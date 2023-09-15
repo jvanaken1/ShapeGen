@@ -170,7 +170,7 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::PolyBezier2(int npts, const SGPoint xy[])
+bool PathMgr::PolyBezier2(const SGPoint xy[], int npts)
 {
     const SGPoint *pxy = xy;
 
@@ -307,7 +307,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::PolyBezier3(int npts, const SGPoint xy[])
+bool PathMgr::PolyBezier3(const SGPoint xy[], int npts)
 {
     const SGPoint *pxy = xy;
 

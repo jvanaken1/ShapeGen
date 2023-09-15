@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2023 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -57,7 +57,7 @@ namespace {
 
         if (x > y)
             return x + max(y/8, y/2 - x/8);
-    
+
         return y + max(x/8, x/2 - y/8);
     }
 
@@ -78,8 +78,8 @@ namespace {
         FIX16 dA = VLen(xP + xQ, yP + yQ);
         FIX16 dB = VLen(xP - xQ, yP - yQ);
         FIX16 r1 = max(dP, dQ);
-        FIX16 r2 = max(dA, dB); 
-    
+        FIX16 r2 = max(dA, dB);
+
         return max(r1 + r1/16, r2 - r2/4);
     }
 
@@ -114,7 +114,7 @@ namespace {
         int shift = 2*k + 3;
         FIX16 w = u0 >> shift;
         FIX16 U0 = u0 - w + (v0 >> (k + 1));
-    
+
         w >>= shift + 1;
         U0 -= w;
         w >>= shift;
@@ -166,9 +166,9 @@ int PathMgr::AngularInc(FIX16 xP, FIX16 yP, FIX16 xQ, FIX16 yQ)
 //
 //----------------------------------------------------------------------
 
-void PathMgr::EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP, 
+void PathMgr::EllipseCore(FIX16 xC, FIX16 yC, FIX16 xP, FIX16 yP,
                           FIX16 xQ, FIX16 yQ, FIX16 sweep)
-{   
+{
     int k = AngularInc(xP, yP, xQ, yQ);
     int count = sweep >> (16 - k);
 
@@ -218,7 +218,7 @@ void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 
 //---------------------------------------------------------------------
 //
-// Public function: Appends an elliptic arc to the current path. 
+// Public function: Appends an elliptic arc to the current path.
 // Point v0 is the center of the ellipse, and v1 and v2 are the end
 // points of a pair of conjugate diameters of the ellipse. Parameter
 // astart is the starting angle of the arc, and parameter asweep is the
@@ -231,11 +231,11 @@ void PathMgr::Ellipse(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2)
 // in a new figure. Otherwise, the function inserts a line segment
 // connecting the current point to the starting point of the arc. On
 // return from this function, the current point is set to the end point
-// of the arc. 
+// of the arc.
 //
 //----------------------------------------------------------------------
 
-void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2, 
+void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v2,
                           float astart, float asweep)
 {
     FIX16 xC = v0.x << _fixshift;
@@ -262,7 +262,7 @@ void PathMgr::EllipticArc(const SGPoint& v0, const SGPoint& v1, const SGPoint& v
         yP = y;
     }
 
-    // Convert negative angle to positive angle in opposite direction 
+    // Convert negative angle to positive angle in opposite direction
     if (asweep < 0)
     {
         xQ = -xQ;
@@ -310,7 +310,7 @@ bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
         assert(_cpoint != 0);
         return false;
     }
-    
+
     FIX16 xP = _cpoint->x;
     FIX16 yP = _cpoint->y;
     FIX16 xQ = v2.x << _fixshift;
@@ -327,7 +327,7 @@ bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
 
 //----------------------------------------------------------------------
 //
-// Public function: Appends a series of elliptic splines to the current 
+// Public function: Appends a series of elliptic splines to the current
 // figure in the current path. The current point is taken as the
 // starting point for the first spline, and the first two points in
 // array xy are taken as the control point and end point, respectively,
@@ -339,7 +339,7 @@ bool PathMgr::EllipticSpline(const SGPoint& v1, const SGPoint& v2)
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::PolyEllipticSpline(int npts, const SGPoint xy[])
+bool PathMgr::PolyEllipticSpline(const SGPoint xy[], int npts)
 {
     const SGPoint *pxy = &xy[0];
 
