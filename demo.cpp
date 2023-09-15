@@ -290,7 +290,7 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -347,7 +347,7 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Move(arrow[0].x, arrow[0].y);
     sg->PolyLine(ARRAY_LEN(arrow)-1, &arrow[1]);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Draw letters "ShapeGen" with slanted text and shadowing
     str = "ShapeGen";
@@ -385,7 +385,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -450,7 +450,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
     sg->CloseFigure();
     aarend->SetColor(crFill);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     aarend->SetColor(crBlack);
     sg->SetLineWidth(1.4);
     sg->StrokePath();
@@ -462,7 +462,8 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->PolyLine(ARRAY_LEN(xy)-1, &xy[1]);
     sg->CloseFigure();
     aarend->SetColor(crFill);
-    sg->FillPath(FILLRULE_WINDING);
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->FillPath();
     aarend->SetColor(crBlack);
     sg->StrokePath();
 
@@ -500,7 +501,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -560,7 +561,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(rect[0]);
     sg->Rectangle(rect[1]);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Define bounding boxes on left and right
     SGRect bbsrc;
@@ -576,7 +577,8 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(len-1, &xy[1]);
-    sg->SetMaskRegion(FILLRULE_WINDING);
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->SetMaskRegion();
 
     // Set up star-shaped clipping region on left
     FitBbox(&bbdst[0], len, xy, &bbsrc, star);
@@ -584,7 +586,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->Rectangle(rect[1]);
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(len-1, &xy[1]);
-    sg->SetClipRegion(FILLRULE_WINDING);
+    sg->SetClipRegion();
 
     // Paint linear gradient inside new clipping region
     sg->SetFixedBits(0);   // <-----------------
@@ -600,7 +602,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
     sg->BeginPath();
     sg->Rectangle(frame);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 }
 
 // Demo frame 4: Stroked line caps and joins
@@ -624,7 +626,7 @@ void demo04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -716,7 +718,7 @@ void demo04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             diam[0].x += 3;
             diam[1].y += 3;
             sg->Ellipse(p2, diam[0], diam[1]);
-            sg->FillPath(FILLRULE_EVENODD);
+            sg->FillPath();
         }
     }
 }
@@ -738,7 +740,7 @@ void demo05(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -859,7 +861,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -905,7 +907,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->PolyBezier3(ARRAY_LEN(blade[1])-1, &blade[1][1]);
     aarend->SetColor(RGBX(144,238,144));
     sg->CloseFigure();
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     aarend->SetColor(RGBX(0,100,0));
     sg->SetLineDash(dashedLineShortDash, 0, 4.0);
     sg->SetLineWidth(10.0);
@@ -937,7 +939,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->PolyBezier3(ARRAY_LEN(stretch)-1, &stretch[1]);
     sg->CloseFigure();
     aarend->SetColor(RGBX(144,238,144));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     aarend->SetColor(RGBX(0,100,0));
     sg->SetLineWidth(4.0);
     sg->SetLineDash(dashedLineDot, 0, 3.0);
@@ -964,7 +966,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->Move(clubs[0].x, clubs[0].y);
     sg->PolyBezier3(15, &clubs[1]);
     sg->CloseFigure();
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->SetLineWidth(8.0);
     sg->SetLineDash(dashedLineBeaded, 0, 1.0);
     aarend->SetColor(RGBX(0,100,0));
@@ -1057,7 +1059,7 @@ void demo07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1130,8 +1132,8 @@ void demo07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(rect);
     rend->SetColor(crBox);
-    sg->FillPath(FILLRULE_EVENODD);
-    sg->SetClipRegion(FILLRULE_EVENODD);
+    sg->FillPath();
+    sg->SetClipRegion();
 
     // Draw concentric ellipses in rectangle on right
     SGPoint p1, p2, p0 = { 940<<16, 460<<16 };
@@ -1149,7 +1151,7 @@ void demo07(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->Ellipse(p0, p1, p2);
     }
     rend->SetColor(RGBX(30,100,180));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     rend->SetColor(RGBX(255,255,255));
     sg->StrokePath();
 }
@@ -1171,7 +1173,7 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1288,7 +1290,7 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     sg->Move(point[0].x, point[0].y);
     sg->PolyBezier3(15, &point[1]);
     sg->CloseFigure();
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Switch to antialiasing renderer to stroke edges
     sg->SetRenderer(&(*aarend));
@@ -1319,7 +1321,8 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
         p2.y += 3 << 16;
         sg->Ellipse(p0, p1, p2);
     }
-    sg->FillPath(FILLRULE_WINDING);
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->FillPath();
 }
 
 // Demo frame 9: Ellipses and elliptic splines
@@ -1338,7 +1341,7 @@ void demo09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1439,7 +1442,7 @@ void demo09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         pt[1].y += 3 << 16;
         sg->Ellipse(xy[k], pt[0], pt[1]);
     }
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Draw atomic symbol
     SGPoint p0 = {    250,    392 };
@@ -1451,7 +1454,7 @@ void demo09(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Ellipse(p0, p1, p2);  // nucleus
     aarend->SetColor(RGBX(0,80,120));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->SetLineEnd(LINEEND_ROUND);
     for (int i = 0; i < 3; ++i)
     {
@@ -1493,7 +1496,7 @@ void demo10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1569,7 +1572,7 @@ void demo10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->Line(v[0].x, v[0].y);
         sg->CloseFigure();
         rend->SetColor(crSlice[i]);
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
 
         // Switch to antialiasing renderer to outline edges
         sg->SetRenderer(&(*aarend));
@@ -1590,7 +1593,7 @@ void demo10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             sg->Line(v[0].x, v[0].y);
             sg->CloseFigure();
             rend->SetColor(crFill);
-            sg->FillPath(FILLRULE_EVENODD);
+            sg->FillPath();
 
             // Switch to antialiasing renderer to outline edges
             sg->SetRenderer(&(*aarend));
@@ -1625,7 +1628,7 @@ void demo10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             sg->EllipticArc(v[3], v[4], v[5], astart, asweep);
             rend->SetColor(crRim[i]);
             sg->CloseFigure();
-            sg->FillPath(FILLRULE_EVENODD);
+            sg->FillPath();
 
             // Switch to antialiasing renderer to outline edges
             sg->SetRenderer(&(*aarend));
@@ -1664,7 +1667,7 @@ void demo11(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1709,7 +1712,7 @@ void demo11(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     // Fill the ellipses in yellow
     rend->SetColor(RGBX(255,255,0));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Switch to the antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1736,7 +1739,7 @@ void demo12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1816,7 +1819,7 @@ void demo13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(crBkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Now switch to antialiasing renderer
     sg->SetRenderer(&(*aarend));
@@ -1837,19 +1840,19 @@ void demo13(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Ellipse(v[2][0], v[2][1], v[2][2]);
     aarend->SetColor(RGBA(144,144,144,120));  // gray
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->BeginPath();
     sg->Ellipse(v[3][0], v[3][1], v[3][2]);
     aarend->SetColor(RGBA(100,255,0,88));  // green
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->BeginPath();
     sg->Ellipse(v[0][0], v[0][1], v[0][2]);
     aarend->SetColor(RGBA(0,0,255,88));  // blue
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->BeginPath();
     sg->Ellipse(v[1][0], v[1][1], v[1][2]);
     aarend->SetColor(RGBA(255,127,0,100));  // orange
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Draw the title text
     char *str = "Alpha Blending";
@@ -1886,7 +1889,7 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->RoundedRectangle(frame, corner);
     aarend->SetTransform(affine);
     aarend->SetPattern(checker, 0, 0, 2, 2, 2, 0);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Stroke the edge of the frame
     sg->SetLineWidth(8.0);
@@ -1917,7 +1920,7 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         aarend->SetTransform(transform);
         aarend->SetPattern(&bmr, 5, 5, width, height, flags);
     }
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->SetLineWidth(6.0);
     aarend->SetColor(RGBX(50,100,222));
     sg->SetLineJoin(LINEJOIN_ROUND);
@@ -1946,7 +1949,7 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         trend->SetColor(RGBX(21,11,86));
         sg->BeginPath();
         sg->Rectangle(rect);
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
 
         // Paint a yellow 5-pointed star
         float angle = 0.8*PI;
@@ -1964,7 +1967,8 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             sg->Line(x+x0, y+y0);
         }
         trend->SetColor(RGBX(254,235,0));
-        sg->FillPath(FILLRULE_WINDING);
+        sg->SetFillRule(FILLRULE_WINDING);
+        sg->FillPath();
 
         // Restore original graphics state
         sg->SetFixedBits(0);
@@ -2080,7 +2084,7 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         default:
             break;
         }
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         aarend->SetColor(RGBX(50,100,222));
         sg->StrokePath();
         P.x = P.x*cosa + Q.x*sina;
@@ -2117,7 +2121,7 @@ void demo15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     // Clip everything to a frame with rounded corners
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
-    sg->SetClipRegion(FILLRULE_EVENODD);
+    sg->SetClipRegion();
 
     // Draw rows of boxes with zigzag linear gradients
     SGRect box = frame;
@@ -2172,7 +2176,7 @@ void demo15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             sg->Rectangle(box);
             aarend->SetLinearGradient(x0, y0, x0+(x1-x0)/6.9, y0+dx/6.9, spread,
                                       FLAG_EXTEND_START | FLAG_EXTEND_END);
-            sg->FillPath(FILLRULE_EVENODD);
+            sg->FillPath();
             box.x += dx;
             if (j & 1)
                 x1 += 2*dx;
@@ -2227,7 +2231,7 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Stroke the edge of the frame
     aarend->SetColor(RGBX(122,122,122));
@@ -2254,7 +2258,7 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetTransform(squash);
     aarend->SetRadialGradient(490,700,373, 640,700,604, SPREAD_PAD,
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Draw the title text
     char *str = "Radial Gradient Fills";
@@ -2300,9 +2304,9 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->RoundedRectangle(rr0, corner);
     aarend->SetColor(RGBX(170,170,170));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     aarend->SetRadialGradient(100,0,65, -100,0,40, SPREAD_REFLECT, 0);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Middle inset: Draw concentric ellipses
     aarend->ResetColorStops();
@@ -2319,7 +2323,7 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->RoundedRectangle(rr1, corner);
     aarend->SetRadialGradient(4,8,40, -4,-8,70, SPREAD_REFLECT,
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Right inset: Draw cone
     aarend->ResetColorStops();
@@ -2336,11 +2340,11 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetTransform(0);
     aarend->SetLinearGradient(0, 0, 44, 23, SPREAD_REFLECT,
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     aarend->SetTransform(xlate);
     aarend->SetRadialGradient(42, -12, 13, -42, 11, 46, SPREAD_REFLECT,
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Draw frames around insets
     sg->BeginPath();
@@ -2370,7 +2374,7 @@ void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetLinearGradient(0,0, 52,82, SPREAD_REPEAT, 3);
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     sg->SetLineWidth(8.0);
     aarend->SetColor(RGBX(75,0,130));
     sg->StrokePath();
@@ -2382,7 +2386,7 @@ void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->AddColorStop(0, RGBA(30,0,0,110));
     aarend->AddColorStop(1.0, 0);
     aarend->SetRadialGradient(0,0,350, 0,0,650, SPREAD_PAD, FLAG_EXTEND_START);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Draw the title text
     TextApp txt;
@@ -2427,7 +2431,7 @@ void MySub(ShapeGen *sg, SGRect& rect)
 {
     sg->BeginPath();
     sg->Rectangle(rect);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 }
 
 void MyTest(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
@@ -2439,7 +2443,7 @@ void MyTest(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(clip);
     rend->SetColor(RGBX(255,255,255));  // white
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     rend->SetColor(RGBX(255,40,20));  // red
     MySub(sg, rect);
@@ -2472,7 +2476,7 @@ void MyTest2(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(clip);
     rend->SetColor(RGBX(255,255,255));  // white
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     rend->SetColor(RGBX(0,120,255));  // blue
     MySub(&(*sg), rect);
@@ -2522,7 +2526,7 @@ void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
         aarend->SetColor(RGBX(237,235,233));
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         aarend->SetColor(RGBX(170,175,180));
         sg->StrokePath();
 
@@ -2541,7 +2545,7 @@ void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->BeginPath();
         sg->Ellipse(v0, v1, v2);
         aarend->SetColor(RGBX(220,250,230));
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         aarend->SetColor(RGBX(75,75,75));
         sg->StrokePath();
 
@@ -2607,7 +2611,7 @@ void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
         aarend->SetColor(RGBX(237,235,233));
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         aarend->SetColor(RGBX(150,160,170));
         sg->SetLineWidth(2.0);
         sg->StrokePath();
@@ -2636,7 +2640,7 @@ void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             sg->Line(v0.x, v0.y);
             sg->CloseFigure();
             aarend->SetColor(color[j]);
-            sg->FillPath(FILLRULE_EVENODD);
+            sg->FillPath();
             aarend->SetColor(RGBX(100,100,100));
             sg->StrokePath();
             astart += asweep;
@@ -2699,7 +2703,7 @@ void OlympicRings(ShapeGen *sg, EnhancedRenderer *aarend, SGRect *bbox)
     sg->Rectangle(rect[1]);
     sg->Rectangle(rect[2]);
     sg->Rectangle(rect[3]);
-    sg->SetClipRegion(FILLRULE_EVENODD);
+    sg->SetClipRegion();
 
     sg->SetLineWidth(15.0f);
     for (int i = 0; i < 3; ++i)
@@ -2768,7 +2772,7 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
                        blurbbox.w, blurbbox.h, 0);
     sg->BeginPath();
     sg->Rectangle(blurbbox);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // 8. Use the original, unblurred image as the next fill pattern
     //
@@ -2777,7 +2781,7 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
                        FLAG_IMAGE_BGRA32 | FLAG_PREMULTALPHA);
     sg->BeginPath();
     sg->Rectangle(bbox);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -2901,12 +2905,12 @@ void example03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->BeginPath();
         sg->Ellipse(v0, v1, v2);
         aarend->SetColor(RGBX(240,225,220));
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         sg->Move(xy[i][0].x, xy[i][0].y);
         sg->PolyLine(3, &xy[i][1]);
         sg->CloseFigure();
         aarend->SetColor(RGBX(200,215,240));
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         sg->Move(v1.x, v1.y);
         sg->Line(v0.x, v0.y);
         sg->Line(v2.x, v2.y);
@@ -2958,7 +2962,7 @@ void example04(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             sg->Line(v[i][0].x, v[i][0].y);
             aarend->SetColor(color[j]);
             sg->CloseFigure();
-            sg->FillPath(FILLRULE_EVENODD);
+            sg->FillPath();
             aarend->SetColor(RGBX(100,100,100));
             sg->StrokePath();
             astart += asweep;
@@ -3032,13 +3036,13 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(5, &xy[1]);
     sg->GetBoundingBox(&bbox, 0);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Overlay the bounding box on the filled shape
     aarend->SetColor(RGBA(200,180,160,90));  // beige
     sg->BeginPath();
     sg->Rectangle(bbox);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Move the shape to the right
     for (int i = 0; i < 6; ++i)
@@ -3059,7 +3063,7 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBA(200,180,160,90));  // beige
     sg->BeginPath();
     sg->Rectangle(bbox);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Move the shape to the right
     for (int i = 0; i < 6; ++i)
@@ -3080,7 +3084,7 @@ void example06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBA(200,180,160,90));  // beige
     sg->BeginPath();
     sg->Rectangle(bbox);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -3265,7 +3269,8 @@ void example10(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     rect.h = -rect.h;
     sg->Rectangle(rect);
     rend->SetColor(RGBX(180,220,240));
-    sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule!
+    sg->SetFillRule(FILLRULE_WINDING);  // <-- winding number fill rule!
+    sg->FillPath();
     sg->SetLineWidth(2.0);
     sg->SetLineJoin(LINEJOIN_MITER);
     rend->SetColor(RGBX(0,0,0));
@@ -3313,7 +3318,8 @@ void example11(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     round.y = -round.y;
     sg->RoundedRectangle(rect, round);
     rend->SetColor(RGBX(255,222,173));
-    sg->FillPath(FILLRULE_WINDING);  // <-- winding number fill rule!
+    sg->SetFillRule(FILLRULE_WINDING);  // <-- winding number fill rule!
+    sg->FillPath();
 
     // Switch to antialiasing renderer and stroke boundaries
     sg->SetRenderer(&(*aarend));
@@ -3349,13 +3355,13 @@ void example12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     // Set the clipping region to a 298x298-pixel square
     sg->BeginPath();
     sg->Rectangle(rect);
-    sg->SetClipRegion(FILLRULE_EVENODD);
+    sg->SetClipRegion();
 
     // Do background fill with solid light blue
     sg->BeginPath();
     sg->Rectangle(clip);
     aarend->SetColor(RGBX(200, 222, 255));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Set the clipping region to a star-shaped area inside the square
     sg->BeginPath();
@@ -3367,7 +3373,8 @@ void example12(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         xr = xtmp;
         sg->Line(xc + xr, yc + yr);
     }
-    sg->SetClipRegion(FILLRULE_WINDING);
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->SetClipRegion();
 
     // Draw a series of horizontal red lines through the square
     aarend->SetColor(RGBX(255,100,100));
@@ -3530,7 +3537,7 @@ void example16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(rect);
     aarend->SetColor(RGBX(200, 222, 255));
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Mask off a star-shaped area from the clipping region
     sg->BeginPath();
@@ -3542,7 +3549,8 @@ void example16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         xr = xtmp;
         sg->Line(xc + xr, yc + yr);
     }
-    sg->SetMaskRegion(FILLRULE_WINDING);
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->SetMaskRegion();
 
     // Draw a series of horizontal, red lines through the square
     aarend->SetColor(RGBX(255,100,100));
@@ -3620,7 +3628,7 @@ void example18(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->BeginPath();
     sg->Rectangle(rect);
     rend->SetColor(RGBX(0,255,255));  // cyan (100% opaque)
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Switch to the enhanced renderer
     sg->SetRenderer(&(*aarend));
@@ -3728,7 +3736,7 @@ void example20(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetPattern(checker, 1.6,1.6, 2,2, 2, 0);
     sg->BeginPath();
     sg->Rectangle(bkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
     aarend->SetTransform(0);
 
     // Set up color stop table
@@ -3744,7 +3752,7 @@ void example20(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
                                   FLAG_EXTEND_START | FLAG_EXTEND_END);
         sg->BeginPath();
         sg->Rectangle(rect);
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         aarend->SetConstantAlpha(255);
         aarend->SetColor(RGBX(188,22,244));
         sg->StrokePath();
@@ -3781,7 +3789,7 @@ void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetLinearGradient(0,40, 0,340, SPREAD_PAD, 0);
     sg->BeginPath();
     sg->Rectangle(bkgd);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Show sun rising on horizon
     aarend->ResetColorStops();
@@ -3790,7 +3798,7 @@ void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetLinearGradient(0,150, 0,190, SPREAD_PAD, 0);
     sg->BeginPath();
     sg->EllipticArc(v0, v1, v2, 0, PI);  // PI = 3.14159265...
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     // Show hazy reflection of sun on water
     aarend->ResetColorStops();
@@ -3799,7 +3807,7 @@ void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetLinearGradient(0,190, 0,193, SPREAD_REFLECT, FLAG_EXTEND_END);
     sg->BeginPath();
     sg->Rectangle(light);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -3838,7 +3846,7 @@ void example22(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetPattern(tartan, 0,0, 7,7,7, 0);
     sg->BeginPath();
     sg->Ellipse(v0, v1, v2);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -3865,7 +3873,7 @@ void example23(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetRadialGradient(140,140,19, 182,182,188, SPREAD_PAD, FLAG_EXTEND_START);
     sg->BeginPath();
     sg->Ellipse(v0, v1, v2);
-    sg->FillPath(FILLRULE_EVENODD);
+    sg->FillPath();
 
     //-----  Label the output of this code example -----
     TextApp txt;
@@ -3895,14 +3903,15 @@ void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(180,180,180));
     sg->BeginPath();
     sg->Rectangle(rect);
-    sg->FillPath(FILLRULE_WINDING);
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->FillPath();
 
     // Fill the left rectangle with a radial gradient
     aarend->AddColorStop(0, RGBX(255, 215, 0));  // gold
     aarend->AddColorStop(1.0, RGBX(135, 206, 235));  // skyblue
     aarend->SetRadialGradient(200,160,70, 290,215,100, SPREAD_REPEAT,
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
-    sg->FillPath(FILLRULE_WINDING);
+    sg->FillPath();
 
     // Stroke the outline of the starting circle in black
     aarend->SetColor(RGBX(40,40,40));
@@ -3923,7 +3932,7 @@ void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(180,180,180));
     sg->BeginPath();
     sg->Rectangle(rect);
-    sg->FillPath(FILLRULE_WINDING);
+    sg->FillPath();
 
     // Set up a new transform for the radial gradient
     aarend->SetTransform(xform);
@@ -3931,7 +3940,7 @@ void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     // Fill the right rectangle with the transformed radial gradient
     aarend->SetRadialGradient(200,160,70, 290,215,100, SPREAD_REPEAT,
                               FLAG_EXTEND_START | FLAG_EXTEND_END);
-    sg->FillPath(FILLRULE_WINDING);
+    sg->FillPath();
 
     // Transform the coordinates of the starting and ending circles.
     // To improve resolution, convert the transformed coordinates to
@@ -4037,7 +4046,7 @@ void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->PolyLine(3, &vert[i][1]);
         sg->CloseFigure();
         aarend->SetPattern(image, 0,0, w,h,w, 0);
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
 
         // Outline the square, rectangle, or parallelogram with a
         // black dashed line

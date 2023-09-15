@@ -101,6 +101,13 @@ enum LINEEND {
 };
 const LINEEND LINEEND_DEFAULT = LINEEND_FLAT;  // default line end cap
 
+// Clipping region can be either filled shape or stroked shape
+enum CLIPMODE {
+    CLIPMODE_FILLPATH,
+    CLIPMODE_STROKEPATH
+};
+const CLIPMODE CLIPMODE_DEFAULT = CLIPMODE_FILLPATH;
+
 // Flag bits for ShapeGen::GetBoundingBox function
 const int FLAG_BBOX_STROKE = 1;  // get bbox for stroked shape
 const int FLAG_BBOX_CLIP = 2;    // clip bbox to device clip rect
@@ -194,16 +201,17 @@ public:
     // Clipping and masking
     virtual bool InitClipRegion(int width, int height) = 0;
     virtual void ResetClipRegion() = 0;
-    virtual bool SetClipRegion(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
-    virtual bool SetMaskRegion(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
+    virtual bool SetClipRegion(CLIPMODE clipmode = CLIPMODE_DEFAULT) = 0;
+    virtual bool SetMaskRegion(CLIPMODE clipmode = CLIPMODE_DEFAULT) = 0;
     virtual bool SaveClipRegion() = 0;
     virtual bool SwapClipRegion() = 0;
 
-    // Rendering of filled and stroked shapes
-    virtual bool FillPath(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
+    // Rendering of filled paths and stroked paths
+    virtual bool FillPath() = 0;
     virtual bool StrokePath() = 0;
 
-    // Stroked path attributes
+    // Attributes of filled paths and stroked paths
+    virtual FILLRULE SetFillRule(FILLRULE fillrule = FILLRULE_DEFAULT) = 0;
     virtual float SetLineWidth(float width = LINEWIDTH_DEFAULT) = 0;
     virtual float SetMiterLimit(float mlim = MITERLIMIT_DEFAULT) = 0;
     virtual LINEEND SetLineEnd(LINEEND capstyle = LINEEND_DEFAULT) = 0;

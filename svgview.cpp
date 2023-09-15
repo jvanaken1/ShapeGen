@@ -140,7 +140,7 @@ int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect)
         sg->BeginPath();
         aarend->SetColor(RGBX(0,0,0));
         sg->Rectangle(cliprect);
-        sg->FillPath(FILLRULE_EVENODD);
+        sg->FillPath();
         return(_argc_ < 3) ? -1 : testnum;
     }
 
@@ -193,11 +193,13 @@ int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect)
         aarend->SetConstantAlpha(alpha);
         if (shape->fill.type != NSVG_PAINT_NONE)
         {
-            bool bEvenOdd = (shape->fillRule == NSVG_FILLRULE_EVENODD);
-            FILLRULE rule = (bEvenOdd) ? FILLRULE_EVENODD : FILLRULE_WINDING;
-
             PreparePaint(&shape->fill, scale, &(*aarend));
-            sg->FillPath(rule);
+            if (shape->fillRule == NSVG_FILLRULE_EVENODD)
+                sg->SetFillRule(FILLRULE_EVENODD);
+            else
+                sg->SetFillRule(FILLRULE_WINDING);
+
+            sg->FillPath();
         }
 
         // If stroke paint is specified, stroke the path

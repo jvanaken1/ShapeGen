@@ -41,7 +41,6 @@ ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 {
     ShapeGen *sg = new PathMgr(renderer, cliprect);
     assert(sg != 0);  // out of memory?
-
     return sg;
 }
 
@@ -67,6 +66,7 @@ PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
     SetFixedBits(0);
     SetLineDash(0, 0, 0);
     SetFlatness(FLATNESS_DEFAULT);
+    SetFillRule(FILLRULE_DEFAULT);
     SetLineWidth(LINEWIDTH_DEFAULT);
     SetLineEnd(LINEEND_DEFAULT);
     SetLineJoin(LINEJOIN_DEFAULT);
@@ -448,11 +448,33 @@ bool PathMgr::FilledShape()
 
 //---------------------------------------------------------------------
 //
+// Public function: Sets the fill rule to use for filling paths
+//
+//----------------------------------------------------------------------
+
+FILLRULE PathMgr::SetFillRule(FILLRULE fillrule)
+{
+    FILLRULE oldrule = _fillrule;
+    switch (fillrule)
+    {
+    case FILLRULE_EVENODD:
+    case FILLRULE_WINDING:
+        _fillrule = fillrule;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return oldrule;
+}
+
+//---------------------------------------------------------------------
+//
 // Public function: Fills the current path
 //
 //----------------------------------------------------------------------
 
-bool PathMgr::FillPath(FILLRULE fillrule)
+bool PathMgr::FillPath()
 {
     if (FilledShape() == false)
         return false;  // path is empty
@@ -460,7 +482,7 @@ bool PathMgr::FillPath(FILLRULE fillrule)
     if ((_devicecliprect.x | _devicecliprect.y) != 0)
         _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
 
-    _edge->NormalizeEdges(fillrule);
+    _edge->NormalizeEdges(_fillrule);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->FillEdgeList();
 }
@@ -494,15 +516,27 @@ bool PathMgr::StrokePath()
 //
 //---------------------------------------------------------------------
 
-bool PathMgr::SetClipRegion(FILLRULE fillrule)
+bool PathMgr::SetClipRegion(CLIPMODE clipmode)
 {
-    if (FilledShape() == false)
-        return false;  // path is empty
+    switch (clipmode)
+    {
+    case CLIPMODE_FILLPATH:
+        if (FilledShape() == false)
+            return false;  // path is empty
+        break;
+    case CLIPMODE_STROKEPATH:
+        if (StrokedShape() == false)
+            return false;  // path is empty
+        break;
+    default:
+        assert(0);
+        return false;
+    }
 
     if ((_devicecliprect.x | _devicecliprect.y) != 0)
         _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
 
-    _edge->NormalizeEdges(fillrule);
+    _edge->NormalizeEdges(_fillrule);
     _edge->ClipEdges(FILLRULE_INTERSECT);
     return _edge->SetClipList();
 }
@@ -516,15 +550,27 @@ bool PathMgr::SetClipRegion(FILLRULE fillrule)
 //
 //---------------------------------------------------------------------
 
-bool PathMgr::SetMaskRegion(FILLRULE fillrule)
+bool PathMgr::SetMaskRegion(CLIPMODE clipmode)
 {
-    if (FilledShape() == false)
-        return false;  // path is empty
+    switch (clipmode)
+    {
+    case CLIPMODE_FILLPATH:
+        if (FilledShape() == false)
+            return false;  // path is empty
+        break;
+    case CLIPMODE_STROKEPATH:
+        if (StrokedShape() == false)
+            return false;  // path is empty
+        break;
+    default:
+        assert(0);
+        return false;
+    }
 
     if ((_devicecliprect.x | _devicecliprect.y) != 0)
         _edge->TranslateEdges(_devicecliprect.x, _devicecliprect.y);
 
-    _edge->NormalizeEdges(fillrule);
+    _edge->NormalizeEdges(_fillrule);
     _edge->ReverseEdges();
     _edge->ClipEdges(FILLRULE_EXCLUDE);
     return _edge->SetClipList();

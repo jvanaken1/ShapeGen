@@ -193,28 +193,37 @@ class PathMgr : virtual public ShapeGen
 {
     friend ShapeGen* CreateShapeGen(Renderer*, const SGRect&);
 
-    Renderer *_renderer;
-    EdgeMgr *_edge;     // manages lists of polygonal edges
+    Renderer *_renderer; // renders filled and stroked shapes
+    EdgeMgr *_edge;      // manages lists of polygonal edges
     SGRect _devicecliprect;  // clipping rectangle for display device
-    FIX16 _flatness;    // error tolerance for flattened arcs/curves
-    int _fixshift;      // to convert user coords to 16.16 fixed-point
+    FIX16 _flatness;     // error tolerance for flattened arcs/curves
+    int _fixshift;       // to convert user coords to 16.16 fixed-point
+    FILLRULE _fillrule;  // either even-odd or nonzero winding number
 
     // Storage for points in path
     int _pathlength;  // current length of path array
     VERT16 *_path;    // pointer to dynamically allocated path array
 
-    // Four members updated by path memory management
-    VERT16 *_cpoint;  // pointer to current point in figure
-    VERT16 *_fpoint;  // pointer to first point in figure
-    FIGURE *_figure;  // pointer to current figure in path
-    FIGURE *_figtmp;  // temporary figure pointer
+    // Path memory management functions
+    void GrowPath();
+    void PathCheck(VERT16 *ptr)
+    {
+        if (ptr == &_path[_pathlength])  // detect path overflow
+            GrowPath();
+    }
+
+    // Four member variables updated by path memory management
+    VERT16 *_cpoint;    // pointer to current point in figure
+    VERT16 *_fpoint;    // pointer to first point in figure
+    FIGURE *_figure;    // pointer to current figure in path
+    FIGURE *_figtmp;    // temporary figure pointer
 
     // Dashed line pattern parameters
-    FIX16 _dasharray[DASHARRAY_MAXLEN+1];  // max length of dash array
-    FIX16 _dashoffset;     // starting offset into dashed-line pattern
-    FIX16 *_pdash;         // pointer to current position in dash array
-    FIX16 _dashlen;        // length in pixels of the current dash/gap
-    bool _dashon;          // true (false) if _pdash points to dash (gap)
+    FIX16 _dasharray[DASHARRAY_MAXLEN+1];  // dash pattern storage
+    FIX16 _dashoffset;  // starting offset into dashed-line pattern
+    FIX16 *_pdash;      // pointer to current position in dash array
+    FIX16 _dashlen;     // length in pixels of the current dash/gap
+    bool _dashon;       // true (false) if _pdash points to dash (gap)
 
     // Stroked path variables
     VERT16 _vin, _vout; // edge vertices at start of stroked segment
@@ -225,22 +234,14 @@ class PathMgr : virtual public ShapeGen
     FIX16 _mitercheck;  // precomputed parameter for miter-limit check
     FIX16 _angle;       // angle between line segments at round join
 
-    void FinalizeFigure(bool bclose);  // close or end a figure
-
-    // Path memory management functions
-    void GrowPath();
-    void PathCheck(VERT16 *ptr)
-    {
-        if (ptr == &_path[_pathlength])  // detect path overflow
-            GrowPath();
-    }
+    void FinalizeFigure(bool bclose);  // closes or ends a figure
 
 protected:
     PathMgr(Renderer *renderer, const SGRect& cliprect);
     ~PathMgr();
 
 public:
-    // Set the renderer to use for filling and stroking shapes
+    // Selects the renderer to use for filling and stroking shapes
     bool SetRenderer(Renderer *renderer);
 
     // Basic path construction
@@ -263,8 +264,8 @@ public:
     // Clipping and masking
     bool InitClipRegion(int width, int height);
     void ResetClipRegion();
-    bool SetClipRegion(FILLRULE fillrule);
-    bool SetMaskRegion(FILLRULE fillrule);
+    bool SetClipRegion(CLIPMODE clipmode);
+    bool SetMaskRegion(CLIPMODE clipmode);
     bool SaveClipRegion()
     {
         return _edge->SaveClipRegion();
@@ -275,10 +276,11 @@ public:
     }
 
     // Rendering of filled and stroked shapes
-    bool FillPath(FILLRULE fillrule);
+    bool FillPath();
     bool StrokePath();
 
-    // Stroked path attributes
+    // Attributes for filling and stroking paths
+    FILLRULE SetFillRule(FILLRULE fillrule);
     float SetLineWidth(float width);
     float SetMiterLimit(float mlim);
     LINEEND SetLineEnd(LINEEND capstyle);
@@ -287,8 +289,8 @@ public:
 
 private:
     // Internal functions for filled and stroked paths
-    bool FilledShape();
-    bool StrokedShape();
+    bool FilledShape();  // convert path to edge list for filled shape
+    bool StrokedShape(); // convert path to edge list for stroked shape
     bool InitLineDash();
     FIX16 LineLength(const VERT16& vs, const VERT16& ve, XY *u, VERT16 *a);
     void RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2);
