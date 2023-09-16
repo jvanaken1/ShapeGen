@@ -2,9 +2,15 @@ ShapeGen 2-D Graphics Library
 -------------
 
 _Author:_ Jerry R. VanAken  
-_Date:_ 7/29/2022
+_Date:_ 9/15/2023
 
-This GitHub project contains the C++ source code for the ShapeGen 2-D graphics library. Library users call ShapeGen functions to construct paths that define arbitrarily complex shapes. Shape boundaries are formed by connecting line segments, spline curves, and circular and elliptic arcs. Shapes can be filled or stroked with solid colors, tiled patterns, linear gradients, and radial gradients. For stroked paths, users can specify line widths, join and cap styles, and line-dash patterns. Clipping regions can have arbitrary shape and complexity. The example renderers support true-color displays and provide antialiasing and alpha blending.
+**Breaking Change &ndash; September 15, 2023:** Several minor (but breaking) changes have been made to the ShapeGen API. For more information, see the _ShapeGen User's Guide_ in the `userdoc.pdf` file in the main directory of this project.
+
+## Overview
+
+This GitHub project contains the C++ source code for the ShapeGen 2-D graphics library.
+
+Library users call ShapeGen functions to construct paths that define arbitrarily complex shapes. Shape boundaries are formed by connecting line segments, spline curves, and circular and elliptic arcs. Shapes can be filled or stroked with solid colors, tiled patterns, linear gradients, and radial gradients. For stroked paths, users can specify line widths, join and cap styles, and line-dash patterns. Clipping regions can have arbitrary shape and complexity. The example renderers support true-color displays and provide antialiasing and alpha blending.
 
 The ShapeGen library is lightweight, and is readily ported to any computing environment for which a C++ compiler and Standard C Library are available.
 
@@ -27,6 +33,8 @@ This GitHub project includes the following files and directories.
 * `README.md` &ndash; This README file
 
 * `userdoc.pdf` &ndash; _ShapeGen User's Guide_
+
+* `alfablur.cpp` &ndash; Example code to show how to filter images
 
 * `arc.cpp` &ndash; ShapeGen public and private member functions for adding ellipses, elliptic arcs, elliptic splines, and rounded rectangles to paths
 
