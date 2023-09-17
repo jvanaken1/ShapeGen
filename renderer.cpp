@@ -257,6 +257,90 @@ namespace {
             }
         }
     }
+
+    // Implements BLENDOP_ADD_WITH_SAT operation: Adds a row of source
+    // pixels to a row of destination pixels. Uses add-with-saturate
+    // blend operations so that any 8-bit component that overflows is
+    // set to 255. This blend mode works well only if (1) the shapes
+    // being composited together do not overlap at the subpixel level,
+    // and (2) the background was previously initialized to transparent
+    // black (all zeros). If small overlap errors occur, however, the
+    // add-with-saturate operation mitigates any resulting overflows.
+    // Source and destination pixels are in premultiplied-alpha format.
+    void AddWithSaturation(COLOR *src, COLOR *dst, int len)
+    {
+        while (len--)
+        {
+            COLOR dstpix, srcpix = *src++;
+
+            if (srcpix == 0)
+            {
+                ++dst;
+            }
+            else if ((dstpix = *dst) == 0)
+            {
+                *dst++ = srcpix;
+            }
+            else if (((srcpix >> 24) + (dstpix >> 24)) < 256)
+            {
+                *dst++ = dstpix + srcpix;
+            }
+            else  // overflow
+            {
+                COLOR red = (srcpix >> 16) & 255;
+                COLOR grn = (srcpix >> 8) & 255;
+                COLOR blu = (srcpix & 255) + (dstpix & 255);
+
+                red += (dstpix >> 16) & 255;
+                grn += (dstpix >> 8) & 255;
+                red |= (255 - red) >> 24;
+                grn |= (255 - grn) >> 24;
+                blu |= (255 - blu) >> 24;
+                *dst++ = (-1 << 24) | (red << 16) | (grn << 8) | blu;
+            }
+        }
+    }
+
+    // Implements BLENDOP_ALPHA_CLEAR operation: Multiplies a row of
+    // destination pixels by the bitwise inverse of the corresponding
+    // source alpha components. Source color components are not used.
+    // A source alpha value of 255 clears (makes totally transparent)
+    // the corresponding destination pixel, while a source alpha of
+    // zero leaves the destination unchanged. Source and destination
+    // pixels are in premultiplied-alpha format.
+    void AlphaClear(COLOR *src, COLOR *dst, int len)
+    {
+        while (len--)
+        {
+            COLOR srcpix, dstpix, anot;
+
+            srcpix = *src++;
+            anot = ~srcpix >> 24;  // inverse of source alpha
+            if (anot == 0)
+            {
+                *dst++ = 0;  // source alpha is 255
+            }
+            else if (anot == 255 || (dstpix = *dst) == 0)
+            {
+                ++dst;
+            }
+            else
+            {
+                COLOR rb = dstpix & 0x00ff00ff;
+                COLOR ga = (dstpix ^ rb) >> 8;
+                rb *= anot;
+                rb += 0x00800080;
+                rb += (rb >> 8) & 0x00ff00ff;
+                rb = (rb >> 8) & 0x00ff00ff;
+                ga *= anot;
+                ga += 0x00800080;
+                ga += (ga >> 8) & 0x00ff00ff;
+                ga &= 0xff00ff00;
+                dstpix = ga | rb;
+                *dst++ = dstpix;
+            }
+        }
+    }
 }  // end namespace
 
 //---------------------------------------------------------------------
@@ -283,6 +367,7 @@ class AA4x8Renderer : public EnhancedRenderer
     COLOR *_linebuf;   // pixel data bits in scanline buffer
     COLOR _alpha;      // source constant alpha
     COLOR _color;      // current color for solid color fills
+    BLENDOP _blendop;  // how to blend source and destination pixels
     int _maxwidth;     // width (in pixels) of device clipping rect
     int *_aabuf;       // AA-buffer data bits (32 bits per pixel)
     int *_aarow[4];    // AA-buffer organized as 4 subpixel rows
@@ -325,12 +410,14 @@ public:
     void ResetColorStops() { _stopCount = 0; }
     void SetTransform(const float xform[]);
     void SetConstantAlpha(COLOR alpha);
+    void SetBlendOperation(BLENDOP blendop);
 };
 
 AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf)
                   : _maxwidth(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _color(0), _alpha(255),
-                    _xscroll(0), _yscroll(0), _pixalloc(false)
+                    _xscroll(0), _yscroll(0), _pixalloc(false),
+                    _blendop(BLENDOP_SRC_OVER_DST)
 {
     if (pixbuf->width <= 0 || pixbuf->height <= 0 || pixbuf->depth != 32 ||
         (pixbuf->pitch/sizeof(COLOR) < pixbuf->width && pixbuf->pixels))
@@ -502,6 +589,7 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
 {
     int iL = xmin >> 5;         // index of first 4-byte block
     int iR = (xmax + 31) >> 5;  // index just past last 4-byte block
+    int x = 4*iL;
 
     assert(iL < iR);
 
@@ -513,7 +601,6 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     for (int i = iL; i < iR; ++i)
     {
         int count = 0;
-        int x = 4*i;
 
         for (int j = 0; j < 4; ++j)
         {
@@ -551,9 +638,15 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     if (_paintgen)
         _paintgen->FillSpan(xleft, yscan, len, srcbuf, srcbuf);
 
-    // Alpha-blend the painted pixels into the back buffer
+    // Blend the painted pixels into the back buffer
     COLOR *dest = &_pixbuf.pixels[yscan*_stride + xleft];
-    AlphaBlender(srcbuf, dest, len);
+
+    if (_blendop == BLENDOP_SRC_OVER_DST)
+        AlphaBlender(srcbuf, dest, len);
+    else if (_blendop == BLENDOP_ADD_WITH_SAT)
+        AddWithSaturation(srcbuf, dest, len);
+    else
+        AlphaClear(srcbuf, dest, len);
 }
 
 // Private function: Loads an RGB color component or alpha value into
@@ -752,6 +845,23 @@ void AA4x8Renderer::SetTransform(const float xform[])
     }
     else
         _pxform = 0;
+}
+
+// Public function: Sets the blending operation that will be used to
+// blend source pixels with destination pixels
+void AA4x8Renderer::SetBlendOperation(BLENDOP blendop)
+{
+    switch (blendop)
+    {
+    case BLENDOP_SRC_OVER_DST:
+    case BLENDOP_ADD_WITH_SAT:
+    case BLENDOP_ALPHA_CLEAR:
+        _blendop = blendop;
+        break;
+    default:
+        _blendop = BLENDOP_DEFAULT;
+        break;
+    }
 }
 
 //---------------------------------------------------------------------

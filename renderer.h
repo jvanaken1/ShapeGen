@@ -62,6 +62,15 @@ enum SPREAD_METHOD
     SPREAD_REPEAT,
 };
 
+// Operations for blending source pixels with destination pixels
+enum BLENDOP
+{
+    BLENDOP_SRC_OVER_DST,  // Porter & Duff 'A over B' operation
+    BLENDOP_ADD_WITH_SAT,  // Add with saturation
+    BLENDOP_ALPHA_CLEAR,   // Multiply dest pixel by (255 - src_alpha)
+};
+const BLENDOP BLENDOP_DEFAULT = BLENDOP_SRC_OVER_DST;
+
 // Flags for pattern fills and gradient fills
 const int FLAG_EXTEND_START = 1;
 const int FLAG_EXTEND_END = 2;
@@ -158,6 +167,7 @@ public:
     virtual void ResetColorStops() = 0;
     virtual void SetTransform(const float xform[] = 0) = 0;
     virtual void SetConstantAlpha(COLOR alpha) = 0;
+    virtual void SetBlendOperation(BLENDOP blendop) = 0;
 };
 
 EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *pixbuf);
