@@ -90,6 +90,9 @@ namespace {
 
     EDGE* sortlist(EDGE *plist, int length, int (*comp)(const void *, const void *))
     {
+        if (length < 2)
+            return plist;
+
         int i, count = 0;
         EDGE **ptr = new EDGE*[length];  // pointer array for qsort
 
@@ -99,7 +102,7 @@ namespace {
 
         //assert(count == length);
         qsort(ptr, count, sizeof(EDGE*), comp);   // stdlib.h function
-        for (i = 1; i < count; i++)
+        for (i = 1; i < count; ++i)
             ptr[i-1]->next = ptr[i];  // update links in linked list
 
         ptr[i-1]->next = 0;
@@ -107,7 +110,51 @@ namespace {
         delete[] ptr;
         return tmp;
     }
-}
+
+    //---------------------------------------------------------------------
+    //
+    // Merges two pre-sorted, singly linked lists of edges. Each of the
+    // two input lists has previously been sorted in ascending-y order.
+    // The output list maintains this ordering.
+    //
+    //---------------------------------------------------------------------
+
+    EDGE* mergelists(EDGE* list1, EDGE* list2)
+    {
+        EDGE *swap, *head = 0, **tail = &head;
+
+        if (!list1)
+            return list2;
+
+        if (!list2)
+            return list1;
+
+        if (list1->ytop > list2->ytop)
+            swap = list1, list1 = list2, list2 = swap;
+
+        for (;;)
+        {
+            EDGE *p, *q;
+
+            *tail = p = list1;
+            do {
+                q = p;
+                p = p->next;
+            } while (p && p->ytop <= list2->ytop);
+
+            if (!p)
+            {
+                q->next = list2;
+                break;
+            }
+
+            tail = &(q->next);
+            list1 = list2;
+            list2 = p;
+        }
+        return head;
+    }
+}  // end namespace
 
 //---------------------------------------------------------------------
 //
@@ -129,6 +176,22 @@ POOL::~POOL()
         delete[] inventory[i];
 }
 
+// Public function: Allocates an EDGE structure
+EDGE* POOL::Allocate(EDGE *p)
+{
+    if (watermark == blklen)  // is this block exhausted?
+        AcquireBlock();  // yes, acquire more pool memory
+
+    EDGE *q = &block[watermark++];
+    if (p)
+    {
+        *q = *p;  // copy contents of EDGE structure
+        q->next = 0;
+    }
+    return q;
+}
+
+// Private function: Acquires more storage when pool is exhausted
 void POOL::AcquireBlock()
 {
     // The current block is 100 percent allocated. Acquire a new block.
@@ -141,10 +204,11 @@ void POOL::AcquireBlock()
     watermark = 0;
 }
 
+// Public function: Resets the pool by freeing all currently
+// allocated EDGE structures
 void POOL::Reset()
 {
-    // Reset the pool by discarding all currently allocated EDGE structures.
-    // Get ready for the first new allocation request.
+    //
     if (index)
     {
         EDGE *swap = block;  block = inventory[0];  inventory[0] = swap;
@@ -174,8 +238,6 @@ class Feeder : ShapeFeeder
     FIX16 _xL, _xR, _dxL, _dxR;
     int _ytop, _height;
 
-    EDGE* ysortlist(EDGE *plist, int length);
-
 protected:
     Feeder() : _list(0), _edgeL(0), _edgeR(0), _ytop(0),
                _height(0), _xL(0), _xR(0), _dxL(0), _dxR(0)
@@ -184,10 +246,10 @@ protected:
     ~Feeder()
     {
     }
-    void SetEdgeList(EDGE *list, int length)
+    void SetEdgeList(EDGE *list, int yshift)
     {
-        if (length)
-            _list = ysortlist(list, length/2);  // antialiasing
+        if (yshift < 16)
+            _list = list;  // antialiasing
         else
             _edgeL = list;  // no antialiasing
     }
@@ -368,47 +430,11 @@ bool Feeder::GetNextSGSpan(SGSpan *span)
 
 //---------------------------------------------------------------------
 //
-// Uses the qsort function in stdlib.h to sort items in a singly linked
-// list of EDGE pairs. The qsort function in stdlib.h is used to sort
-// the EDGE pairs in order of ascending ytop values. Parameter plist
-// points to the head of the list. Parameter length is the number of
-// EDGE pairs in the list. The ysortlist function returns a pointer to
-// the head of the new, y-sorted list.
-//
-//---------------------------------------------------------------------
-
-EDGE* Feeder::ysortlist(EDGE *plist, int length)
-{
-    if (length < 2)
-        return plist;
-
-    int i, count = 0;
-    EDGE **ptr = new EDGE*[length];  // pointer array for qsort
-
-    assert(ptr);  // out of memory?
-    for (EDGE *p = plist; p; p = p->next->next)
-        ptr[count++] = p;  // add pointer to next EDGE pair in list
-
-    //assert(count == length);
-    qsort(ptr, count, sizeof(EDGE*), ycomp);  // stdlib.h function
-    for (i = 1; i < count; i++)
-        ptr[i-1]->next->next = ptr[i];  // update links in linked list
-
-    ptr[i-1]->next->next = 0;
-    EDGE *tmp = ptr[0];
-    delete[] ptr;
-    return tmp;
-}
-
-//---------------------------------------------------------------------
-//
 // Polygonal edge manager -- EdgeMgr constructor and destructor
 //
 //---------------------------------------------------------------------
 
-EdgeMgr::EdgeMgr()
-            : _inlist(0), _outlist(0), _cliplist(0),
-              _rendlist(0), _savelist(0), _renderer(0)
+EdgeMgr::EdgeMgr() : _renderer(0)
 {
     _inpool = new POOL;
     _outpool = new POOL;
@@ -453,7 +479,7 @@ bool EdgeMgr::SetRenderer(Renderer *renderer)
 //---------------------------------------------------------------------
 //
 // Protected function: Sets the clipping region to the normalized edge
-// list in _outlist and discards the old clipping region. Returns true
+// list in _outlist.head and discards the old clipping region. Returns true
 // if the new clipping region is not empty; otherwise, returns false.
 // (If the clipping region is empty, everything will get clipped, and
 // nothing can be drawn.)
@@ -462,14 +488,14 @@ bool EdgeMgr::SetRenderer(Renderer *renderer)
 
 bool EdgeMgr::SetClipList()
 {
-    if (_outlist == 0)
+    if (_outlist.head == 0)
     {
-        _cliplist = 0;
+        _cliplist.head = 0;
         _clippool->Reset();
         return false;  // new clipping region is empty
     }
-    _cliplist = _outlist;
-    _outlist = 0;
+    _cliplist.head = _outlist.head;
+    _outlist.head = 0;
     POOL *swap = _clippool; _clippool = _outpool; _outpool = swap;
     _outpool->Reset();
     return true;
@@ -486,23 +512,19 @@ bool EdgeMgr::SetClipList()
 
 bool EdgeMgr::SaveClipRegion()
 {
-    EDGE dsthead;
-    EDGE *q = &dsthead;
-
     _savepool->Reset();
-    if (_cliplist == 0)
+    if (_cliplist.head == 0)
     {
-        _savelist = 0;
+        _savelist.head = 0;
         return false;
     }
-    for (EDGE *p = _cliplist; p != 0; p = p->next)
-    {
-        q->next = _savepool->Allocate();
-        q = q->next;
-        *q = *p;
-    }
-    q->next = 0;
-    _savelist = dsthead.next;
+
+    // Make a copy of _cliplist
+    _savelist.head = _savelist.tail = _savepool->Allocate(_cliplist.head);
+    for (EDGE *p = _cliplist.head->next; p != 0; p = p->next)
+        _savelist.tail = _savelist.tail->next = _savepool->Allocate(p);
+
+    //assert(_savelist.tail->next == 0);
     return true;
 }
 
@@ -519,9 +541,9 @@ bool EdgeMgr::SaveClipRegion()
 
 bool EdgeMgr::SwapClipRegion()
 {
-    EDGE *swap = _cliplist;  _cliplist = _savelist;  _savelist = swap;
-    POOL *swap2 = _clippool;   _clippool = _savepool;   _savepool = swap2;
-    return (_cliplist != 0);
+    EDGE *swap = _cliplist.head;  _cliplist.head = _savelist.head;  _savelist.head = swap;
+    POOL *swap2 = _clippool;  _clippool = _savepool;  _savepool = swap2;
+    return (_cliplist.head != 0);
 }
 
 //---------------------------------------------------------------------
@@ -533,7 +555,7 @@ bool EdgeMgr::SwapClipRegion()
 
 void EdgeMgr::ReverseEdges()
 {
-    for (EDGE *p = _outlist; p; p = p->next)
+    for (EDGE *p = _outlist.head; p; p = p->next)
         p->dy = -p->dy;
 }
 
@@ -549,7 +571,7 @@ void EdgeMgr::TranslateEdges(int x, int y)
     x = x << 16;
     y = y << (16 - _yshift);
 
-    for (EDGE *p = _inlist; p != 0; p = p->next)
+    for (EDGE *p = _inlist.head; p != 0; p = p->next)
     {
         p->xtop -= x;
         p->ytop -= y;
@@ -566,49 +588,50 @@ void EdgeMgr::TranslateEdges(int x, int y)
 
 void EdgeMgr::ClipEdges(FILLRULE fillrule)
 {
-    assert(_inlist == 0 && (_inpool->GetCount() == 0));
+    assert(_inlist.head == 0 && (_inpool->GetCount() == 0));
     assert(fillrule == FILLRULE_INTERSECT || fillrule == FILLRULE_EXCLUDE);
 
     // The output list may be empty if the path describes a shape
     // so tiny that it falls into a crack between pixels
-    if (_outlist == 0)
+    if (_outlist.head == 0)
         return;
 
     // An empty clip list means the clipping region has no interior,
     // so everything gets clipped and nothing gets drawn
-    if (_cliplist == 0)
+    if (_cliplist.head == 0)
     {
-        _outlist = 0;
+        _outlist.head = 0;
         _outpool->Reset();
         return;
     }
 
-    // Swap _inlist and _outlist (and their respective pools)
-    _inlist = _outlist;
-    _outlist = 0;
+    // Swap _inlist.head and _outlist.head (and their respective pools)
+    _inlist.head = _outlist.head;
+    _outlist.head = 0;
     POOL *swap = _inpool; _inpool = _outpool; _outpool = swap;
 
-    // Add copy of clipping region from _cliplist to _inlist
-    for (EDGE *p = _cliplist; p != 0; p = p->next)
-    {
-        EDGE *q = _inpool->Allocate();
+    // Make a copy of _cliplist
+    EDGELIST copylist;
+    copylist.head = copylist.tail = _inpool->Allocate(_cliplist.head);
+    for (EDGE *p = _cliplist.head->next; p != 0; p = p->next)
+        copylist.tail = copylist.tail->next = _inpool->Allocate(p);
 
-        *q = *p;
-        q->next = _inlist;
-        _inlist = q;
-    }
+    //assert(copylist.tail->next == 0);
+
+    // Merge the two lists, which are pre-sorted in ascending-y order
+    _inlist.head = mergelists(_inlist.head, copylist.head);
 
     // Get intersection of clip list with normalized edge list
     NormalizeEdges(fillrule);
-    _inlist = 0;
+    _inlist.head = 0;
     _inpool->Reset();
 }
 
 //---------------------------------------------------------------------
 //
 // Protected function: Fills all the trapezoids defined by the clipped
-// and normalized edges in _outlist. Returns true if _outlist is not
-// empty, so that one or more trapezoids are filled. If _outlist is
+// and normalized edges in _outlist.head. Returns true if _outlist.head is not
+// empty, so that one or more trapezoids are filled. If _outlist.head is
 // empty, the function does no fills and immediately returns false.
 //
 //---------------------------------------------------------------------
@@ -618,15 +641,14 @@ bool EdgeMgr::FillEdgeList()
     Feeder iter;
     int length;  // this is nonzero only if antialiasing is enabled
 
-    if (_outlist == 0)
+    if (_outlist.head == 0)
         return false;
 
-    _rendlist = _outlist;
+    _rendlist.head = _outlist.head;
     POOL *swap = _outpool;  _outpool = _rendpool;  _rendpool = swap;
-    _outlist = 0;
+    _outlist.head = 0;
     _outpool->Reset();
-    length = (_yshift == 16) ? 0 : _rendpool->GetCount();
-    iter.SetEdgeList(_rendlist, length);
+    iter.SetEdgeList(_rendlist.head, _yshift);
     _renderer->RenderShape(&iter);
     return true;
 }
@@ -634,7 +656,7 @@ bool EdgeMgr::FillEdgeList()
 //---------------------------------------------------------------------
 //
 // Protected function: Saves the next pair of mated edges to the
-// normalized edge list pointed to by _outlist. Each pair of mated edges
+// normalized edge list pointed to by _outlist.head. Each pair of mated edges
 // specifies a trapezoid. Parameter edgeL is a pointer to the edge that
 // defines the left side of the trapezoid. Parameter edgeR is a pointer
 // to the edge defining the right side.
@@ -651,8 +673,13 @@ void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
     p->next = q;
     *q = *edgeR;
     q->dy = -height;  // negative so that winding number decrements
-    q->next = _outlist;
-    _outlist = p;
+    q->next = 0;
+    if (_outlist.head == 0)
+        _outlist.head = p;
+    else
+        _outlist.tail->next = p;
+
+    _outlist.tail = q;
 }
 
 //---------------------------------------------------------------------
@@ -669,11 +696,11 @@ void EdgeMgr::SetDeviceClipRectangle(int width, int height)
     VERT16 v1, v2;  // top and bottom ends of vertical edge
 
     // Discard any previously saved copy of the clipping region
-    _savelist = 0;
+    _savelist.head = 0;
     _savepool->Reset();
 
     // Add left and right sides of rectangle to _inpool
-    assert(_inlist == 0 && _inpool->GetCount() == 0);
+    assert(_inlist.head == 0 && _inpool->GetCount() == 0);
     v1.y = 0;
     v2.y = height << 16;
     v1.x = v2.x = 0;
@@ -682,8 +709,8 @@ void EdgeMgr::SetDeviceClipRectangle(int width, int height)
     AttachEdge(&v2, &v1);  // <-- note reverse ordering
 
     // Swap _inpool with _clippool, and reset _inpool
-    _cliplist = _inlist;
-    _inlist = 0;
+    _cliplist.head = _inlist.head;
+    _inlist.head = 0;
     POOL *swap = _clippool; _clippool = _inpool; _inpool = swap;
     _inpool->Reset();
 }
@@ -707,20 +734,24 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     FIX16 xdist, ddx;
     EDGE *p, *q, *ylist, *xlist, head;
 
-    assert(_outlist == 0 && _outpool->GetCount() == 0);
-    if (_inlist == 0)
+    assert(_outlist.head == 0 && _outpool->GetCount() == 0);
+    if (_inlist.head == 0)
         return;  // nothing to do here
 
-    if (_cliplist == 0)
+    if (_cliplist.head == 0)
     {
-        _inlist = 0;
+        _inlist.head = 0;
         _inpool->Reset();
         return;  // nothing to do here
     }
 
-    // Sort input list of edges in order of ascending ytop values
-    length = _inpool->GetCount();
-    ylist = sortlist(_inlist, length, ycomp);
+    // When a path is initially converted to a list of edges for a
+    // filled or stroked shape, the edges have not yet been sorted
+    if (fillrule == FILLRULE_EVENODD || fillrule == FILLRULE_WINDING)
+    {
+        length = _inpool->GetCount();
+        _inlist.head = sortlist(_inlist.head, length, ycomp);
+    }
 
     // Partition the polygon into a list of non-overlapping trapezoids.
     // The trapezoids will be produced in major order from top (minimum
@@ -728,6 +759,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     // Each iteration of the while-loop below produces a band of one or
     // more trapezoids that all have the same ytop value.
 
+    ylist = _inlist.head;
     xlist = 0;
     while (ylist != 0)
     {
@@ -856,7 +888,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
             ylist = head.next;
         }
     }
-    _inlist = 0;
+    _inlist.head = 0;
     _inpool->Reset();
 }
 
@@ -901,13 +933,13 @@ void EdgeMgr::AttachEdge(const VERT16 *v1, const VERT16 *v2)
         float dxdy = dx/(vbot.y - vtop.y);
         FIX16 xgap = dxdy*((ymin << _yshift) + _yhalf - vtop.y);
 
-        // Create new EDGE structure and insert at head of _inlist
+        // Create new EDGE structure and insert at head of _inlist.head
         EDGE *p = _inpool->Allocate();
         p->ytop = ymin;
         p->dy = dy;  // sign of dy indicates edge up/down direction
         p->xtop = vtop.x + xgap + FIX_BIAS;
         p->dxdy = dxdy*(1 << _yshift);
-        p->next = _inlist;
-        _inlist = p;
+        p->next = _inlist.head;
+        _inlist.head = p;
     }
 }

@@ -233,13 +233,13 @@ void PathMgr::FinalizeFigure(bool bclose)
 {
     if (_cpoint != 0)
     {
-        if (_cpoint != _fpoint)
+        if (_cpoint != _fpoint)  // more than one point?
         {
             int count = _cpoint - _fpoint;
             VERT16 *p = _fpoint, *q = p;
 
-            // Before starting a new figure, remove any redundant
-            // points from the current figure
+            // Before starting a new figure, remove any
+            // redundant points from the current figure
             for (int i = 0; i < count; ++i)
             {
                 ++q;
@@ -267,7 +267,7 @@ void PathMgr::FinalizeFigure(bool bclose)
                 _fpoint = _cpoint;
             }
         }
-        _cpoint = 0;
+        _cpoint = 0;  // empty figure
     }
 }
 

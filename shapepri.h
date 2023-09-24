@@ -89,6 +89,14 @@ struct EDGE {
     FIX16 dxdy;  // inverse slope: change in x per unit step in y
 };
 
+// Singly linked list of edges
+struct EDGELIST {
+    EDGE *head;
+    EDGE *tail;
+    EDGELIST() : head(0), tail(0) {}
+    ~EDGELIST() {}
+};
+
 // Internal fill-rule attribute values to set clipping region:
 //   FILLRULE_INTERSECT - Include spans that are inside both the
 //       current clipping region and the current path
@@ -117,26 +125,20 @@ class POOL
 {
     EDGE *block;    // block currently in use for EDGE allocations
     int blklen;     // number of EDGE structures in block array
-    int watermark;  // allocation watermark in block array
+    int watermark;  // allocation watermark in current block
 
-    // Track of inventory of exhausted (fully allocated) blocks
+    // Track inventory of exhausted (fully allocated) blocks
     EDGE *inventory[POOL_INVENTORY_LENGTH];
     int count;  // number of EDGE structures in inventory array
     int index;  // index of next free slot in inventory array
 
-    void AcquireBlock();
+    void AcquireBlock();  // add new block of memory to pool
 
 public:
     POOL(int len = INITIAL_POOL_LENGTH);
     ~POOL();
     void Reset();
-    EDGE* Allocate()
-    {
-        if (watermark == blklen)  // is this block exhausted?
-            AcquireBlock();  // yes, acquire more pool memory
-
-        return &block[watermark++];
-    }
+    EDGE* Allocate(EDGE *p = 0);
     int GetCount()
     {
         return (count + watermark);
@@ -147,7 +149,7 @@ public:
 //
 // Edge manager. Converts a path to a set of polygonal edges, clips
 // these edges, and produces a set of non-overlapping trapezoids that
-// are ready to be rendered on the display.
+// are ready to be rendered and displayed.
 //
 //---------------------------------------------------------------------
 
@@ -157,7 +159,7 @@ class EdgeMgr
 {
     friend PathMgr;
 
-    EDGE *_inlist, *_outlist, *_cliplist, *_rendlist, *_savelist;
+    EDGELIST _inlist, _outlist, _cliplist, _rendlist, _savelist;
     POOL *_inpool, *_outpool, *_clippool, *_rendpool, *_savepool;
     Renderer *_renderer;
     int _yshift, _ybias, _yhalf;
