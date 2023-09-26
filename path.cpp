@@ -424,23 +424,24 @@ bool PathMgr::FilledShape()
 
     while ((off = fig->offset) != 0)
     {
-        VERT16 *vs = &fpt[-2];    // last point in new figure
-        VERT16 *ve = &fpt[-off];  // first point in new figure
-        int nlines = off - 1;     // number of lines to draw
+        VERT16 *vs = &fpt[-2];    // last point in current figure
+        VERT16 *ve = &fpt[-off];  // first point in current figure
+        int nverts;
 
-        if (fig->isclosed)
-        {
-            --vs;
-            --nlines;
-        }
+        if (vs != ve && vs->x == ve->x && vs->y == ve->y)
+            --vs;  // skip redundant vertex
 
-        assert(vs != ve);  // figure has at least 2 points
-        fig = &fig[-off];  // header for new figure
-        fpt = ve;          // remember first point
-        for (int i = 0; i < nlines; i++)
+        fig = &fig[-off];      // header for next figure
+        fpt = ve;              // remember first point
+        nverts = vs - ve + 1;  // number of vertices in shape
+        if (nverts > 2)
         {
-            _edge->AttachEdge(vs, ve);
-            vs = ve++;
+            while (nverts--)
+            {
+                // Convert the two points to a polygonal edge
+                _edge->AttachEdge(vs, ve);
+                vs = ve++;
+            }
         }
     }
     return true;
@@ -591,7 +592,7 @@ bool PathMgr::SetMaskRegion(CLIPMODE clipmode)
 
 void PathMgr::ResetClipRegion()
 {
-    _edge->SetDeviceClipRectangle(_devicecliprect.w, _devicecliprect.h);
+    _edge->SetDeviceClipRectangle(_devicecliprect.w, _devicecliprect.h, true);
 }
 
 //---------------------------------------------------------------------
@@ -611,7 +612,7 @@ bool PathMgr::InitClipRegion(int width, int height)
     }
     _devicecliprect.w = width;
     _devicecliprect.h = height;
-    _edge->SetDeviceClipRectangle(width, height);
+    _edge->SetDeviceClipRectangle(width, height, false);
     _renderer->SetMaxWidth(width);
     return true;
 }

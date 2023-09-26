@@ -177,7 +177,7 @@ protected:
     void NormalizeEdges(FILLRULE fillrule);
     void AttachEdge(const VERT16 *v1, const VERT16 *v2);
     void TranslateEdges(int x, int y);
-    void SetDeviceClipRectangle(int width, int height);
+    void SetDeviceClipRectangle(int width, int height, bool bsave);
     bool SaveClipRegion();
     bool SwapClipRegion();
 };

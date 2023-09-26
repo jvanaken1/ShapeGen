@@ -524,7 +524,7 @@ bool EdgeMgr::SaveClipRegion()
     for (EDGE *p = _cliplist.head->next; p != 0; p = p->next)
         _savelist.tail = _savelist.tail->next = _savepool->Allocate(p);
 
-    //assert(_savelist.tail->next == 0);
+    assert(_savelist.tail->next == 0);
     return true;
 }
 
@@ -691,13 +691,16 @@ void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
 //
 //---------------------------------------------------------------------
 
-void EdgeMgr::SetDeviceClipRectangle(int width, int height)
+void EdgeMgr::SetDeviceClipRectangle(int width, int height, bool bsave)
 {
     VERT16 v1, v2;  // top and bottom ends of vertical edge
 
-    // Discard any previously saved copy of the clipping region
-    _savelist.head = 0;
-    _savepool->Reset();
+    if (!bsave)
+    {
+        // Discard any previously saved copy of the clipping region
+        _savelist.head = 0;
+        _savepool->Reset();
+    }
 
     // Add left and right sides of rectangle to _inpool
     assert(_inlist.head == 0 && _inpool->GetCount() == 0);
