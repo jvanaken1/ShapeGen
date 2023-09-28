@@ -216,7 +216,7 @@ void PathMgr::BeginPath()
 {
     _figure = reinterpret_cast<FIGURE*>(&_path[0]);
     _figure->offset = 0;
-    _figure->isclosed = false;
+    _figure->isclosed = false;  // by default, path is open
     _fpoint = &_path[1];
     _cpoint = 0;  // indicate figure is empty
 }
@@ -225,7 +225,8 @@ void PathMgr::BeginPath()
 //
 // Private function: Finalizes the current figure, and then opens a
 // new, initially empty figure. If a figure contains just one point,
-// that point is discarded.
+// that point is discarded. Input parameter bclose is true if the
+// figure is closed; otherwise (i.e., the figure is open), it's false.
 //
 //----------------------------------------------------------------------
 
@@ -246,15 +247,14 @@ void PathMgr::FinalizeFigure(bool bclose)
                 if ((p->x != q->x || p->y != q->y) && ++p != q)
                     *p = *q;
             }
-            if (p->x == _fpoint->x && p->y == _fpoint->y && bclose && p != _fpoint)
-                --p;
 
             if (p != _fpoint)
             {
                 if (bclose)
                 {
-                    *++p = *_fpoint;
                     _figure->isclosed = true;
+                    if (p->x != _fpoint->x || p->y != _fpoint->y)
+                        *++p = *_fpoint;  // handy for stroked paths
                 }
                 _cpoint = p;
 
@@ -270,7 +270,6 @@ void PathMgr::FinalizeFigure(bool bclose)
         _cpoint = 0;  // empty figure
     }
 }
-
 //---------------------------------------------------------------------
 //
 // Public function: Closes the current figure (aka subpath) by adding a
@@ -416,29 +415,29 @@ bool PathMgr::FilledShape()
 
     // Convert points in path stack to linked list of edges for
     // polygon. Each iteration processes one figure (or subpath).
-    // Always force a figure to be closed by connecting its start
-    // and end points.
+    // Always force a filled figure to be closed by connecting
+    // its start and end points.
     FIGURE *fig = _figure;  // empty figure terminates path
     VERT16 *fpt = _fpoint;
     int off;
 
     while ((off = fig->offset) != 0)
     {
-        VERT16 *vs = &fpt[-2];    // last point in current figure
-        VERT16 *ve = &fpt[-off];  // first point in current figure
-        int nverts;
+        VERT16 *vs = &fpt[-2];    // last point in new figure
+        VERT16 *ve = &fpt[-off];  // first point in new figure
+        int nverts = off - 1;     // number of vertices
 
-        if (vs != ve && vs->x == ve->x && vs->y == ve->y)
-            --vs;  // skip redundant vertex
-
-        fig = &fig[-off];      // header for next figure
-        fpt = ve;              // remember first point
-        nverts = vs - ve + 1;  // number of vertices in shape
-        if (nverts > 2)
+        fpt = ve;          // remember first point
+        fig = &fig[-off];  // header for new figure
+        if (fig->isclosed)
         {
-            while (nverts--)
+            --vs;
+            --nverts;
+        }
+        if (vs != ve)
+        {
+            for (int i = 0; i < nverts; i++)
             {
-                // Convert the two points to a polygonal edge
                 _edge->AttachEdge(vs, ve);
                 vs = ve++;
             }
