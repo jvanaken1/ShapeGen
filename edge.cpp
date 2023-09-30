@@ -693,8 +693,7 @@ void EdgeMgr::SaveEdgePair(int height, EDGE *edgeL, EDGE *edgeR)
 
 void EdgeMgr::SetDeviceClipRectangle(int width, int height, bool bsave)
 {
-    VERT16 v1, v2;  // top and bottom ends of vertical edge
-
+    assert(_inlist.head == 0 && _inpool->GetCount() == 0);
     if (!bsave)
     {
         // Discard any previously saved copy of the clipping region
@@ -703,12 +702,10 @@ void EdgeMgr::SetDeviceClipRectangle(int width, int height, bool bsave)
     }
 
     // Add left and right sides of rectangle to _inpool
-    assert(_inlist.head == 0 && _inpool->GetCount() == 0);
-    v1.y = 0;
-    v2.y = height << 16;
-    v1.x = v2.x = 0;
+    VERT16 v1 = { width<<16, height<<16 };
+    VERT16 v2 = { width<<16, 0 };
     AttachEdge(&v1, &v2);
-    v1.x = v2.x = width << 16;
+    v1.x = v2.x = 0;
     AttachEdge(&v2, &v1);  // <-- note reverse ordering
 
     // Swap _inpool with _clippool, and reset _inpool
