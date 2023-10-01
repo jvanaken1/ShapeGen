@@ -610,13 +610,68 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
     _outlist.head = 0;
     POOL *swap = _inpool; _inpool = _outpool; _outpool = swap;
 
-    // Make a copy of _cliplist
-    EDGELIST copylist;
-    copylist.head = copylist.tail = _inpool->Allocate(_cliplist.head);
-    for (EDGE *p = _cliplist.head->next; p != 0; p = p->next)
-        copylist.tail = copylist.tail->next = _inpool->Allocate(p);
+    // For a regular clipping operation (FILLRULE_INTERSECT), the part
+    // of the clipping region that lies above the shape that's being
+    // clipped has no effect and can be trivially rejected. When
+    // masking off a shape from the clipping region (FILLRULE_EXCLUDE),
+    // the clipping region above the shape can be copied directly to
+    // the output list without first being processed by the
+    // NormalizeEdges function.
 
-    //assert(copylist.tail->next == 0);
+    EDGELIST copylist;
+    EDGE **p = &(_cliplist.head), **q = &(copylist.head);
+    int yband = _inlist.head->ytop;  // y coord at top of shape
+
+    while (*p && (*p)->ytop < yband)
+    {
+        int h = yband - (*p)->ytop;
+
+        if (fillrule == FILLRULE_EXCLUDE)
+        {
+            // Copy clip region above shape to output list
+            int dy = min(h, (*p)->dy);
+            assert(dy > 0);
+            SaveEdgePair(dy, *p, (*p)->next);
+        }
+
+        // Does this edge pair intrude into the shape's y space?
+        // If so, discard the parts of the two edges that lie
+        // above the shape, and copy just the intruding parts.
+        if ((*p)->dy > h)
+        {
+            // Copy 1st member of edge pair and adjust its height
+            *q = _inpool->Allocate(*p);
+            (*q)->xtop += h*((*p)->dxdy);
+            (*q)->ytop = yband;
+            (*q)->dy -= h;  // for 1st edge, dy > 0
+            q = &((*q)->next);
+            p = &((*p)->next);  // pointer to 2nd member of edge pair
+
+            // Copy 2nd member of edge pair and adjust its height
+            *q = _inpool->Allocate(*p);
+            (*q)->xtop += h*((*p)->dxdy);
+            (*q)->ytop = yband;
+            (*q)->dy += h;  // for 2nd edge, dy < 0
+            q = &((*q)->next);
+            p = &((*p)->next);  // pointer to 1st member of next pair
+        }
+        else
+        {
+            // Discard the entire edge pair
+            p = &((*p)->next);  // pointer to 2nd member of edge pair
+            p = &((*p)->next);  // pointer to 1st member of next pair
+        }
+    }
+
+    // Copy the part of the clipping region that lies at or below
+    // the y coordinate at the top of the shape that's being clipped
+    while (*p != 0)
+    {
+        *q = _inpool->Allocate(*p);
+        q = &((*q)->next);
+        p = &((*p)->next);
+    }
+    assert(*q == 0);
 
     // Merge the two lists, which are pre-sorted in ascending-y order
     _inlist.head = mergelists(_inlist.head, copylist.head);
@@ -629,10 +684,11 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
 
 //---------------------------------------------------------------------
 //
-// Protected function: Fills all the trapezoids defined by the clipped
-// and normalized edges in _outlist.head. Returns true if _outlist.head is not
-// empty, so that one or more trapezoids are filled. If _outlist.head is
-// empty, the function does no fills and immediately returns false.
+// Protected function: Invokes the renderer to fill all the trapezoids
+// defined by the (clipped and normalized) edges in the _outlist.head
+// list. Returns true if _outlist.head is not empty, in which case one
+// or more trapezoids are filled. If _outlist.head is empty, the
+// function does no fills and immediately returns false.
 //
 //---------------------------------------------------------------------
 
@@ -734,7 +790,6 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     FIX16 xdist, ddx;
     EDGE *p, *q, *ylist, *xlist, head;
 
-    assert(_outlist.head == 0 && _outpool->GetCount() == 0);
     if (_inlist.head == 0)
         return;  // nothing to do here
 
@@ -749,6 +804,7 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
     // filled or stroked shape, the edges have not yet been sorted
     if (fillrule == FILLRULE_EVENODD || fillrule == FILLRULE_WINDING)
     {
+        assert(_outlist.head == 0 && _outpool->GetCount() == 0);
         length = _inpool->GetCount();
         _inlist.head = sortlist(_inlist.head, length, ycomp);
     }
