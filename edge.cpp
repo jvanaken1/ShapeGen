@@ -38,9 +38,8 @@
 namespace {
     //---------------------------------------------------------------------
     //
-    // A qsort comparison function used to sort a list of edges in order of
-    // the y coordinates at their top (minimum-y) end. The items in this
-    // list are sorted in order of their ascending ytop values.
+    // A qsort comparison function that helps sort a list of edges in
+    // ascending-y order (based on their ytop values).
     //
     //----------------------------------------------------------------------
 
@@ -54,12 +53,13 @@ namespace {
 
     //---------------------------------------------------------------------
     //
-    // A qsort comparison function used to sort a list of edges in order of
-    // the x coordinates at their top (minimum-y) end. The items in this
-    // list are sorted in order of their ascending xtop values. If two edges
-    // have equal xtop values, these edges are sorted in order of ascending
-    // dxdy values. Two edges that have matching xtop and dxdy values are
-    // sorted in order of their descending dy values.
+    // A qsort comparison function that helps sort a list of edges in
+    // ascending-x order (based on the xtop values). (We assume that all
+    // the edges in the list share the same ytop value, so we don't bother
+    // to sort on ytop here.) If two edges have equal xtop values, these
+    // edges are sorted in order of ascending dxdy values. And if the two
+    // edges have both xtop and dxdy values that match, they are sorted
+    // in order of their descending dy values.
     //
     //----------------------------------------------------------------------
 
@@ -68,14 +68,13 @@ namespace {
         EDGE *p = *(EDGE**)key1;
         EDGE *q = *(EDGE**)key2;
 
-        if (p->xtop == q->xtop)
-        {
-            if (p->dxdy != q->dxdy)
-                return (p->dxdy - q->dxdy);
+        if (p->xtop != q->xtop)
+            return (p->xtop - q->xtop);
 
-            return (q->dy - p->dy);  // sort coincident edges
-        }
-        return (p->xtop - q->xtop);
+        if (p->dxdy != q->dxdy)
+            return (p->dxdy - q->dxdy);
+
+        return (q->dy - p->dy);  // sort coincident edges
     }
 
     //---------------------------------------------------------------------
@@ -198,7 +197,7 @@ void POOL::AcquireBlock()
     assert(index < ARRAY_LEN(inventory));  // array overflow?
     inventory[index++] = block;
     count += blklen;
-    blklen += blklen;
+    blklen += blklen;  // new block is 2x size of old block
     block = new EDGE[blklen];
     assert(block != 0);  // out of memory?
     watermark = 0;
@@ -610,21 +609,38 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
     _outlist.head = 0;
     POOL *swap = _inpool; _inpool = _outpool; _outpool = swap;
 
-    // For a regular clipping operation (FILLRULE_INTERSECT), the part
-    // of the clipping region that lies above the shape that's being
-    // clipped has no effect and can be trivially rejected. When
-    // masking off a shape from the clipping region (FILLRULE_EXCLUDE),
-    // the clipping region above the shape can be copied directly to
-    // the output list without first being processed by the
-    // NormalizeEdges function.
+    // Clipping is done by merging the edge lists for (1) the clipping
+    // region and (2) the shape being clipped, and then passing the
+    // merged list through NormalizeEdges() to find their intersection.
+    // Both edge lists are already in "normalized" format, which means
+    // that each list describes a set of non-overlapping trapezoids --
+    // each consecutive pair of edges in a list specifies the left and
+    // right sides of a trapezoid. Although the trapezoids in either
+    // list do not overlap each other, the trapezoids in one list can
+    // overlap the trapezoids in the other list. The clipped shape
+    // simply consists of these areas of overlap. However, a very
+    // complex clipping region can impose a heavy processing burden on
+    // NormalizeEdges(). To speed things up, we note that when clipping
+    // a shape, the only part of the clipping region that actually does
+    // any clipping is the part that falls within the horizontal band
+    // defined by the y coordinates at the top and bottom of the shape.
+    // Thus, for a regular clipping operation (FILLRULE_INTERSECT), any
+    // parts of the clipping region that lie above or below this band
+    // can safely be ignored. And when masking off a shape from the
+    // clipping region (FILLRULE_EXCLUDE), any parts of the clipping
+    // region that lie above or below the band can be copied unchanged
+    // to the output list without first being processed by
+    // NormalizeEdges(). In either case, we must identify any edges in
+    // the clipping region that straddle the upper/lower boundary of
+    // the band so that we can split them apart at that boundary.
 
     EDGELIST copylist;
     EDGE **p = &(_cliplist.head), **q = &(copylist.head);
-    int yband = _inlist.head->ytop;  // y coord at top of shape
+    int ymin = _inlist.head->ytop;  // y coordinate at top of shape
 
-    while (*p && (*p)->ytop < yband)
+    while (*p != 0 && (*p)->ytop < ymin)
     {
-        int h = yband - (*p)->ytop;
+        int h = ymin - (*p)->ytop;
 
         if (fillrule == FILLRULE_EXCLUDE)
         {
@@ -639,18 +655,18 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
         // above the shape, and copy just the intruding parts.
         if ((*p)->dy > h)
         {
-            // Copy 1st member of edge pair and adjust its height
+            // Copy 1st member of edge pair and trim to band
             *q = _inpool->Allocate(*p);
             (*q)->xtop += h*((*p)->dxdy);
-            (*q)->ytop = yband;
+            (*q)->ytop = ymin;
             (*q)->dy -= h;  // for 1st edge, dy > 0
             q = &((*q)->next);
             p = &((*p)->next);  // pointer to 2nd member of edge pair
 
-            // Copy 2nd member of edge pair and adjust its height
+            // Copy 2nd member of edge pair and trim to band
             *q = _inpool->Allocate(*p);
             (*q)->xtop += h*((*p)->dxdy);
-            (*q)->ytop = yband;
+            (*q)->ytop = ymin;
             (*q)->dy += h;  // for 2nd edge, dy < 0
             q = &((*q)->next);
             p = &((*p)->next);  // pointer to 1st member of next pair
@@ -663,9 +679,20 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
         }
     }
 
-    // Copy the part of the clipping region that lies at or below
-    // the y coordinate at the top of the shape that's being clipped
-    while (*p != 0)
+    // Find the y coordinate just past the bottom of the shape
+    int ymax = ymin;
+    for (EDGE *pin = _inlist.head; pin != 0; pin = pin->next->next)
+    {
+        int y = pin->ytop + abs(pin->dy);
+        if (ymax < y)
+            ymax = y;
+    }
+
+    // Copy the part of the clipping region that lies between the y
+    // coordinates at the top and bottom of the shape being clipped.
+    // We include the clip-list edges with ytop == ymax here so that
+    // NormalizeEdges() will sort them in ascending-x order.
+    while (*p != 0 && (*p)->ytop <= ymax)
     {
         *q = _inpool->Allocate(*p);
         q = &((*q)->next);
@@ -680,6 +707,16 @@ void EdgeMgr::ClipEdges(FILLRULE fillrule)
     NormalizeEdges(fillrule);
     _inlist.head = 0;
     _inpool->Reset();
+
+    if (fillrule == FILLRULE_EXCLUDE)
+    {
+        while (*p != 0)
+        {
+            SaveEdgePair((*p)->dy, *p, (*p)->next);
+            p = &((*p)->next);
+            p = &((*p)->next);
+        }
+    }
 }
 
 //---------------------------------------------------------------------
@@ -893,15 +930,18 @@ void EdgeMgr::NormalizeEdges(FILLRULE fillrule)
             break;
         case FILLRULE_INTERSECT:
         case FILLRULE_EXCLUDE:
-            wind = (fillrule == FILLRULE_INTERSECT) ? -1 : 0;
+            wind = (fillrule == FILLRULE_INTERSECT) ? 0 : 1;
             for (;;)
             {
-                while (p != 0 && (wind += sign(p->dy)) != 1)
+                // Search for edge at start of intersection
+                while (p != 0 && (wind += sign(p->dy)) != 2)
                     p = p->next;
                 if (p == 0)
                     break;
                 q = p->next;
-                while (q != 0 && (wind += sign(q->dy)) != 0)
+                // Advance to edge at end of intersection, but
+                // skip past any pairs of coincident edges
+                while (q != 0 && (wind += sign(q->dy)) != 1)
                     q = q->next;
                 if (q == 0)
                     break;
