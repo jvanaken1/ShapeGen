@@ -202,11 +202,11 @@ LINEJOIN PathMgr::SetLineJoin(LINEJOIN joinstyle)
 
 float PathMgr::SetMiterLimit(float mlim)
 {
-    float oldmlim = _miterlimit/65536.0f;
+    float oldmlim = _miterlimit;
 
     mlim = max(mlim, MITERLIMIT_MINIMUM);
-    _miterlimit = 65536*mlim;
-    _mitercheck = 65536*sqrt(mlim*mlim - 1);
+    _miterlimit = mlim;
+    _mitercheck = sqrt(mlim*mlim - 1);
     return oldmlim;
 }
 
@@ -622,8 +622,7 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     {
         numer = abs(ain.x - aout.x) + abs(ain.y - aout.y);
         t = numer/denom;  // linear interpolation param
-        FIX16 tfix = 65536*t;
-        if (tfix <= _mitercheck)
+        if (t <= _mitercheck)
         {
             // Miter length is within miter limit, so draw full miter
             FIX16 dx = t*(ain.x - aout.x);
@@ -696,12 +695,11 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     }
 
     // Adjust length of vector 'am' to miter-limited length
-    float mlim = _miterlimit/65536.0f;
     VERT16 am, vz = { 0, 0 };
     XY unused;
     LineLength(vz, vm, &unused, &am);
-    am.x *= mlim;
-    am.y *= mlim;
+    am.x *= _miterlimit;
+    am.y *= _miterlimit;
 
     // Extend sides of stroked lines to miter limit
     denom = abs(ain.x - aout.x) + abs(ain.y - aout.y);

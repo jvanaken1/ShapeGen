@@ -232,8 +232,8 @@ class PathMgr : virtual public ShapeGen
     FIX16 _linewidth;   // width (in pixels) of stroked line
     LINEEND _lineend;   // line end cap style
     LINEJOIN _linejoin; // line join style
-    FIX16 _miterlimit;  // miter limit
-    FIX16 _mitercheck;  // precomputed parameter for miter-limit check
+    float _miterlimit;  // miter limit
+    float _mitercheck;  // precomputed parameter for miter-limit check
     FIX16 _angle;       // angle between line segments at round join
 
     void FinalizeFigure(bool bclose);  // closes or ends a figure
