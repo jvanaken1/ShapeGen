@@ -759,8 +759,7 @@ int PathMgr::GetBoundingBox(SGRect *bbox, int flags)
             {
                 if (_linejoin == LINEJOIN_MITER || _linejoin == LINEJOIN_SVG_MITER)
                 {
-                   float mlim = _miterlimit/65536.0f;
-                   pad = sqrt(mlim*mlim + 1.0f)*_linewidth/2;
+                   pad = sqrt(_miterlimit*_miterlimit + 1)*_linewidth/2;
                 }
                 else if (_lineend == LINEEND_SQUARE)
                 {
