@@ -235,6 +235,7 @@ class PathMgr : virtual public ShapeGen
     float _miterlimit;  // miter limit
     float _mitercheck;  // precomputed parameter for miter-limit check
     FIX16 _angle;       // angle between line segments at round join
+    FIX16 _joinhint;    // hint for approximating round/miter join
 
     void FinalizeFigure(bool bclose);  // closes or ends a figure
 

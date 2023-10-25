@@ -124,6 +124,23 @@ float PathMgr::SetLineWidth(float width)
         return 0;
     }
     _linewidth = 65536*width;  // convert to 16.16 fixed-point format
+
+    // This hint helps JoinLines() determine when a round or miter join
+    // is small and flat enough to be approximated as a bevel join
+    const float sqrt2 = 1.414213562f, cos30 = 0.8660254037f, cos60 = 0.5f;
+    const float limit = 0.5*(1 - cos30*cos30)/cos30;
+    float cosaa, ratio = FLATNESS_DEFAULT/width;
+    if (ratio < limit)
+    {
+        float cosa = sqrt(1 + ratio*ratio) - ratio;
+        float aa = 2*acos(cosa);
+        cosaa = cos(aa);
+
+    }
+    else
+        cosaa = cos60;
+
+    _joinhint = (65536/4)*width*width*cosaa;
     return oldwidth;
 }
 
@@ -522,7 +539,7 @@ void PathMgr::RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2)
 
 void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 {
-    FIX16 xprod = Fix16Mult(ain.x, aout.y) - Fix16Mult(ain.y, aout.x);
+    const FIX16 dotprod = Fix16Mult(ain.x, aout.x) + Fix16Mult(ain.y, aout.y);
     VERT16 v1, v2, v3, v4;
 
     // Begin by extending normals to v0 from points v1, v2, v3, v4 on
@@ -543,28 +560,25 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     // they point in nearly the same direction. In such cases, a
     // round join or miter join is indistinguishable from a simple
     // bevel join, and we can avoid a lot of unnecessary calculation.
+    // The bevel approximation is used if the error is less than 1/2
+    // pixel (the default flatness) and the angle between the incoming
+    // and outgoing line segments does not exceed 60 degrees.
 
-    if (abs(xprod) < 0x00010000)
+    if (dotprod > _joinhint)
     {
-        // The joined line segments are nearly parallel. If they
-        // point in the same direction, optimize for this case.
-        bool samedir = (ain.x < 0) == (aout.x < 0) &&
-                       (ain.y < 0) == (aout.y < 0);
-        if (samedir)
-        {
-            _edge->AttachEdge(&_vin, &v1);
-            _edge->AttachEdge(&v2, &_vout);
-            _edge->AttachEdge(&v1, &v3);
-            _edge->AttachEdge(&v4, &v2);
-            _vin = v3;
-            _vout = v4;
-            return;  // end special case
-        }
+        _edge->AttachEdge(&_vin, &v1);
+        _edge->AttachEdge(&v2, &_vout);
+        _edge->AttachEdge(&v1, &v3);
+        _edge->AttachEdge(&v4, &v2);
+        _vin = v3;
+        _vout = v4;
+        return;  // end special case
     }
 
     // General case: Connect the edges on the "inside" of the angle
     // that's formed where the incoming and outgoing line segments
     // intersect. Connecting through v0 improves the appearance.
+    const FIX16 xprod = Fix16Mult(ain.x, aout.y) - Fix16Mult(ain.y, aout.x);
     if (xprod < 0)
     {
         // Stroke turns left (CCW) at join
@@ -669,7 +683,6 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     // LINEJOIN_MITER: This miter join must be properly clipped.
     // Set vector 'vm' to point from 'v0' to the miter point.
     VERT16 vm;
-    FIX16 dotprod = Fix16Mult(ain.x, aout.x) + Fix16Mult(ain.y, aout.y);
 
     // Set vector vm to point from v0 to the miter point
     if (dotprod < 0)
