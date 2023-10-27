@@ -54,7 +54,10 @@ PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
             : _pathlength(INITIAL_PATH_LENGTH), _angle(0),
               _fpoint(0), _cpoint(0), _figure(0), _figtmp(0),
               _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true),
-              _devicecliprect(cliprect)
+              _devicecliprect(cliprect), _fixshift(16),
+              _flatness(FLATNESS_DEFAULT), _fillrule(FILLRULE_DEFAULT),
+              _linewidth(LINEWIDTH_DEFAULT), _lineend(LINEEND_DEFAULT),
+              _linejoin(LINEJOIN_DEFAULT), _miterlimit(MITERLIMIT_DEFAULT)
 {
     assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack
     _path = new VERT16[_pathlength];
@@ -64,13 +67,13 @@ PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
     SetRenderer(renderer);
     InitClipRegion(cliprect.w, cliprect.h);
     SetFixedBits(0);
-    SetLineDash(0, 0, 0);
     SetFlatness(FLATNESS_DEFAULT);
     SetFillRule(FILLRULE_DEFAULT);
     SetLineWidth(LINEWIDTH_DEFAULT);
     SetLineEnd(LINEEND_DEFAULT);
     SetLineJoin(LINEJOIN_DEFAULT);
     SetMiterLimit(MITERLIMIT_DEFAULT);
+    SetLineDash(0, 0, 0);
     BeginPath();
 }
 

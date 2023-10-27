@@ -90,20 +90,6 @@ namespace {
         v.x = -v.x;
         v.y = -v.y;
     }
-
-    //-----------------------------------------------------------------------
-    //
-    // Fixed-point multiply function: Multiplies together two 32-bit, 16.16
-    // fixed-point values, x and y, both of which have 16 bits of fraction.
-    // Returns the 32-bit product in the same fixed-point format.
-    //
-    //-----------------------------------------------------------------------
-    inline FIX16 Fix16Mult(FIX16 x, FIX16 y)
-    {
-        float a = x, b = y;
-        FIX16 z = (a*b)/65536.0f;
-        return z;
-    }
 }
 
 //---------------------------------------------------------------------
@@ -127,7 +113,7 @@ float PathMgr::SetLineWidth(float width)
 
     // This hint helps JoinLines() determine when a round or miter join
     // is small and flat enough to be approximated as a bevel join
-    const float sqrt2 = 1.414213562f, cos30 = 0.8660254037f, cos60 = 0.5f;
+    const float cos30 = 0.8660254037f, cos60 = 0.5f;
     const float limit = 0.5*(1 - cos30*cos30)/cos30;
     float cosaa, ratio = FLATNESS_DEFAULT/width;
     if (ratio < limit)
@@ -539,7 +525,7 @@ void PathMgr::RoundJoin(const VERT16& v0, const VERT16& a1, const VERT16& a2)
 
 void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 {
-    const FIX16 dotprod = Fix16Mult(ain.x, aout.x) + Fix16Mult(ain.y, aout.y);
+    const FIX16 dotprod = ((float)ain.x*aout.x + (float)ain.y*aout.y)/65536;
     VERT16 v1, v2, v3, v4;
 
     // Begin by extending normals to v0 from points v1, v2, v3, v4 on
@@ -554,15 +540,15 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
     v4.x -= aout.y;
     v4.y += aout.x;
 
-    // Special case: The cross product is small if the incoming and
-    // outgoing line segments are nearly parallel. Frequently, if two
-    // short line segments are joined together along an arc or curve,
-    // they point in nearly the same direction. In such cases, a
-    // round join or miter join is indistinguishable from a simple
-    // bevel join, and we can avoid a lot of unnecessary calculation.
-    // The bevel approximation is used if the error is less than 1/2
-    // pixel (the default flatness) and the angle between the incoming
-    // and outgoing line segments does not exceed 60 degrees.
+    // Special case: Frequently, if two short line segments are joined
+    // together along an arc or curve, they point in nearly the same
+    // direction. In such cases, a round join or a miter join is
+    // indistinguishable from a simple bevel join, and we can avoid a
+    // lot of unnecessary calculation. The bevel-join approximation
+    // below is used if (1) the geometric error is less than 1/2 pixel
+    // (the default flatness) and (2) the directions of the incoming
+    // and outgoing line segments diverge by less than 60 degrees.
+    // Condition (2) affects only line widths of less than 3.5 pixels.
 
     if (dotprod > _joinhint)
     {
@@ -577,8 +563,10 @@ void PathMgr::JoinLines(const VERT16& v0, const VERT16& ain, const VERT16& aout)
 
     // General case: Connect the edges on the "inside" of the angle
     // that's formed where the incoming and outgoing line segments
-    // intersect. Connecting through v0 improves the appearance.
-    const FIX16 xprod = Fix16Mult(ain.x, aout.y) - Fix16Mult(ain.y, aout.x);
+    // intersect. Connecting through v0 improves the appearance of a
+    // wide dashed line when the join abuts a dash-gap transition.
+
+    const FIX16 xprod = ((float)ain.x*aout.y - (float)ain.y*aout.x)/65536;
     if (xprod < 0)
     {
         // Stroke turns left (CCW) at join
