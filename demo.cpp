@@ -2796,6 +2796,93 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
+// Code example from UG topic "The background-color-leak proble"
+void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+{
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
+
+    SGRect rect = { 60, 60, 300, 300 };
+    COLOR color[2] = {
+        RGBX(200,255,255),  // light blue
+        RGBX(255,255,200),  // yellow
+    };
+
+    // Set the square on the left to opaque black
+    aarend->SetColor(RGBX(0,0,0));
+    sg->BeginPath();
+    sg->Rectangle(rect);
+    sg->FillPath();
+
+    // In the square on the left, render a circular pattern of 24
+    // light-colored triangles using the A-over-B blend operation
+    SGCoord x0 = 210, y0 = 210, r = 135, x1 = 0, y1 = -r, offset = 390;
+    float angle = 0;
+    for (int i = 0; i < 24; ++i)
+    {
+        angle += PI/12;
+        float sina = sin(angle), cosa = cos(angle);
+        aarend->SetColor(color[i&1]);
+        sg->BeginPath();
+        sg->Move(x0,y0);
+        sg->Line(x0+x1,y0+y1);
+        x1 = r*sina;
+        y1 = -r*cosa;
+        sg->Line(x0+x1,y0+y1);
+        sg->FillPath();
+    }
+
+    // Set the square on the right to transparent black
+    aarend->SetBlendOperation(BLENDOP_ALPHA_CLEAR);
+    aarend->SetColor(RGBX(0,0,0));
+    sg->BeginPath();
+    rect.x += offset;
+    sg->Rectangle(rect);
+    sg->FillPath();
+
+    // In the square on the right, render a circular pattern of 24
+    // light-colored triangles blended using add-with-saturation
+    angle = 0;
+    x0 += offset;
+    x1 = 0;
+    y1 = -r;
+    aarend->SetBlendOperation(BLENDOP_ADD_WITH_SAT);
+    for (int i = 0; i < 24; ++i)
+    {
+        angle += PI/12;
+        float sina = sin(angle), cosa = cos(angle);
+        aarend->SetColor(color[i&1]);
+        sg->BeginPath();
+        sg->Move(x0,y0);
+        sg->Line(x0+x1,y0+y1);
+        x1 = r*sina;
+        y1 = -r*cosa;
+        sg->Line(x0+x1,y0+y1);
+        sg->FillPath();
+        sg->SetMaskRegion();
+    }
+
+    // Set the background of the square on the right to opaque black
+    aarend->SetColor(RGBX(0,0,0));
+    sg->BeginPath();
+    sg->Rectangle(rect);
+    sg->FillPath();
+
+    //-----  Label the output of this code example -----
+    aarend->SetBlendOperation(BLENDOP_SRC_OVER_DST);
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from "
+        "\"The background-color-leak problem\" topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineDash(0,0,0);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
 // Code example from ShapeGen::Bezier2 reference topic
 void example01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
@@ -4080,7 +4167,7 @@ void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
 
     // Code examples from userdoc.pdf
     MyTest, MyTest2, EggRoll, PieToss,
-    DropShadow,
+    DropShadow, LeakThru,
     example01, example02, example03,
     example04, example05, example06,
     example07, example08, example09,
