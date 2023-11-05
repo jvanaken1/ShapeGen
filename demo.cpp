@@ -2808,14 +2808,14 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         RGBX(255,255,200),  // yellow
     };
 
-    // Set the square on the left to opaque black
+    // Fill the background of the square on the left with opaque black
     aarend->SetColor(RGBX(0,0,0));
     sg->BeginPath();
     sg->Rectangle(rect);
     sg->FillPath();
 
-    // In the square on the left, render a circular pattern of 24
-    // light-colored triangles using the A-over-B blend operation
+    // In the square on the left, use the A-over-B blend operation to
+    // render a circular pattern of 24 light-colored triangles
     SGCoord x0 = 210, y0 = 210, r = 135, x1 = 0, y1 = -r, offset = 390;
     float angle = 0;
     for (int i = 0; i < 24; ++i)
@@ -2832,7 +2832,7 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->FillPath();
     }
 
-    // Set the square on the right to transparent black
+    // Clear the square on the right to transparent black
     aarend->SetBlendOperation(BLENDOP_ALPHA_CLEAR);
     aarend->SetColor(RGBX(0,0,0));
     sg->BeginPath();
@@ -2840,8 +2840,8 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->Rectangle(rect);
     sg->FillPath();
 
-    // In the square on the right, render a circular pattern of 24
-    // light-colored triangles blended using add-with-saturation
+    // In the square on the right, use add-with-saturation blending to
+    // render a circular pattern of 24 light-colored triangles
     angle = 0;
     x0 += offset;
     x1 = 0;
@@ -2862,7 +2862,7 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         sg->SetMaskRegion();
     }
 
-    // Set the background of the square on the right to opaque black
+    // Fill the background of the square on the right with opaque black
     aarend->SetColor(RGBX(0,0,0));
     sg->BeginPath();
     sg->Rectangle(rect);
@@ -2872,8 +2872,8 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetBlendOperation(BLENDOP_SRC_OVER_DST);
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "Output of code example from "
-        "\"The background-color-leak problem\" topic";
+    char *str = "Output of the code example from the "
+        "\"Front-to-back rendering\" topic";
     SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
