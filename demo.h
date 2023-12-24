@@ -33,21 +33,9 @@
 #include <stdio.h>
 #include "renderer.h"
 
-const float PI = 3.14159265;
-
 // Dimensions of window for demo functions
 const int DEMO_WIDTH  = 1280;
 const int DEMO_HEIGHT =  960;
-
-// Macros
-#ifdef min
-#undef min
-#endif
-#define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values
-#ifdef max
-#undef max
-#endif
-#define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
 
 // Make command-line args globally accessible
 extern int _argc_;

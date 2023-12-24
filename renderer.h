@@ -32,6 +32,18 @@
 
 #include "shapegen.h"
 
+// Macros
+#ifdef min
+#undef min
+#endif
+#define min(x,y)  ((x)<(y)?(x):(y))  // take minimum of two values
+#ifdef max
+#undef max
+#endif
+#define max(x,y)  ((x)>(y)?(x):(y))  // take maximum of two values
+
+const float PI = 3.14159265359;
+
 // A 'COLOR' variable contains either a 32-bit pixel, or one or more
 // components of a 32-bit pixel. We use little-endian conventions to
 // describe the two 32-bit pixel formats used in source file
@@ -153,21 +165,27 @@ class EnhancedRenderer : public SimpleRenderer
 {
 public:
     virtual bool GetPixelBuffer(PIXEL_BUFFER *pixbuf) = 0;
-    virtual void SetColor(COLOR color) = 0;
+    virtual void SetColor(COLOR color = RGBX(0,0,0)) = 0;
     virtual void SetLinearGradient(float x0, float y0, float x1, float y1,
-                                   SPREAD_METHOD spread, int flags) = 0;
+                                   SPREAD_METHOD spread = SPREAD_REPEAT,
+                                   int flags = FLAG_EXTEND_START | FLAG_EXTEND_END) = 0;
     virtual void SetRadialGradient(float x0, float y0, float r0,
                                    float x1, float y1, float r1,
-                                   SPREAD_METHOD spread, int flags) = 0;
+                                   SPREAD_METHOD spread = SPREAD_REPEAT,
+                                   int flags = FLAG_EXTEND_START | FLAG_EXTEND_END) = 0;
+    virtual void SetConicGradient(float x0, float y0,
+                                  float astart = 0, float asweep = 2*PI,
+                                  SPREAD_METHOD spread = SPREAD_REPEAT,
+                                  int flags = FLAG_EXTEND_END) = 0;
     virtual void SetPattern(const COLOR *pattern, float u0, float v0,
                             int w, int h, int stride, int flags) = 0;
     virtual void SetPattern(ImageReader *imgrdr, float u0, float v0,
                             int w, int h, int flags) = 0;
     virtual void AddColorStop(float offset, COLOR color) = 0;
     virtual void ResetColorStops() = 0;
-    virtual void SetTransform(const float xform[] = 0) = 0;
-    virtual void SetConstantAlpha(COLOR alpha) = 0;
-    virtual void SetBlendOperation(BLENDOP blendop) = 0;
+    virtual void SetTransform(const float xform[6] = 0) = 0;
+    virtual void SetConstantAlpha(COLOR alpha = 255) = 0;
+    virtual void SetBlendOperation(BLENDOP blendop = BLENDOP_SRC_OVER_DST) = 0;
 };
 
 EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *pixbuf);
@@ -205,21 +223,21 @@ class TiledPattern : public PaintGen
 public:
     TiledPattern() {}
     TiledPattern(const COLOR *pattern, float u0, float v0, int w, int h,
-                 int stride, int flags, const float xform[]);
+                 int stride, int flags, const float xform[6]);
     TiledPattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
-                 int flags, const float xform[]);
+                 int flags, const float xform[6]);
     virtual ~TiledPattern() {}
     virtual void FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[]) = 0;
     virtual bool SetScrollPosition(int x, int y) = 0;
 };
 
 TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0,
-                                        int w, int h, int stride, int flags,
-                                        const float xform[] = 0);
+                                 int w, int h, int stride, int flags,
+                                 const float xform[6] = 0);
 
 TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0,
-                                        int w, int h, int flags,
-                                        const float xform[] = 0);
+                                 int w, int h, int flags,
+                                 const float xform[6] = 0);
 
 // Paint generator for linear gradient fills
 //
@@ -228,7 +246,7 @@ class LinearGradient : public PaintGen
 public:
     LinearGradient() {}
     LinearGradient(float x0, float y0, float x1, float y1,
-                   SPREAD_METHOD spread, int flags, const float xform[] = 0);
+                   SPREAD_METHOD spread, int flags, const float xform[6] = 0);
     virtual ~LinearGradient() {}
     virtual void FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[]) = 0;
     virtual bool SetScrollPosition(int x, int y) = 0;
@@ -236,8 +254,8 @@ public:
 };
 
 LinearGradient* CreateLinearGradient(float x0, float y0, float x1, float y1,
-                                            SPREAD_METHOD spread, int flags,
-                                            const float xform[] = 0);
+                                     SPREAD_METHOD spread, int flags,
+                                     const float xform[6] = 0);
 
 // Paint generator for radial gradient fills
 //
@@ -246,7 +264,7 @@ class RadialGradient : public PaintGen
 public:
     RadialGradient() {}
     RadialGradient(float x0, float y0, float r0, float x1, float y1, float r1,
-                   SPREAD_METHOD spread, int flags, const float xform[] = 0);
+                   SPREAD_METHOD spread, int flags, const float xform[6] = 0);
     virtual ~RadialGradient() {}
     virtual void FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[]) = 0;
     virtual bool SetScrollPosition(int x, int y) = 0;
@@ -254,8 +272,27 @@ public:
 };
 
 RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
-                                            float x1, float y1, float r1,
-                                            SPREAD_METHOD spread, int flags,
-                                            const float xform[] = 0);
+                                     float x1, float y1, float r1,
+                                     SPREAD_METHOD spread, int flags,
+                                     const float xform[6] = 0);
+
+// Paint generator for conic gradient fills
+//
+class ConicGradient : public PaintGen
+{
+public:
+    ConicGradient() {}
+    ConicGradient(float x0, float y0, float astart, float asweep,
+                  SPREAD_METHOD spread, int flags, const float xform[6] = 0);
+    virtual ~ConicGradient() {}
+    virtual void FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[]) = 0;
+    virtual bool SetScrollPosition(int x, int y) = 0;
+    virtual bool AddColorStop(float offset, COLOR color) = 0;
+};
+
+ConicGradient* CreateConicGradient(float x0, float y0,
+                                   float astart, float asweep,
+                                   SPREAD_METHOD spread, int flags,
+                                   const float xform[6] = 0);
 #endif // RENDERER_H
 

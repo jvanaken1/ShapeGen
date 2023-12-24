@@ -49,13 +49,13 @@ namespace {
     COLOR MultiplyByOpacity(COLOR pixel, COLOR opacity)
     {
         COLOR rb, ga;
-    
+
         if (opacity == 255)
             return pixel;
-    
+
         if (opacity == 0 || pixel == 0)
             return 0;
-    
+
         rb = pixel & 0x00ff00ff;
         rb *= opacity;
         rb += 0x00800080;
@@ -68,17 +68,17 @@ namespace {
         ga &= 0xff00ff00;
         return ga | rb;
     }
-    
+
     // Premultiplies an array of 32-bit pixels by their alphas
     void PremultAlphaArray(COLOR *pixel, int len)
     {
         for (int i = 0; i < len; ++i, ++pixel)
         {
             COLOR rb, ga, color = *pixel, alfa = color >> 24;
-            
+
             if (alfa == 255)
                 continue;
-        
+
             if (alfa == 0)
             {
                 *pixel = 0;
@@ -145,21 +145,21 @@ class Pattern : public TiledPattern
     int _xscroll, _yscroll; // scroll position coordinates
 
     // Initialization code common to both constructors
-    void Init(float u0, float v0, int flags, const float xform[]);
-    
+    void Init(float u0, float v0, int flags, const float xform[6]);
+
 public:
     Pattern() { assert(0); }
-    Pattern(const COLOR *pattern, float u0, float v0, int w, int h, 
-            int stride, int flags, const float xform[]);
-    Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h, 
-            int flags, const float xform[]);
+    Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
+            int stride, int flags, const float xform[6]);
+    Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
+            int flags, const float xform[6]);
     ~Pattern();
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool SetScrollPosition(int x, int y);
 };
 
 // Contains initialization code common to both constructors
-void Pattern::Init(float u0, float v0, int flags, const float xform[])
+void Pattern::Init(float u0, float v0, int flags, const float xform[6])
 {
     // Do we need to convert from RGBA (0xaabbggrr) to BGRA (0xaarrggbb),
     // or vice versa? If so, swap the red and blue fields.
@@ -203,7 +203,7 @@ void Pattern::Init(float u0, float v0, int flags, const float xform[])
         _xform[3] = -_xform[3];
     }
     _xform[4] += (_xform[0]+_xform[2])/2 - u0;
-    _xform[5] += (_xform[1]+_xform[3])/2 - v0; 
+    _xform[5] += (_xform[1]+_xform[3])/2 - v0;
     _dudx = 65536*_xform[0];
     _dvdx = 65536*_xform[1];
     _dudy = 65536*_xform[2];
@@ -228,8 +228,8 @@ void Pattern::Init(float u0, float v0, int flags, const float xform[])
 // Copy pattern from caller-supplied 2-D image array. Input pixels
 // are assumed to be in either 32-bit RGBA (0xaabbggrr) format or
 // 32-bit BGRA (0xaarrggbb) format.
-Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h, 
-                 int stride, int flags, const float xform[])
+Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
+                 int stride, int flags, const float xform[6])
                  : _w(w), _h(h), _xscroll(0), _yscroll(0)
 {
     if (!pattern || w <= 0 || h <= 0 || stride < w)
@@ -256,10 +256,10 @@ Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
 // Copy pattern from caller-specified bitmap file. Input pixels
 // are assumed to be in either 32-bit RGBA (0xaabbggrr) format or
 // 32-bit BGRA (0xaarrggbb) format.
-Pattern::Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h, 
-                 int flags, const float xform[])
+Pattern::Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
+                 int flags, const float xform[6])
                  : _w(w), _h(h), _xscroll(0), _yscroll(0)
-{   
+{
     if (!imgrdr || w <= 0 || h <= 0)
     {
         _w = _h = 0;  // error -- null pattern
@@ -312,7 +312,7 @@ void Pattern::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAl
     FIX16 v = 65536*(_xform[1]*xs + _xform[3]*ys + _xform[5]);
     int incr = (ys & 1) ? 2 : 0;
     UVPAIR *off[2] = { _offset[incr], _offset[incr+1] };
-    
+
     // Each iteration of the for-loop below paints one pixel
     for (int k = 0; k < len; ++k)
     {
@@ -354,9 +354,9 @@ void Pattern::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAl
 
 // Called by a renderer to create a new tiled-pattern object
 //
-TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0, 
-                                 int w, int h, int stride, int flags, 
-                                 const float xform[])
+TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0,
+                                 int w, int h, int stride, int flags,
+                                 const float xform[6])
 {
     Pattern *pat = new Pattern(pattern, u0, v0, w, h, stride, flags, xform);
     assert(pat != 0);  // out of memory?
@@ -364,8 +364,8 @@ TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0,
     return pat;
 }
 
-TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0, 
-                                 int w, int h, int flags, const float xform[])
+TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0,
+                                 int w, int h, int flags, const float xform[6])
 {
     Pattern *pat = new Pattern(imgrdr, u0, v0, w, h, flags, xform);
     assert(pat != 0);  // out of memory?

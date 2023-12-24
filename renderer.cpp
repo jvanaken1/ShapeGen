@@ -406,9 +406,12 @@ public:
     void SetRadialGradient(float x0, float y0, float r0,
                            float x1, float y1, float r1,
                            SPREAD_METHOD spread, int flags);
+    void SetConicGradient(float x0, float y0,
+                          float astart, float asweep,
+                          SPREAD_METHOD spread, int flags);
     void AddColorStop(float offset, COLOR color);
     void ResetColorStops() { _stopCount = 0; }
-    void SetTransform(const float xform[]);
+    void SetTransform(const float xform[6]);
     void SetConstantAlpha(COLOR alpha);
     void SetBlendOperation(BLENDOP blendop);
 };
@@ -743,7 +746,7 @@ void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
     }
     TiledPattern *pat;
     pat = CreateTiledPattern(pattern, u0, v0, w, h, stride, flags, _pxform);
-    assert(pat);
+    assert(pat);  // out of memory?
     _paintgen = pat;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
@@ -766,7 +769,7 @@ void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
     }
     TiledPattern *pat;
     pat = CreateTiledPattern(imgrdr, u0, v0, w, h, flags, _pxform);
-    assert(pat);
+    assert(pat);  // out of memory?
     _paintgen = pat;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
@@ -781,13 +784,13 @@ void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
         _paintgen->~PaintGen();
         _paintgen = 0;
     }
-    LinearGradient *lin;
-    lin = CreateLinearGradient(x0, y0, x1, y1, spread, flags, _pxform);
-    assert(lin);
+    LinearGradient *grad;
+    grad = CreateLinearGradient(x0, y0, x1, y1, spread, flags, _pxform);
+    assert(grad);  // out of memory?
     for (int i = 0; i < _stopCount; ++i)
-        lin->AddColorStop(_cstop[i].offset, _cstop[i].color);
+        grad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
-    _paintgen = lin;
+    _paintgen = grad;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
@@ -802,13 +805,34 @@ void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
         _paintgen->~PaintGen();
         _paintgen = 0;
     }
-    RadialGradient *rad;
-    rad = CreateRadialGradient(x0, y0, r0, x1, y1, r1, spread, flags, _pxform);
-    assert(rad);
+    RadialGradient *grad;
+    grad = CreateRadialGradient(x0, y0, r0, x1, y1, r1, spread, flags, _pxform);
+    assert(grad);  // out of memory?
     for (int i = 0; i < _stopCount; ++i)
-        rad->AddColorStop(_cstop[i].offset, _cstop[i].color);
+        grad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
-    _paintgen = rad;
+    _paintgen = grad;
+    _paintgen->SetScrollPosition(_xscroll, _yscroll);
+    BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+}
+
+// Public function: Prepares the renderer to do conic gradient fills
+void AA4x8Renderer::SetConicGradient(float x0, float y0,
+                                     float astart, float asweep,
+                                     SPREAD_METHOD spread, int flags)
+{
+    if (_paintgen)
+    {
+        _paintgen->~PaintGen();
+        _paintgen = 0;
+    }
+    ConicGradient *grad;
+    grad = CreateConicGradient(x0, y0, astart, asweep, spread, flags, _pxform);
+    assert(grad);  // out of memory?
+    for (int i = 0; i < _stopCount; ++i)
+        grad->AddColorStop(_cstop[i].offset, _cstop[i].color);
+
+    _paintgen = grad;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
 }
@@ -836,7 +860,7 @@ void AA4x8Renderer::AddColorStop(float offset, COLOR color)
 // will stay in sync with the transformed shapes. Setting the 'xform'
 // parameter to 0 has the same effect as specifying the identify
 // matrix, but avoids unnecessary matrix calculations.
-void AA4x8Renderer::SetTransform(const float xform[])
+void AA4x8Renderer::SetTransform(const float xform[6])
 {
     if (xform)
     {
