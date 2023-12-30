@@ -2212,8 +2212,95 @@ void demo15(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
-// Demo frame 16: Radial gradient fills
+// Demo frame 16: Conic gradient fills
 void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+{
+    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
+    TextApp txt;
+
+    // Use basic renderer to do background fill
+    SGPoint corner = { 40, 40 };
+    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    sg->BeginPath();
+    sg->RoundedRectangle(frame, corner);
+    rend->SetColor(RGBX(120,244,255));
+    sg->FillPath();
+
+    // Now switch to the antialiasing renderer
+    sg->SetRenderer(&(*aarend));
+
+    // Draw a frame around the window
+    sg->SetLineWidth(8.0);
+    aarend->SetColor(RGBX(80,100,120));
+    sg->StrokePath();
+
+    // Conic gradient parameters
+    const int NREPS = 18;
+    float t = 0, dt = 2*PI/NREPS;
+    float astart = -PI/2, asweep = 2*PI/NREPS;
+    SGCoord r = 80, xc = 640, yc = 546;
+    float x0 = xc, y0 = yc;
+    float xscale = 1.5f, yscale = 0.94f;
+    const float T0[] = { 1, 0, 0, 1, -x0, -y0 };
+    const float T1[] = { xscale, 0, 0, yscale, 0, 0 };
+    const float T2[] = { 1, 0, 0, 1, x0, y0 };
+    float xform[6] = { 1,0,0,1,0,0 };
+
+    MatrixMultiply(xform, T0, xform);
+    MatrixMultiply(xform, T1, xform);
+    MatrixMultiply(xform, T2, xform);
+    aarend->SetTransform(xform);
+
+    const COLOR color[] = { RGBX(255,233,211), RGBX(0,100,100), };
+    float offset = 0, delta = 1.0f/ARRAY_LEN(color);
+
+    aarend->ResetColorStops();
+    for (int i = 0; i < ARRAY_LEN(color); ++i)
+    {
+        aarend->AddColorStop(offset, color[i]);
+        offset += delta;
+    }
+    aarend->AddColorStop(1.0f, color[0]);
+
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->SetLineWidth(10);
+    sg->BeginPath();
+    for (int i = 0; i < NREPS; ++i)
+    {
+        SGCoord rx = -r*xscale*sin(t);
+        SGCoord ry = r*yscale*cos(t);
+        SGPoint v0 = { xc - 2*rx, yc - 2*ry };
+        SGPoint v1 = { v0.x + 3*rx, v0.y + 3*ry };
+        SGPoint v2 = { v0.x + ry, v0.y - rx };
+
+        sg->Ellipse(v0, v1, v2);
+        t += dt;
+    }
+    aarend->SetColor(RGBX(90,90,90));
+    sg->StrokePath();
+    aarend->SetConicGradient(xc,yc, astart,asweep, SPREAD_REFLECT);
+    sg->FillPath();
+
+    // Draw the title text
+    char *str = "Conic Gradient Fills";
+    float scale = 0.85;
+    txt.SetTextSpacing(1.2);
+    float wide = txt.GetTextWidth(scale, str);
+    SGPoint xystart;
+    xystart.x = (DEMO_WIDTH - wide)/2;
+    xystart.y = 144;
+    sg->SetLineWidth(12.0);
+    aarend->SetColor(RGBX(255,233,211));
+    txt.DisplayText(&(*sg), xystart, scale, str);
+    aarend->SetColor(RGBX(40,70,110));;
+    sg->SetLineWidth(7.0);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Demo frame 17: Radial gradient fills
+void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2356,8 +2443,8 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->StrokePath();
 }
 
-// Demo frame 17: Introduction to code examples
-void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+// Demo frame 18: Introduction to code examples
+void demo18(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2383,7 +2470,7 @@ void demo17(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     float xform[] = { 1.0, 0, 0, 0.75, DEMO_WIDTH/2.0f, DEMO_HEIGHT/2.0f };
     aarend->SetTransform(xform);
     aarend->ResetColorStops();
-    aarend->AddColorStop(0, RGBA(30,0,0,110));
+    aarend->AddColorStop(0, RGBA(30,0,0,168));
     aarend->AddColorStop(1.0, 0);
     aarend->SetRadialGradient(0,0,350, 0,0,650, SPREAD_PAD, FLAG_EXTEND_START);
     sg->FillPath();
@@ -3805,8 +3892,49 @@ void example19(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
-// Code example from EnhancedRenderer::SetConstantAlpha reference topic
+// Code example from EnhancedRenderer::SetConicGradient reference topic
 void example20(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+{
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
+    const int NSTOPS = 12;
+    const COLOR color[NSTOPS] =
+    {
+        RGBX(199,0,57),   RGBX(255,87,51),  RGBX(255,141,26),
+        RGBX(255,195,0),  RGBX(237,221,83), RGBX(173,212,92),
+        RGBX(87,199,133), RGBX(0,186,173),  RGBX(42,123,155),
+        RGBX(61,61,107),  RGBX(81,24,73),   RGBX(144,12,63),
+    };
+    float t = 0, dt = 1.0f/NSTOPS;
+    SGPoint v0 = { 200, 200 }, v1 = { 200-162, 200 }, v2 = { 200, 200-162 };
+
+    aarend->ResetColorStops();
+    for (int i = 0; i < NSTOPS; ++i)
+    {
+        aarend->AddColorStop(t, color[i]);
+        t += dt;
+    }
+    aarend->AddColorStop(1.0f, color[0]);
+    aarend->SetConicGradient(200, 200, 0, 2*PI, SPREAD_REPEAT, FLAG_EXTEND_END);
+    sg->BeginPath();
+    sg->Ellipse(v0, v1, v2);
+    sg->FillPath();
+
+    //-----  Label the output of this code example -----
+    TextApp txt;
+    COLOR crText = RGBX(40,70,110);
+    char *str = "Output of code example from EnhancedRenderer::"
+                "SetConicGradient reference topic";
+    SGPoint xystart = { 24, 420 };
+    float scale = 0.3;
+    txt.SetTextSpacing(1.1);
+    sg->SetLineWidth(3.0);
+    aarend->SetColor(crText);
+    txt.DisplayText(&(*sg), xystart, scale, str);
+}
+
+// Code example from EnhancedRenderer::SetConstantAlpha reference topic
+void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3860,7 +3988,7 @@ void example20(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetLinearGradient reference topic
-void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+void example22(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3910,7 +4038,7 @@ void example21(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetPattern reference topic
-void example22(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+void example23(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3949,7 +4077,7 @@ void example22(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example from EnhancedRenderer::SetRadialGradient reference topic
-void example23(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -3976,7 +4104,7 @@ void example23(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example 1 from EnhancedRenderer::SetTransform reference topic
-void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -4073,7 +4201,7 @@ void example24(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 }
 
 // Code example 2 from EnhancedRenderer::SetTransform reference topic
-void example25(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+void example26(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
@@ -4163,7 +4291,7 @@ void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
     demo05, demo06, demo07, demo08,
     demo09, demo10, demo11, demo12,
     demo13, demo14, demo15, demo16,
-    demo17,
+    demo17, demo18,
 
     // Code examples from userdoc.pdf
     MyTest, MyTest2, EggRoll, PieToss,
@@ -4176,7 +4304,7 @@ void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
     example16, example17, example18,
     example19, example20, example21,
     example22, example23, example24,
-    example25,
+    example25, example26,
 };
 
 //---------------------------------------------------------------------
