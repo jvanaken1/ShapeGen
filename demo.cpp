@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2023 Jerry R. VanAken
+  Copyright (C) 2019-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -22,13 +22,12 @@
 //---------------------------------------------------------------------
 //
 // demo.cpp:
-//   This file contains the code for the ShapeGen demo program and
+//   Contains the source code for the ShapeGen demo program and
 //   for the code examples presented in the ShapeGen User's Guide
 //
 //---------------------------------------------------------------------
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include "demo.h"
@@ -164,30 +163,32 @@ void MatrixMultiply(const float T0[], const float T1[], float T2[])
 // BitSlinger class:
 //   Simple example of an ImageReader that supplies an image to a
 //   TiledPattern object. The caller-supplied input pattern is always
-//   a 16x16, 1-bpp bitmap contained in an array of eight 32-bit
+//   a 16x16, 1-bpp bitmap stored as an array of eight 32-bit
 //   unsigned ints. The ReadPixels function expands each bit in the
-//   bitmap to one of the two caller-supplied colors, c0 or c1.
+//   bitmap to one of the two caller-supplied colors, c0 or c1, which
+//   are in RGBA32 format with straight (non-premultiplied) alpha.
 //
 //---------------------------------------------------------------------
 
 class BitSlinger : public ImageReader
 {
-    COLOR _color[2];
-    unsigned int _pattern[8];
-    int _index;    // index into pattern array
-    unsigned int _bitbuf;   // 32-bit buffer
-    int _numbits;  // number of data bits left in bitbuf
+    COLOR _color[2];  // two caller-supplied RGBA32 colors
+    int _pattern[8];  // fixed-length 16x16, 1-bpp pattern
+    int _index;       // index into pattern array
+    int _bitbuf;      // buffer for shifted pattern bits
+    int _numbits;     // number of data bits left in bitbuf
 
 public:
     BitSlinger() { assert(0); }
-    BitSlinger(unsigned int pattern[], COLOR c0, COLOR c1);
+    BitSlinger(const unsigned int pattern[], COLOR c0, COLOR c1);
     ~BitSlinger() {}
+    bool GetImageInfo(int *width = 0, int *height = 0, int *flags = 0);
     int ReadPixels(COLOR *buffer, int count);
-    int GetImageInfo(int *width, int *height);
+    bool RewindData();
 };
 
-BitSlinger::BitSlinger(unsigned int pattern[], COLOR c0, COLOR c1)
-                       : _index(0), _bitbuf(0), _numbits(0)
+BitSlinger::BitSlinger(const unsigned int pattern[], COLOR c0, COLOR c1) :
+                _index(0), _bitbuf(0), _numbits(0)
 {
     _color[0] = c0;
     _color[1] = c1;
@@ -195,35 +196,41 @@ BitSlinger::BitSlinger(unsigned int pattern[], COLOR c0, COLOR c1)
         _pattern[i] = pattern[i];
 }
 
-int BitSlinger::ReadPixels(COLOR *buffer, int count)
+bool BitSlinger::GetImageInfo(int *width, int *height, int *flags)
 {
-    COLOR *pOut = &buffer[0];
-    int numpix = count;
-
-    while (numpix && (_numbits || _index < ARRAY_LEN(_pattern)))
-    {
-        while (_numbits)
-        {
-            *pOut++ = _color[_bitbuf & 1];
-            _bitbuf >>= 1;
-            --_numbits;
-            if (!--numpix)
-                break;
-        }
-        if (!numpix || _index == ARRAY_LEN(_pattern))
-            break;
-
-        _bitbuf = _pattern[_index++];
-        _numbits = 32;
-    }
-    return count - numpix;
+   if (width)
+       *width = 16;
+   if (height)
+       *height = 16;
+   if (flags)
+       *flags = 0;
+   return true;
 }
 
-int BitSlinger::GetImageInfo(int *width, int *height)
+int BitSlinger::ReadPixels(COLOR *buffer, int count)
 {
-   *width  = 16;
-   *height = 16;
-   return 0;
+    int savecount = count;
+
+    while (count && (_numbits || _index < ARRAY_LEN(_pattern)))
+    {
+        while (_numbits-- && count--)
+        {
+            *buffer++ = _color[_bitbuf & 1];
+            _bitbuf >>= 1;
+        }
+        if (count > 0 && _index < ARRAY_LEN(_pattern))
+        {
+            _bitbuf = _pattern[_index++];
+            _numbits = 32;
+        }
+    }
+    return savecount - count;
+}
+
+bool BitSlinger::RewindData()
+{
+    _index = _bitbuf = _numbits = 0;
+    return true;
 }
 
 //---------------------------------------------------------------------
@@ -254,7 +261,96 @@ char *dasharray[] = {
 //
 //----------------------------------------------------------------------
 
-// Demo frame 1: ShapeGen logo
+// Demo frame 0: ShapeGen logo
+void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
+{
+    SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
+
+    // Conic gradient parameters
+    const int NREPS = 18;
+    float t = 0, dt = 2*PI/NREPS;
+    float astart = -PI/2, asweep = 2*PI/NREPS;
+    SGCoord r = 80, xc = 640, yc = 440;
+    float x0 = xc, y0 = yc;
+    float xscale = 1.35f, yscale = 0.8f;
+    const float T0[] = { 1, 0, 0, 1, -x0, -y0 };
+    const float T1[] = { xscale, 0, 0, yscale, 0, 0 };
+    const float T2[] = { 1, 0, 0, 1, x0, y0 };
+    float xform[6] = { 1,0,0,1,0,0 };
+
+    MatrixMultiply(xform, T0, xform);
+    MatrixMultiply(xform, T1, xform);
+    MatrixMultiply(xform, T2, xform);
+    aarend->SetTransform(xform);
+
+    const COLOR color[] = { RGBX(255,233,211), RGBX(0,100,100), };
+    float offset = 0, delta = 1.0f/ARRAY_LEN(color);
+
+    aarend->ResetColorStops();
+    for (int i = 0; i < ARRAY_LEN(color); ++i)
+    {
+        aarend->AddColorStop(offset, color[i]);
+        offset += delta;
+    }
+    aarend->AddColorStop(1.0f, color[0]);
+
+    sg->SetFillRule(FILLRULE_WINDING);
+    sg->SetLineWidth(10);
+    sg->BeginPath();
+    for (int i = 0; i < NREPS; ++i)
+    {
+        SGCoord rx = -r*xscale*sin(t);
+        SGCoord ry = r*yscale*cos(t);
+        SGPoint v0 = { xc - 2*rx, yc - 2*ry };
+        SGPoint v1 = { v0.x + 3*rx, v0.y + 3*ry };
+        SGPoint v2 = { v0.x + ry, v0.y - rx };
+
+        sg->Ellipse(v0, v1, v2);
+        t += dt;
+    }
+    aarend->SetColor(RGBX(90,90,90));
+    sg->StrokePath();
+    aarend->SetConicGradient(xc,yc, astart,asweep, SPREAD_REFLECT);
+    sg->FillPath();
+
+    // Draw letters "ShapeGen" with outline and shadow
+    TextApp txt;
+    char *str = "ShapeGen";
+    SGPoint xystart;
+    float scale = 2.1f;
+
+    txt.SetTextSpacing(1.05);
+    xystart.x = (DEMO_WIDTH - txt.GetTextWidth(scale, str))/2;
+    xystart.y = 42 + DEMO_HEIGHT/2;
+    sg->SetLineWidth(34.0);
+    xystart.x += 5, xystart.y += 7;
+    aarend->SetColor(RGBA(0,0,0,50));
+    txt.DisplayText(&(*sg), xystart, scale, str);
+    xystart.x -= 5, xystart.y -= 7;
+    aarend->SetColor(RGBX(0,88,88));
+    txt.DisplayText(&(*sg), xystart, scale, str);
+    sg->SetLineWidth(20.0);
+    aarend->SetColor(RGBX(255,176,155));
+    txt.DisplayText(&(*sg), xystart, scale, str);
+
+    xystart.x = 756, xystart.y = 916;
+    SGPoint arrow[] = {
+        {  0+1170, 30+889 }, { 30+1170, 30+889 },
+        { 30+1170, 40+889 }, { 63+1170, 20+889 },
+        { 30+1170,  0+889 }, { 30+1170, 10+889 },
+        {  0+1170, 10+889 }
+    };
+    aarend->SetColor(RGBX(0,88,88));
+    sg->SetLineWidth(3.5);
+    txt.DisplayText(&(*sg), xystart, 0.333, "Hit space bar to continue");
+    sg->BeginPath();
+    sg->Move(arrow[0].x, arrow[0].y);
+    sg->PolyLine(&arrow[1], ARRAY_LEN(arrow)-1);
+    sg->FillPath();
+}
+
+// Demo frame 1: ShapeGen intro
 void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
@@ -268,12 +364,6 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         RGBX(222,100, 50), RGBX(185,100,222),
         RGBX( 90,206, 45), RGBX(220, 20, 60),
         RGBX(  0,206,209)
-    };
-    SGPoint arrow[] = {
-        {  0+1170, 30+889 }, { 30+1170, 30+889 },
-        { 30+1170, 40+889 }, { 63+1170, 20+889 },
-        { 30+1170,  0+889 }, { 30+1170, 10+889 },
-        {  0+1170, 10+889 }
     };
     SGPoint xystart;
     SGPoint corner = { 40, 40 };
@@ -340,14 +430,6 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     xystart.y += 64;
     txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(3.0);
-    xystart.x = 748;
-    xystart.y = 916;
-
-    txt.DisplayText(&(*sg), xystart, 0.333, "Hit space bar to continue");
-    sg->BeginPath();
-    sg->Move(arrow[0].x, arrow[0].y);
-    sg->PolyLine(&arrow[1], ARRAY_LEN(arrow)-1);
-    sg->FillPath();
 
     // Draw letters "ShapeGen" with slanted text and shadowing
     str = "ShapeGen";
@@ -1911,15 +1993,16 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->Ellipse(C, v1, v2);
 
     float transform[6] = { 1.0, -1.0, 1.0, 1.0, 0, 0 };
-    int width, height;
+    int width, height, flags;
     BmpReader bmr("fleur.bmp");
-    int flags = bmr.GetImageInfo(&width, &height);
-
-    if (width)
+    if (bmr.GetImageInfo(&width, &height, &flags))
     {
         aarend->SetTransform(transform);
         aarend->SetPattern(&bmr, 5, 5, width, height, flags);
     }
+    else
+        aarend->SetColor(RGBX(0,0,0));  // BMP file error
+
     sg->FillPath();
     sg->SetLineWidth(6.0);
     aarend->SetColor(RGBX(50,100,222));
@@ -2032,32 +2115,29 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             break;
         case 1:
             {
-                float xform[6] = { 1.0, 0, 0, 1.0, 0, 0 };
-                int width, height;
-                BmpReader bmr("bricks.bmp");
-                int flags = bmr.GetImageInfo(&width, &height);
-                if (width)
+                int width, height, flags;
+                BmpReader bmr("bricks.bmp");  // open BMP file
+                if (bmr.GetImageInfo(&width, &height, &flags) == true)
                 {
-                    aarend->SetTransform(xform);
+                    aarend->SetTransform(0);
                     aarend->SetPattern(&bmr, 0, 0, width, height, flags);
                 }
                 else
-                    aarend->SetColor(RGBX(0,0,0));  // can't find BMP file
+                    aarend->SetColor(RGBX(0,0,0));  // BMP file error
             }
             break;
         case 2:
             {
                 float xform[6] = { 0.58, -0.58, 0.58, 0.58, 0, 0 };
-                int width, height;
-                BmpReader bmr("honeycomb.bmp");
-                int flags = bmr.GetImageInfo(&width, &height);
-                if (width)
+                int width, height, flags;
+                BmpReader bmr("honeycomb.bmp");  // open BMP file
+                if (bmr.GetImageInfo(&width, &height, &flags) == true)
                 {
                     aarend->SetTransform(xform);
                     aarend->SetPattern(&bmr, 0, 0, width, height, flags);
                 }
                 else
-                    aarend->SetColor(RGBX(0,0,0));  // can't find BMP file
+                    aarend->SetColor(RGBX(0,0,0));  // BMP file error
             }
             break;
         case 3:
@@ -2069,16 +2149,20 @@ void demo14(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
             break;
         case 4:
             {
+                float xform[6] = { 0.12, -0.12, 0.12, 0.12, 0, 0 };
                 unsigned int pattern[8] = {  // 16x16, 1-bpp bitmap
                     0x817eff00, 0xa55abd42, 0xbd42a55a, 0xff00817e,
                     0x7e8100ff, 0x5aa542bd, 0x42bd5aa5, 0x00ff7e81,
                 };
                 BitSlinger bs(pattern, RGBX(31,49,66), RGBX(211,211,207));
                 int width, height, flags;
-                float xform[6] = { 0.12, -0.12, 0.12, 0.12, 0, 0 };
-                aarend->SetTransform(xform);
-                flags = bs.GetImageInfo(&width, &height);
-                aarend->SetPattern(&bs, 0, 0, width, height, flags);
+                if (bs.GetImageInfo(&width, &height, &flags) == true)
+                {
+                    aarend->SetTransform(xform);
+                    aarend->SetPattern(&bs, 0, 0, width, height, flags);
+                }
+                else
+                    aarend->SetColor(RGBX(0,0,0));  // bitmap error
             }
             break;
         default:
@@ -2649,8 +2733,8 @@ void EggRoll(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     //-----  Label the output of this code example -----
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "First screenshot from \"Ellipses and "
-                "elliptic arcs\" topic in userdoc.pdf";
+    char *str = "First screenshot from user guide topic "
+                "\"Ellipses and elliptic arcs\"";
     float scale = 0.3;
     SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
@@ -2737,8 +2821,8 @@ void PieToss(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     //-----  Label the output of this code example -----
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "Second screenshot from \"Ellipses and "
-                "elliptic arcs\" topic in userdoc.pdf";
+    char *str = "Second screenshot from user guide topic "
+                "\"Ellipses and elliptic arcs\"";
     float scale = 0.3;
     SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
@@ -2841,22 +2925,22 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     // 5. Apply Gaussian blur to alpha values in OlympicRings image
     //
-    float stddev = 4.2f;
-    AlphaBlur ablur(stddev);
-    ablur.SetColor(RGBA(0,0,0,160));
-    status = ablur.BlurImage(subbuf);
-    assert(status);
+    float stddev = 3.0f;
+    int kwidth = 3*stddev;
+    COLOR color = RGBA(0,0,0,127);
+    AlphaBlur ablur(&subbuf, kwidth, stddev, color);
 
     // 6. Get the expanded bounding box for the blurred image
     //
     SGRect blurbbox;
-    ablur.GetBlurredBoundingBox(blurbbox, bbox);
+    ablur.GetBlurredBoundingBox(&blurbbox, &bbox);
+    blurbbox.x += 6, blurbbox.y += 8;  // add x-y offset to shadow
 
     // 7. Use blurred image as pattern for rendering to back buffer
     //
-    blurbbox.x += 6, blurbbox.y += 8;
     aarend->SetPattern(&ablur, blurbbox.x, blurbbox.y,
-                       blurbbox.w, blurbbox.h, 0);
+                       blurbbox.w, blurbbox.h,
+                       FLAG_IMAGE_BGRA32 | FLAG_PREMULTALPHA);
     sg->BeginPath();
     sg->Rectangle(blurbbox);
     sg->FillPath();
@@ -2873,8 +2957,8 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     //-----  Label the output of this code example -----
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "Output of code example from \"Compositing "
-                "and filtering with layers\" topic in user guide";
+    char *str = "Output of code example from user guide topic "
+                "\"Compositing and filtering with layers\"";
     float scale = 0.3;
     SGPoint xystart = { 24, 420 };
     txt.SetTextSpacing(1.1);
@@ -2883,7 +2967,7 @@ void DropShadow(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 }
 
-// Code example from UG topic "The background-color-leak proble"
+// Code example from UG topic "The background-color-leak problem"
 void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
@@ -2903,7 +2987,7 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     // In the square on the left, use the A-over-B blend operation to
     // render a circular pattern of 24 light-colored triangles
-    SGCoord x0 = 210, y0 = 210, r = 135, x1 = 0, y1 = -r, offset = 390;
+    SGCoord offset = 390, x0 = 210, y0 = 210, r = 135, x1 = 0, y1 = -r;
     float angle = 0;
     for (int i = 0; i < 24; ++i)
     {
@@ -2959,8 +3043,8 @@ void LeakThru(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetBlendOperation(BLENDOP_SRC_OVER_DST);
     TextApp txt;
     COLOR crText = RGBX(40,70,110);
-    char *str = "Output of the code example from the "
-        "\"Front-to-back rendering\" topic";
+    char *str = "Output of code example from user guide "
+                "topic \"The background-color-leak problem\"";
     SGPoint xystart = { 24, 420 };
     float scale = 0.3;
     txt.SetTextSpacing(1.1);
@@ -4287,11 +4371,11 @@ void example26(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 void (*testfunc[])(const PIXEL_BUFFER& bkbuf, const SGRect& cliprect) =
 {
     // Demo frames
-    demo01, demo02, demo03, demo04,
-    demo05, demo06, demo07, demo08,
-    demo09, demo10, demo11, demo12,
-    demo13, demo14, demo15, demo16,
-    demo17, demo18,
+    demo00, demo01, demo02, demo03,
+    demo04, demo05, demo06, demo07,
+    demo08, demo09, demo10, demo11,
+    demo12, demo13, demo14, demo15,
+    demo16, demo17, demo18,
 
     // Code examples from userdoc.pdf
     MyTest, MyTest2, EggRoll, PieToss,

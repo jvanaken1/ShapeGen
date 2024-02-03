@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2022 Jerry R. VanAken
+  Copyright (C) 2019-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -88,9 +88,9 @@ public:
 //---------------------------------------------------------------------
 //
 // Class BmpReader:
-//   Reads pixel data serially from a .bmp file. Supplies image data
-//   to TiledPattern objects. Inherits from ImageReader class defined
-//   in render.h.
+//   Reads pixel data serially from a BMP file (with a '.bmp' filename
+//   extention). Supplies image data to TiledPattern objects. Inherits
+//   from ImageReader class defined in render.h.
 //
 //---------------------------------------------------------------------
 
@@ -106,15 +106,16 @@ class BmpReader : public ImageReader
     bool _bAlpha;  // true if BMP file data has 8-bit alpha channel
     int _row;      // current row in bitmap
     int _col;      // current column in bitmap
-    int _pad;      // bytes of padding at end of each row
+    int _pad;      // bytes of padding at end of each row in file
+
+    void ErrorMessage(char *pszError);
 
 public:
     BmpReader(const char *pszFile);
     ~BmpReader();
-    int GetImageInfo(int *width, int *height);
+    bool GetImageInfo(int *width, int *height, int *flags);
     int ReadPixels(COLOR *buffer, int count);
-    int RewindData();
-    void ErrorMessage(char *pszError);
+    bool RewindData();
 };
 
 //---------------------------------------------------------------------
@@ -160,49 +161,29 @@ public:
 
 class AlphaBlur : public ImageReader
 {
-    float _stddev;   // standard deviation
-    COLOR *_kcoeff;  // kernel coefficients
-    int _kwidth;     // kernel width
+    int _kwidth;            // width of Gaussian kernel (always odd)
+    float _stddev;          // standard deviation
+    COLOR *_kcoeff;         // kernel coefficients
     COLOR _rgba, _rgb, _alpha;  // fill color components
-    COLOR *_pixels;  // pointer to blurred image pixels
-    int _width;      // width of blurred image
-    int _height;     // height of blurred image
-    int _numpixels;  // number of pixels in blurred image
-    int _index;      // current index into blurred image
+    PIXEL_BUFFER _blurbuf;  // buffer containing blurred image
+    int _numpixels;         // number of pixels in blurred image
+    int _index;             // current index into blurred image
 
     void ApplyGaussianFilter(COLOR dst[], const COLOR src[], int len);
+    bool CreateFilterKernel(int kwidth, float stddev);
+    bool BlurImage(const PIXEL_BUFFER *srcimage);
 
 public:
-    AlphaBlur(float stddev, int kwidth = 0);
-
+    AlphaBlur(const PIXEL_BUFFER *srcimage, int kwidth = 0,
+              float stddev = 0, COLOR color = RGBA(0,0,0,127));
     ~AlphaBlur();
+    bool GetBlurParams(int *kwidth, float *stddev, COLOR *color);
+    bool GetBlurredBoundingBox(SGRect *blurbbox, const SGRect *bbox);
+    bool GetBlurredImage(PIXEL_BUFFER *blurbuf);
 
-    void GetBlurredBoundingBox(SGRect& blurbbox, const SGRect& bbox);
-
-    int CreateFilterKernel(float stddev = 0, int kwidth = 0);
-
-    float GetStandardDeviation() { return _stddev; }
-
-    int GetKernelWidth() { return _kwidth; }
-
-    void SetColor(COLOR color = 0);
-
-    bool BlurImage(const PIXEL_BUFFER& srcimage);
-
-    int GetImageInfo(int *width, int *height)
-    {
-        *width  = _width;
-        *height = _height;
-        return 0;
-    }
-
+    // Implement ImageReader interface
     int ReadPixels(COLOR *buffer, int count);
-
-    int RewindData()
-    {
-        _index = 0;
-        return 0;
-    }
+    bool RewindData();
 };
 
 #endif // DEMO_H

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2022 Jerry R. VanAken
+  Copyright (C) 2022-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -22,17 +22,13 @@
 //---------------------------------------------------------------------
 //
 // pattern.cpp:
-//   Paint generator class for tiled pattern fills
+//   Paint generator class for tiled pattern (texture) fills
 //
 //---------------------------------------------------------------------
 
-//#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include "renderer.h"
-
-struct XYPAIR { FIX16 x; FIX16 y; };
-struct UVPAIR { FIX16 u; FIX16 v; };
 
 //---------------------------------------------------------------------
 //
@@ -41,6 +37,8 @@ struct UVPAIR { FIX16 u; FIX16 v; };
 //---------------------------------------------------------------------
 
 namespace {
+    struct XYPAIR { FIX16 x; FIX16 y; };   // x-y coordinate pair
+    struct UVPAIR { FIX16 u; FIX16 v; };   // texture coord pair
 
     // Multiplies a 32-bit pixel's RGB and alpha components by the
     // 'opacity' parameter, which is an alpha value in the range 0
@@ -167,14 +165,12 @@ void Pattern::Init(float u0, float v0, int flags, const float xform[6])
     {
         for (int j = 0; j < _h; ++j)
         {
-            COLOR *p = _pattern[j];
-
+            COLOR *prow = _pattern[j];
             for (int i = 0; i < _w; ++i)
             {
-                COLOR ga = *p & 0xff00ff00;
-                COLOR rb = *p & 0x00ff00ff;
-                rb = (rb << 16) | (rb >> 16);
-                *p++ = ga | rb;
+                COLOR rgba = *prow;
+                COLOR rb = rgba & 0x00ff00ff;
+                *prow++ = (rgba ^ rb) | (rb << 16) | (rb >> 16);
             }
         }
     }
@@ -182,10 +178,7 @@ void Pattern::Init(float u0, float v0, int flags, const float xform[6])
     // If the pattern texels are not already in premultiplied-
     // alpha format, convert them now...
     if (~flags & FLAG_PREMULTALPHA)
-    {
-        for (int j = 0; j < _h; ++j)
-            PremultAlphaArray(_pattern[j], _w);
-    }
+        PremultAlphaArray(_pattern[0], _w*_h);
 
     // Set up matrix for affine transformation from viewport
     // x-y pixel coordinates to pattern u-v texel coordinates
@@ -232,17 +225,28 @@ Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
                  int stride, int flags, const float xform[6])
                  : _w(w), _h(h), _xscroll(0), _yscroll(0)
 {
-    if (!pattern || w <= 0 || h <= 0 || stride < w)
+    if (pattern == 0 || w < 1 || h < 1 || stride < w)
     {
-        _w = _h = 0;  // error -- null pattern
+        _w = _h = 0;  // error -- invalid input parameters
         return;
     }
 
     // Copy pattern image into internal 2-D array
     COLOR *pdata = new COLOR[w*h];  // for pattern image pixels
-    assert(pdata != 0);  // out of memory?
+    if (pdata == 0)
+    {
+        assert(pdata);
+        _w = _h = 0;
+        return;  // fail - out of memory
+    }
     _pattern = new COLOR*[h];  // for pointers to pattern rows
-    assert(_pattern != 0);  // out of memory?
+    if (_pattern == 0)
+    {
+        assert(_pattern);
+        _w = _h = 0;
+        delete[] pdata;
+        return;  // fail - out of memory
+    }
     for (int i = 0; i < h; ++i)
     {
         memcpy(pdata, &pattern[0], w*sizeof(pattern[0]));
@@ -250,32 +254,52 @@ Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
         pdata = &pdata[w];
         pattern = &pattern[stride];
     }
-    Init(u0, v0, flags, xform);  // finish initializing
+    Init(u0, v0, flags, xform);  // finish initialization
 }
 
-// Copy pattern from caller-specified bitmap file. Input pixels
+// Copy pattern from caller-specified image file. Input pixels
 // are assumed to be in either 32-bit RGBA (0xaabbggrr) format or
 // 32-bit BGRA (0xaarrggbb) format.
-Pattern::Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
-                 int flags, const float xform[6])
-                 : _w(w), _h(h), _xscroll(0), _yscroll(0)
+Pattern::Pattern(ImageReader *imgrdr, float u0, float v0,
+                 int w, int h, int flags, const float xform[6]) :
+           _w(w), _h(h), _xscroll(0), _yscroll(0)
 {
     if (!imgrdr || w <= 0 || h <= 0)
     {
-        _w = _h = 0;  // error -- null pattern
-        return;
+        _w = _h = 0;
+        return;  // fail -- invalid input parameters
     }
 
     // Copy pattern image into internal 2-D array
-    COLOR *p = new COLOR[w*h];  // to store pattern image pixels
-    assert(p != 0);  // out of memory?
+    COLOR *pdata = new COLOR[w*h];  // to store pattern image pixels
+    if (pdata == 0)
+    {
+        assert(pdata);
+        _w = _h = 0;
+        return;  // fail - out of memory
+    }
     _pattern = new COLOR*[h];  // pointers to rows of pattern
-    assert(_pattern != 0);  // out of memory?
+    if (_pattern == 0)
+    {
+        assert(_pattern);
+        _w = _h = 0;
+        delete[] pdata;
+        return;  // fail - out of memory
+    }
+    COLOR *ptmp = pdata;
     for (int i = 0; i < h; ++i)
     {
-        imgrdr->ReadPixels(p, w);
-        _pattern[i] = p;
-        p = &p[w];
+        _pattern[i] = ptmp;
+        ptmp = &ptmp[w];
+    }
+    int count = imgrdr->ReadPixels(pdata, w*h);  // read entire image
+    if (count != w*h)
+    {
+        assert(count == w*h);
+        _w = _h = 0;
+        delete[] pdata;
+        delete[] _pattern;
+        return;  // fail - ImageReader ran out of pixels
     }
     Init(u0, v0, flags, xform);  // finish initializing
 }
@@ -304,7 +328,7 @@ bool Pattern::SetScrollPosition(int x, int y)
 void Pattern::FillSpan(int xs, int ys, int len, COLOR outBuf[], const COLOR inAlpha[])
 {
     if (_w == 0)
-        return;
+        return;  // fail - pattern initialization failed
 
     // Map starting point (xs,ys) to pattern u-v coordinates
     xs += _xscroll, ys += _yscroll;

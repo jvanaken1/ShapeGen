@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2022 Jerry R. VanAken
+  Copyright (C) 2022-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -22,7 +22,7 @@
 //---------------------------------------------------------------------
 //
 // bmpfile.cpp:
-//   This file implements a rudimentary BMP file reader -- i.e., it
+//   This file implements a rudimentary BMP file reader; that is, it
 //   reads image files with a .bmp filename extension. This reader can
 //   handle the simple BMP files used by the ShapeGen demo program.
 //   The BmpReader class inherits from the base class ImageReader,
@@ -31,7 +31,6 @@
 //
 //---------------------------------------------------------------------
 
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -39,134 +38,135 @@
 
 //---------------------------------------------------------------------
 //
-// The following structures are defined for .bmp files
+// The following types and structures are defined for .bmp files
 //
 //---------------------------------------------------------------------
+namespace {
+    typedef unsigned short WORD;
+    typedef unsigned int DWORD;
+    typedef int LONG;
 
-typedef unsigned short WORD;
-typedef unsigned int DWORD;
-typedef int LONG;
+    // Values for biCompression field
+    const int BI_RGB = 0;
+    const int BI_RLE8 = 1;
+    const int BI_RLE4 = 2;
+    const int BI_BITFIELDS = 3;
 
-// Values for biCompression field
-const int BI_RGB = 0;
-const int BI_RLE8 = 1;
-const int BI_RLE4 = 2;
-const int BI_BITFIELDS = 3;
+    // Make sure that packing alignment setting for structs
+    // enables bfSize field to immediately follow bfType
+    #pragma pack(push,2)
+    struct BITMAPFILEHEADER {
+        WORD  bfType;        // bitmap file magic 'BM'
+        DWORD bfSize;        // file size (in bytes)
+        WORD  bfReserved1;   //
+        WORD  bfReserved2;   //
+        DWORD bfOffBits;     // byte offset to pixel data
+    };
+    #pragma pack(pop)
 
-// Make sure that packing alignment setting for structs
-// enables bfSize field to immediately follow bfType
-#pragma pack(push,2)
-struct BITMAPFILEHEADER {
-    WORD  bfType;        // bitmap file magic 'BM'
-    DWORD bfSize;        // file size (in bytes)
-    WORD  bfReserved1;   //
-    WORD  bfReserved2;   //
-    DWORD bfOffBits;     // byte offset to pixel data
-};
-#pragma pack(pop)
+    struct BITMAPINFOHEADER {
+        DWORD   biSize;           // size of this header (in bytes)
+        LONG    biWidth;          // width of bitmap (in pixels)
+        LONG    biHeight;         // height of bitmap (in pixels)
+        WORD    biPlanes;         // number of planes (set to 1)
+        WORD    biBitCount;       // bits per pixel
+        DWORD   biCompression;    // pixel format (BI_RGB, etc.)
+        DWORD   biSizeImage;      // 0 (if uncompressed)
+        LONG    biXPelsPerMeter;  // horizontal pixels per meter
+        LONG    biYPelsPerMeter;  // vertical pixels per meter
+        DWORD   biClrUsed;        // color table, number of colors
+        DWORD   biClrImportant;   // color table, important colors
+    };
 
-struct BITMAPINFOHEADER {
-    DWORD   biSize;           // size of this header (in bytes)
-    LONG    biWidth;          // width of bitmap (in pixels)
-    LONG    biHeight;         // height of bitmap (in pixels)
-    WORD    biPlanes;         // number of planes (set to 1)
-    WORD    biBitCount;       // bits per pixel
-    DWORD   biCompression;    // pixel format (BI_RGB, etc.)
-    DWORD   biSizeImage;      // 0 (if uncompressed)
-    LONG    biXPelsPerMeter;  // horizontal pixels per meter
-    LONG    biYPelsPerMeter;  // vertical pixels per meter
-    DWORD   biClrUsed;        // color table, number of colors
-    DWORD   biClrImportant;   // color table, important colors
-};
+    typedef int FXPT2DOT30;
 
-typedef int FXPT2DOT30;
+    struct CIEXYZ {
+        FXPT2DOT30 ciexyzX;
+        FXPT2DOT30 ciexyzY;
+        FXPT2DOT30 ciexyzZ;
+    };
 
-struct CIEXYZ {
-    FXPT2DOT30 ciexyzX;
-    FXPT2DOT30 ciexyzY;
-    FXPT2DOT30 ciexyzZ;
-};
+    struct CIEXYZTRIPLE {
+        CIEXYZ ciexyzRed;
+        CIEXYZ ciexyzGreen;
+        CIEXYZ ciexyzBlue;
+    };
 
-struct CIEXYZTRIPLE {
-    CIEXYZ ciexyzRed;
-    CIEXYZ ciexyzGreen;
-    CIEXYZ ciexyzBlue;
-};
+    struct BITMAPV4HEADER {
+        DWORD    biSize;
+        LONG     biWidth;
+        LONG     biHeight;
+        WORD     biPlanes;
+        WORD     biBitCount;
+        DWORD    biCompression;
+        DWORD    biSizeImage;
+        LONG     biXPelsPerMeter;
+        LONG     biYPelsPerMeter;
+        DWORD    biClrUsed;
+        DWORD    biClrImportant;  // <-- BITMAPINFOHEADER ends here
+        DWORD    biRedMask;
+        DWORD    biGreenMask;
+        DWORD    biBlueMask;
+        DWORD    biAlphaMask;
+        DWORD    biCSType;
+        CIEXYZTRIPLE  biEndpoints;
+        DWORD    biGammaRed;
+        DWORD    biGammaGreen;
+        DWORD    biGammaBlue;
+    };
 
-struct BITMAPV4HEADER {
-    DWORD    biSize;
-    LONG     biWidth;
-    LONG     biHeight;
-    WORD     biPlanes;
-    WORD     biBitCount;
-    DWORD    biCompression;
-    DWORD    biSizeImage;
-    LONG     biXPelsPerMeter;
-    LONG     biYPelsPerMeter;
-    DWORD    biClrUsed;
-    DWORD    biClrImportant;  // <-- BITMAPINFOHEADER ends here
-    DWORD    biRedMask;
-    DWORD    biGreenMask;
-    DWORD    biBlueMask;
-    DWORD    biAlphaMask;
-    DWORD    biCSType;
-    CIEXYZTRIPLE  biEndpoints;
-    DWORD    biGammaRed;
-    DWORD    biGammaGreen;
-    DWORD    biGammaBlue;
-};
-
-struct BITMAPV5HEADER {
-    DWORD    biSize;
-    LONG     biWidth;
-    LONG     biHeight;
-    WORD     biPlanes;
-    WORD     biBitCount;
-    DWORD    biCompression;
-    DWORD    biSizeImage;
-    LONG     biXPelsPerMeter;
-    LONG     biYPelsPerMeter;
-    DWORD    biClrUsed;
-    DWORD    biClrImportant;  // <-- BITMAPINFOHEADER ends here
-    DWORD    biRedMask;
-    DWORD    biGreenMask;
-    DWORD    biBlueMask;
-    DWORD    biAlphaMask;
-    DWORD    biCSType;
-    CIEXYZTRIPLE  biEndpoints;
-    DWORD    biGammaRed;
-    DWORD    biGammaGreen;
-    DWORD    biGammaBlue;  // <-- BITMAPV4HEADER ends here
-    DWORD    biIntent;
-    DWORD    biProfileData;
-    DWORD    biProfileSize;
-    DWORD    biReserved;
-};
+    struct BITMAPV5HEADER {
+        DWORD    biSize;
+        LONG     biWidth;
+        LONG     biHeight;
+        WORD     biPlanes;
+        WORD     biBitCount;
+        DWORD    biCompression;
+        DWORD    biSizeImage;
+        LONG     biXPelsPerMeter;
+        LONG     biYPelsPerMeter;
+        DWORD    biClrUsed;
+        DWORD    biClrImportant;  // <-- BITMAPINFOHEADER ends here
+        DWORD    biRedMask;
+        DWORD    biGreenMask;
+        DWORD    biBlueMask;
+        DWORD    biAlphaMask;
+        DWORD    biCSType;
+        CIEXYZTRIPLE  biEndpoints;
+        DWORD    biGammaRed;
+        DWORD    biGammaGreen;
+        DWORD    biGammaBlue;  // <-- BITMAPV4HEADER ends here
+        DWORD    biIntent;
+        DWORD    biProfileData;
+        DWORD    biProfileSize;
+        DWORD    biReserved;
+    };
+}
 
 //---------------------------------------------------------------------
 //
-// Class BmpReader functions:
-//   Used to read pixel data serially from a .bmp file. See the
-//   BmpReader class definition in demo.h.
+// BmpReader class implementation:
+//   Reads pixel data serially from a BMP file (with a '.bmp' filename
+//   extension). The BmpReader class is defined in demo.h.
 //
-//   A BmpReader object always converts the pixel data from the .bmp
+//   A BmpReader object always converts the pixel data from the BMP
 //   file to either a 32-bit RGBA (i.e., 0xaabbggrr) or a 32-bit BGRA
 //   (0xaarrggbb) format, as is required by the TiledPattern class
-//   defined in renderer.h. This file reader can handle only .bmp
-//   files that use 24-bit or 32-bit uncompressed formats for pixel
-//   data.
+//   defined in renderer.h. This rudimentary BMP file reader can
+//   handle only BMP files that use 24-bit or 32-bit uncompressed
+//   formats for pixel data.
 //
 //---------------------------------------------------------------------
 
-BmpReader::BmpReader(const char *pszFile)
-                     : _width(0), _height(0), _bpp(0),
-                       _flags(0), _offset(0), _pad(0),
-                       _bAlpha(false), _row(0), _col(0)
+// Public constructor: Opens the caller-specified BMP file
+BmpReader::BmpReader(const char *pszFile) :
+               _width(0), _height(0), _bpp(0), _flags(0), _offset(0),
+               _pad(0), _bAlpha(false), _row(0), _col(0)
 {
     const int MAX_FILENAME_LEN = 255;
     char *pszError = 0;
 
-    do
+    for (int i = 1; i > 0; --i)  // hack to avoid nested if-statements
     {
         BITMAPFILEHEADER hdr;
         BITMAPV5HEADER info;
@@ -284,7 +284,7 @@ BmpReader::BmpReader(const char *pszFile)
 
         // Move file position to start of pixel data
         RewindData();
-    } while (0);
+    }
     if (pszError)
     {
         char sbuf[256];
@@ -304,7 +304,7 @@ BmpReader::BmpReader(const char *pszFile)
             fclose(_pFile);
             _pFile = 0;
         }
-        _width = _height = 0;  // null image
+        _width = _height = 0;  // indicate null image
     }
 }
 
@@ -314,29 +314,32 @@ BmpReader::~BmpReader()
         fclose(_pFile);
 }
 
+// Private function: Opens message box to notify user of error
 void BmpReader::ErrorMessage(char *pszError)
 {
     _umsg.ShowMessage(pszError, "BMP file reader - Error", MESSAGECODE_ERROR);
 }
 
-// Returns the image info flags, and writes the image width and
-// height to the output pointer args. If the constructor has
-// recognized the .bmp file as valid, the retrieved width and
-// height are both nonzero; otherwise, the width and height
-// values are both zero.
-int BmpReader::GetImageInfo(int *width, int *height)
+// Public function: Writes the image width and height and status flags
+// to the output pointer args. Returns true if the constructor has
+// successfully opened the .bmp image file for reading.
+bool BmpReader::GetImageInfo(int *width, int *height, int *flags)
 {
-    *width  = _width;
-    *height = _height;
-    return _flags;
+    if (width)
+        *width = _width;
+    if (height)
+        *height = _height;
+    if (flags)
+        *flags = _flags;
+    return (_width > 0);
 }
 
-// Reads a block of pixel data from a .bmp file and writes it to a
-// caller-supplied buffer. The 'count' parameter specifies the
-// number of pixels to copy from the bitmap file to the specified
-// 'buffer' array. The return value is the number of pixels the
-// function has copied, which can be less than 'count' if the source
-// supply of pixels is low, or zero if the source is empty. The
+// Public function: Reads a block of pixel data from a .bmp file and
+// writes it to a caller-supplied buffer. The 'count' parameter
+// specifies the number of pixels to copy from the bitmap file to the
+// specified 'buffer' array. The return value is the number of pixels
+// the function has copied, which can be less than 'count' if the
+// source supply of pixels is low, or zero if the source is empty. The
 // function converts each pixel read from the file to a 32-bit BGRA
 // format (that is, 0xaarrggbb) before writing it to the buffer.
 int BmpReader::ReadPixels(COLOR *buffer, int count)
@@ -414,10 +417,15 @@ int BmpReader::ReadPixels(COLOR *buffer, int count)
     return 0;
 }
 
-// Rewinds the .bmp file to the start of the pixel data
-int BmpReader::RewindData()
+// Public function: Rewinds the .bmp file to the start of the pixel data
+bool BmpReader::RewindData()
 {
     _row = _col = 0;
-    return fseek(_pFile, _offset, SEEK_SET);
+    if (fseek(_pFile, _offset, SEEK_SET) != 0)
+    {
+        ErrorMessage("fseek call failed in RewindData function");
+        return false;
+    }
+    return true;
 }
 
