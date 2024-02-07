@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2022 Jerry R. VanAken
+  Copyright (C) 2022-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -65,14 +65,16 @@ public:
     COLOR GetColorValue(FIX16 t, COLOR opacity);
 };
 
-// Private function: Loads a color-stop array element, identified by
-// the 'index' parameter, with the specified 'offset' and 32-bit
-// 'color' value. The color value is nominally in RGBA format (that
-// is, 0xaabbggrr), although some renderers might choose to quietly
-// swap the red and blue fields. The function premultiplies the RGB
-// fields of the color value by its alpha field. All subsequent pixel
-// operations on the color table will assume that its color values are
-// in premultiplied-alpha format.
+// Private function: Loads a color-stop array element, identified
+// by the 'index' parameter, with the specified 'offset' and 32-bit
+// 'color' value. The 'offset' parameter is a 16.16 fixed-point
+// value in the range 0 to 1.0 (that is, 0 to 0x0000ffff). The color
+// value is nominally in RGBA format (that is, 0xaabbggrr), although
+// some renderers might choose to quietly swap the red and blue fields.
+// The function premultiplies the RGB fields of the color value by
+// its alpha field. All subsequent pixel operations on the color-
+// stop array will assume that its color values are in premultiplied-
+// alpha format.
 int ColorStops::SetColorStop(int index, FIX16 offset, COLOR color)
 {
     COLOR rb, ga, a = color >> 24;
@@ -80,7 +82,7 @@ int ColorStops::SetColorStop(int index, FIX16 offset, COLOR color)
     if (a != 0)
     {
         rb = color & 0x00ff00ff;
-        ga = (color >> 8) & 0x00ff00ff;
+        ga = (color ^ rb) >> 8;
         if (a != 255)
         {
             rb *= a;
@@ -108,12 +110,13 @@ int ColorStops::SetColorStop(int index, FIX16 offset, COLOR color)
 }
 
 // Public function: Deletes all existing color stops from color-stop
-// array, but sets up a valid -- but temporary -- default array to use
-// until the user calls the AddColorStop function to define a new set
-// of color stops.
+// array, and loads a valid -- but temporary -- set of color stops to
+// use until the user calls the AddColorStop function to define a new
+// set of color stops.
 void ColorStops::ResetColorStops()
 {
-    memset(&_stop[0], 0, sizeof(_stop));
+    const STOP_COLOR stop0 = { 0,0,0 };
+    _stop[0] = stop0;
     _stopIndex = 0;
     _stopCount = SetColorStop(1, 0x0000ffff, 0);
 }
@@ -130,38 +133,37 @@ void ColorStops::ResetColorStops()
 // offset in the final element is 1.0, as required for lookups.
 bool ColorStops::AddColorStop(float offset, COLOR color)
 {
-    FIX16 offset2;
-
     // Prevent color-stop array from overflowing
     if (_stopIndex == ARRAY_LEN(_stop))
         return false;
 
     // Update _stopIndex to make room for user's new color stop
-    offset2 = 0x0000ffff*offset;  // convert to fixed-point
-    if (_stopIndex == 0)
+    FIX16 fixoff = 0x0000ffff*offset;  // convert to fixed-point
+
+    if (fixoff < 0)
+        fixoff = 0;
+    else if (fixoff > 0x0000ffff)
+        fixoff = 0x0000ffff;
+
+    if (_stopIndex == 0)  // initial color-stop entry?
     {
         _stopIndex = SetColorStop(0, 0, color);
-        if (offset2 > 0)
-        {
-            if (offset2 > 0x0000ffff)
-                offset = 0x0000ffff;
-
-            _stopIndex = SetColorStop(1, offset2, color);
-        }
+        if (fixoff > 0)
+            _stopIndex = SetColorStop(1, fixoff, color);
     }
     else
     {
-        if (offset2 > 0x0000ffff || (_stopIndex == ARRAY_LEN(_stop)-1))
-            offset2 = 0x0000ffff;
-        else if (offset2 < _stop[_stopIndex-1].offset)
-            offset2 = _stop[_stopIndex-1].offset;
+        if (_stopIndex == ARRAY_LEN(_stop)-1)
+            fixoff = 0x0000ffff;
+        else if (fixoff < _stop[_stopIndex-1].offset)
+            fixoff = _stop[_stopIndex-1].offset;
 
-        _stopIndex = SetColorStop(_stopIndex, offset2, color);
+        _stopIndex = SetColorStop(_stopIndex, fixoff, color);
     }
 
     // Make sure final color-stop element has offset of 1.0
-    // (represented in fixed-point as 0x0000ffff).
-    if (offset2 == 0x0000ffff)
+    // (represented in fixed-point as 0x0000ffff)
+    if (fixoff == 0x0000ffff)
         _stopCount = _stopIndex;
     else
         _stopCount = SetColorStop(_stopIndex, 0x0000ffff, color);
@@ -199,19 +201,15 @@ COLOR ColorStops::GetPadColor(int n, COLOR opacity)
 // Public function: Calculates the color of a pixel given (1) the color
 // look-up parameter 't' at the pixel's center, and (2) the input
 // opacity, which is an alpha value in the range 0 to 255. Parameter
-// 't' is a fraction in the range 0 to 1.0 (or 0 to 0x0000ffff in
-// fixed-point) that indicates where the pixel center falls within the
-// repeating color-stop pattern. All four of the pixel's (r,g,b,a)
-// color components by are then multiplied by 'opacity'. The two color
-// stops that bracket the specified 't' value are cached in the hope
-// that several subsequent pixels might re-use the cached color stops.
+// 't' is a 16.16 fixed-point fraction in the range 0 to 1.0 (that is,
+// 0 to 0x0000ffff) that indicates where the pixel center falls within
+// the repeating color-stop pattern. All four of the pixel's 8-bit
+// (r,g,b,a) components by are then multiplied by 'opacity'. The two
+// color stops that bracket the specified 't' value are cached so that
+// subsequent pixel color lookups might re-use the cached color stops.
 COLOR ColorStops::GetColorValue(FIX16 t, COLOR opacity)
 {
-    float width;
-    FIX16 s1, s2;
-    COLOR ga, rb, rb1, rb2, ga1, ga2;
-
-    assert((t >> 16) == 0 && (opacity >> 8) == 0);
+    assert((t >> 16) == 0 && opacity != 0 && (opacity >> 8) == 0);
     if (t < _tminStop.offset || _tmaxStop.offset < t)
     {
         // A color-stop cache miss has occurred. Update the two
@@ -226,30 +224,31 @@ COLOR ColorStops::GetColorValue(FIX16 t, COLOR opacity)
         _tmaxStop = _stop[k];
     }
 
-    // Interpolate between the two cached color stops on either
-    // side of t. The RGB components in the two stops have
-    // previously been premultiplied by their alphas.
-    ga1 = _tminStop.ga, ga2 = _tmaxStop.ga;
-    if (!(ga1 | ga2))
-        return 0;  // transparent pixel
+    // Linearly interpolate between the two cached color stops on
+    // either side of t. The RGB components in the two color stops
+    // have previously been premultiplied by their alphas.
+    COLOR ga1 = _tminStop.ga;
+    COLOR ga2 = _tmaxStop.ga;
+    if ((ga1 | ga2) == 0)
+        return 0;  // pixel is transparent
 
-    rb1 = _tminStop.rb, rb2 = _tmaxStop.rb;
-    width = _tmaxStop.offset - _tminStop.offset;
-    s2 = 0x0000ffff*((t - _tminStop.offset)/width);
-    s2 >>= 8;
-    s1 = 255 ^ s2;
-    rb = s1*rb1 + s2*rb2;
+    float width = _tmaxStop.offset - _tminStop.offset;
+    FIX16 s = 0x0000ffff*((t - _tminStop.offset)/width);
+    s >>= 8;
+    COLOR rb1 = _tminStop.rb;
+    COLOR rb2 = _tmaxStop.rb;
+    COLOR rb = 256*rb1 - rb1 + s*(rb2 - rb1);
+    COLOR ga = 256*ga1 - ga1 + s*(ga2 - ga1);
     rb += 0x00800080;
     rb += (rb >> 8) & 0x00ff00ff;
     rb = (rb >> 8) & 0x00ff00ff;
-    ga = s1*ga1 + s2*ga2;
     ga += 0x00800080;
     ga += (ga >> 8) & 0x00ff00ff;
     ga &= 0xff00ff00;
     if (opacity == 255)
         return ga | rb;
 
-    // Multiply all four components (r,g,b,a) by opacity
+    // Multiply all four components (r,g,b,a) by 'opacity'
     rb *= opacity;
     rb += 0x00800080;
     rb += (rb >> 8) & 0x00ff00ff;
@@ -303,9 +302,8 @@ public:
 
 // Constructor: Defines a new linear-gradient fill pattern
 LinearGrad::LinearGrad(float x0, float y0, float x1, float y1,
-                       SPREAD_METHOD spread, int flags, const float xform[6])
-                       : _x0(x0), _y0(y0), _x1(x1), _y1(y1),
-                       _xscroll(0), _yscroll(0)
+                       SPREAD_METHOD spread, int flags, const float xform[6]) :
+              _x0(x0), _y0(y0), _x1(x1), _y1(y1), _xscroll(0), _yscroll(0)
 {
     _cstops = new ColorStops();
     assert(_cstops);  // out of memory?

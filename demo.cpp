@@ -267,23 +267,7 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
 
-    // Conic gradient parameters
-    const int NREPS = 18;
-    float t = 0, dt = 2*PI/NREPS;
-    float astart = -PI/2, asweep = 2*PI/NREPS;
-    SGCoord r = 80, xc = 640, yc = 440;
-    float x0 = xc, y0 = yc;
-    float xscale = 1.35f, yscale = 0.8f;
-    const float T0[] = { 1, 0, 0, 1, -x0, -y0 };
-    const float T1[] = { xscale, 0, 0, yscale, 0, 0 };
-    const float T2[] = { 1, 0, 0, 1, x0, y0 };
-    float xform[6] = { 1,0,0,1,0,0 };
-
-    MatrixMultiply(xform, T0, xform);
-    MatrixMultiply(xform, T1, xform);
-    MatrixMultiply(xform, T2, xform);
-    aarend->SetTransform(xform);
-
+    // Set up color-stop array
     const COLOR color[] = { RGBX(255,233,211), RGBX(0,100,100), };
     float offset = 0, delta = 1.0f/ARRAY_LEN(color);
 
@@ -295,16 +279,38 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     }
     aarend->AddColorStop(1.0f, color[0]);
 
+    // Set conic gradient parameters
+    const int NREPS = 18;
+    float t = 0, dt = 2*PI/NREPS;
+    float astart = -PI/2, asweep = 2*PI/NREPS;
+    SGCoord r = 80, xc = 640, yc = 440;
+    float x0 = xc, y0 = yc;
+
+    float xscale = 1.5f, yscale = 1.0f;
+    const float T0[] = { 1, 0, 0, 1, -x0, -y0 };
+    const float T1[] = { xscale, 0, 0, yscale, 0, 0 };
+    const float T2[] = { 1, 0, 0, 1, x0, y0 };
+    float xform[6] = { 1,0,0,1,0,0 };
+
+    MatrixMultiply(xform, T0, xform);
+    MatrixMultiply(xform, T1, xform);
+    MatrixMultiply(xform, T2, xform);
+    aarend->SetTransform(xform);
+
+    // Draw elliptical shape with scalloped edges
     sg->SetFillRule(FILLRULE_WINDING);
     sg->SetLineWidth(10);
     sg->BeginPath();
     for (int i = 0; i < NREPS; ++i)
     {
-        SGCoord rx = -r*xscale*sin(t);
-        SGCoord ry = r*yscale*cos(t);
+        float rsin = r*sin(t), rcos = r*cos(t);
+        SGCoord rx = -xscale*rsin;
+        SGCoord ry = yscale*rcos;
+        SGCoord sx = -xscale*rcos;
+        SGCoord sy = yscale*rsin;
         SGPoint v0 = { xc - 2*rx, yc - 2*ry };
         SGPoint v1 = { v0.x + 3*rx, v0.y + 3*ry };
-        SGPoint v2 = { v0.x + ry, v0.y - rx };
+        SGPoint v2 = { v0.x + sx, v0.y - sy };
 
         sg->Ellipse(v0, v1, v2);
         t += dt;
@@ -322,19 +328,19 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     txt.SetTextSpacing(1.05);
     xystart.x = (DEMO_WIDTH - txt.GetTextWidth(scale, str))/2;
-    xystart.y = 42 + DEMO_HEIGHT/2;
+    xystart.y = 26 + DEMO_HEIGHT/2;
     sg->SetLineWidth(34.0);
-    xystart.x += 5, xystart.y += 7;
-    aarend->SetColor(RGBA(0,0,0,50));
+    xystart.x += 7, xystart.y += 5;
+    aarend->SetColor(RGBA(0,0,0,40));
     txt.DisplayText(&(*sg), xystart, scale, str);
-    xystart.x -= 5, xystart.y -= 7;
+    xystart.x -= 7, xystart.y -= 5;
     aarend->SetColor(RGBX(0,88,88));
     txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(20.0);
     aarend->SetColor(RGBX(255,176,155));
     txt.DisplayText(&(*sg), xystart, scale, str);
 
-    xystart.x = 756, xystart.y = 916;
+    xystart.x = 762, xystart.y = 916;
     SGPoint arrow[] = {
         {  0+1170, 30+889 }, { 30+1170, 30+889 },
         { 30+1170, 40+889 }, { 63+1170, 20+889 },
@@ -2306,7 +2312,7 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     // Use basic renderer to do background fill
     SGPoint corner = { 40, 40 };
-    SGRect frame = { 10, 10, clip.w-20, clip.h-20 };
+    SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
     rend->SetColor(RGBX(120,244,255));
@@ -2320,7 +2326,19 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(80,100,120));
     sg->StrokePath();
 
-    // Conic gradient parameters
+    // Set up color-stop array
+    const COLOR color[] = { RGBX(255,233,211), RGBX(0,100,100), };
+    float offset = 0, delta = 1.0f/ARRAY_LEN(color);
+
+    aarend->ResetColorStops();
+    for (int i = 0; i < ARRAY_LEN(color); ++i)
+    {
+        aarend->AddColorStop(offset, color[i]);
+        offset += delta;
+    }
+    aarend->AddColorStop(1.0f, color[0]);
+
+    // Set conic gradient parameters
     const int NREPS = 18;
     float t = 0, dt = 2*PI/NREPS;
     float astart = -PI/2, asweep = 2*PI/NREPS;
@@ -2337,27 +2355,20 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     MatrixMultiply(xform, T2, xform);
     aarend->SetTransform(xform);
 
-    const COLOR color[] = { RGBX(255,233,211), RGBX(0,100,100), };
-    float offset = 0, delta = 1.0f/ARRAY_LEN(color);
-
-    aarend->ResetColorStops();
-    for (int i = 0; i < ARRAY_LEN(color); ++i)
-    {
-        aarend->AddColorStop(offset, color[i]);
-        offset += delta;
-    }
-    aarend->AddColorStop(1.0f, color[0]);
-
+    // Draw elliptical shape with scalloped edges
     sg->SetFillRule(FILLRULE_WINDING);
     sg->SetLineWidth(10);
     sg->BeginPath();
     for (int i = 0; i < NREPS; ++i)
     {
-        SGCoord rx = -r*xscale*sin(t);
-        SGCoord ry = r*yscale*cos(t);
+        float rsin = r*sin(t), rcos = r*cos(t);
+        SGCoord rx = -xscale*rsin;
+        SGCoord ry = yscale*rcos;
+        SGCoord sx = -xscale*rcos;
+        SGCoord sy = yscale*rsin;
         SGPoint v0 = { xc - 2*rx, yc - 2*ry };
         SGPoint v1 = { v0.x + 3*rx, v0.y + 3*ry };
-        SGPoint v2 = { v0.x + ry, v0.y - rx };
+        SGPoint v2 = { v0.x + sx, v0.y - sy };
 
         sg->Ellipse(v0, v1, v2);
         t += dt;

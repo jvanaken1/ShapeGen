@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2022-2023 Jerry R. VanAken
+  Copyright (C) 2022-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages

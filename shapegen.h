@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2023 Jerry R. VanAken
+  Copyright (C) 2019-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -35,11 +35,8 @@
 //
 //---------------------------------------------------------------------
 
-// 32-bit fixed-point value with 16-bit fraction (16.16 fixed point)
-typedef int FIX16;
-
-// Coordinates, points, rectangles, and subpixel spans
-typedef int SGCoord;
+typedef int FIX16;  // 16.16 fixed-point value
+typedef int SGCoord;  // ShapeGen coordinate value
 
 struct SGPoint {
     SGCoord x;
