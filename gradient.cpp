@@ -115,8 +115,8 @@ int ColorStops::SetColorStop(int index, FIX16 offset, COLOR color)
 // set of color stops.
 void ColorStops::ResetColorStops()
 {
-    const STOP_COLOR stop0 = { 0,0,0 };
-    _stop[0] = stop0;
+    const STOP_COLOR STOP000 = { 0,0,0 };
+    _stop[0] = STOP000;
     _stopIndex = 0;
     _stopCount = SetColorStop(1, 0x0000ffff, 0);
 }
@@ -284,10 +284,20 @@ class LinearGrad : public LinearGradient
     float _dtdy;  // partial derivative dt/dy
 
 public:
-    LinearGrad() { assert(0); }
+    LinearGrad() : _cstops(0)
+    {
+        assert(_cstops != 0);
+    }
     LinearGrad(float x0, float y0, float x1, float y1,
                SPREAD_METHOD spread, int flags, const float xform[6]);
-    ~LinearGrad() {}
+    ~LinearGrad()
+    {
+        delete _cstops;
+    }
+    bool GetStatus()
+    {
+        return (_cstops != 0);  // did constructor succeed?
+    }
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool AddColorStop(float offset, COLOR color)
     {
@@ -421,8 +431,13 @@ LinearGradient* CreateLinearGradient(float x0, float y0, float x1, float y1,
                                      const float xform[6])
 {
     LinearGrad *grad = new LinearGrad(x0, y0, x1, y1, spread, flags, xform);
-    assert(grad != 0);  // out of memory?
-    return grad;
+    if (grad == 0 || grad->GetStatus() == false)
+    {
+        assert(grad != 0 && grad->GetStatus() == true);
+        delete grad;
+        return 0;  // constructor failed
+    }
+    return grad;  // success
 }
 
 //---------------------------------------------------------------------
@@ -454,10 +469,20 @@ class RadialGrad : public RadialGradient
     void TransformRadialGradient(const float xform[6]);
 
 public:
-    RadialGrad() { assert(0); }
+    RadialGrad() : _cstops(0)
+    {
+        assert(_cstops != 0);
+    }
     RadialGrad(float x0, float y0, float r0, float x1, float y1, float r1,
                SPREAD_METHOD spread, int flags, const float xform[6]);
-    ~RadialGrad() {}
+    ~RadialGrad()
+    {
+        delete _cstops;
+    }
+    bool GetStatus()
+    {
+        return (_cstops != 0);  // did constructor succeed?
+    }
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool AddColorStop(float offset, COLOR color)
     {
@@ -755,8 +780,13 @@ RadialGradient* CreateRadialGradient(float x0, float y0, float r0,
                                      const float xform[6])
 {
     RadialGrad *grad = new RadialGrad(x0, y0, r0, x1, y1, r1, spread, flags, xform);
-    assert(grad != 0);  // out of memory?
-    return grad;
+    if (grad == 0 || grad->GetStatus() == false)
+    {
+        assert(grad != 0 && grad->GetStatus() == true);
+        delete grad;
+        return 0;  // constructor failed
+    }
+    return grad;  // success
 }
 
 //---------------------------------------------------------------------
@@ -813,10 +843,20 @@ class ConicGrad : public ConicGradient
     void TransformConicGradient(const float xform[6]);
 
 public:
-    ConicGrad() { assert(0); }
+    ConicGrad() : _cstops(0)
+    {
+        assert(_cstops != 0);
+    }
     ConicGrad(float x0, float y0, float astart, float asweep,
               SPREAD_METHOD spread, int flags, const float xform[6]);
-    ~ConicGrad() {}
+    ~ConicGrad()
+    {
+        delete _cstops;
+    }
+    bool GetStatus()
+    {
+        return (_cstops != 0);  // did constructor succeed?
+    }
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool AddColorStop(float offset, COLOR color)
     {
@@ -1121,6 +1161,11 @@ ConicGradient* CreateConicGradient(float x0, float y0, float astart, float aswee
                                    const float xform[6])
 {
     ConicGrad *grad = new ConicGrad(x0, y0, astart, asweep, spread, flags, xform);
-    assert(grad != 0);  // out of memory?
-    return grad;
+    if (grad == 0 || grad->GetStatus() == false)
+    {
+        assert(grad != 0 && grad->GetStatus() == true);
+        delete grad;
+        return 0;  // constructor failed
+    }
+    return grad;  // success
 }

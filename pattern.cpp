@@ -146,12 +146,16 @@ class Pattern : public TiledPattern
     void Init(float u0, float v0, int flags, const float xform[6]);
 
 public:
-    Pattern() { assert(0); }
+    Pattern() : _w(0), _h(0)
+    {
+        assert(0);
+    }
     Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
             int stride, int flags, const float xform[6]);
     Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
             int flags, const float xform[6]);
     ~Pattern();
+    bool GetStatus();
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool SetScrollPosition(int x, int y);
 };
@@ -217,9 +221,9 @@ void Pattern::Init(float u0, float v0, int flags, const float xform[6])
     }
 }
 
-// Copy pattern from caller-supplied 2-D image array. Input pixels
-// are assumed to be in either 32-bit RGBA (0xaabbggrr) format or
-// 32-bit BGRA (0xaarrggbb) format.
+// Constructor #1: Copy pattern from caller-supplied 2-D image array.
+// Input pixels are assumed to be in either 32-bit RGBA (0xaabbggrr)
+// format or 32-bit BGRA (0xaarrggbb) format.
 Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
                  int stride, int flags, const float xform[6]) :
            _w(0), _h(0), _xscroll(0), _yscroll(0)
@@ -254,9 +258,9 @@ Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
     Init(u0, v0, flags, xform);  // finish initialization
 }
 
-// Copy pattern from caller-specified image file. Input pixels
-// are assumed to be in either 32-bit RGBA (0xaabbggrr) format or
-// 32-bit BGRA (0xaarrggbb) format.
+// Constructor #2: Copy pattern from caller-specified image file via
+// an ImageReader object. Input pixels are assumed to be in either
+// 32-bit RGBA (0xaabbggrr) format or 32-bit BGRA (0xaarrggbb) format.
 Pattern::Pattern(ImageReader *imgrdr, float u0, float v0,
                  int w, int h, int flags, const float xform[6]) :
            _w(0), _h(0), _xscroll(0), _yscroll(0)
@@ -304,7 +308,14 @@ Pattern::~Pattern()
     delete[] _pattern;
 }
 
-// Protected function
+// Public function: Returns true if the constructor successfully
+// saved the image for the pattern; otherwise, returns false.
+bool Pattern::GetStatus()
+{
+    return (_w > 0);
+}
+
+// Public function
 bool Pattern::SetScrollPosition(int x, int y)
 {
     _xscroll = x, _yscroll = y;
@@ -378,18 +389,26 @@ TiledPattern* CreateTiledPattern(const COLOR *pattern, float u0, float v0,
                                  const float xform[6])
 {
     Pattern *pat = new Pattern(pattern, u0, v0, w, h, stride, flags, xform);
-    assert(pat != 0);  // out of memory?
-
-    return pat;
+    if (pat == 0 || pat->GetStatus() == false)
+    {
+        assert(pat != 0 && pat->GetStatus() == true);
+        delete pat;
+        return 0;  // constructor failed
+    }
+    return pat;  // success
 }
 
 TiledPattern* CreateTiledPattern(ImageReader *imgrdr, float u0, float v0,
                                  int w, int h, int flags, const float xform[6])
 {
     Pattern *pat = new Pattern(imgrdr, u0, v0, w, h, flags, xform);
-    assert(pat != 0);  // out of memory?
-
-    return pat;
+    if (pat == 0 || pat->GetStatus() == false)
+    {
+        assert(pat != 0 && pat->GetStatus() == true);
+        delete pat;
+        return 0;  // constructor failed
+    }
+    return pat;  // success
 }
 
 
