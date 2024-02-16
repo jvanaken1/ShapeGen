@@ -167,20 +167,20 @@ class EnhancedRenderer : public SimpleRenderer
 public:
     virtual bool GetPixelBuffer(PIXEL_BUFFER *pixbuf) = 0;
     virtual void SetColor(COLOR color = RGBX(0,0,0)) = 0;
-    virtual void SetLinearGradient(float x0, float y0, float x1, float y1,
+    virtual bool SetLinearGradient(float x0, float y0, float x1, float y1,
                                    SPREAD_METHOD spread = SPREAD_REPEAT,
                                    int flags = FLAG_EXTEND_START | FLAG_EXTEND_END) = 0;
-    virtual void SetRadialGradient(float x0, float y0, float r0,
+    virtual bool SetRadialGradient(float x0, float y0, float r0,
                                    float x1, float y1, float r1,
                                    SPREAD_METHOD spread = SPREAD_REPEAT,
                                    int flags = FLAG_EXTEND_START | FLAG_EXTEND_END) = 0;
-    virtual void SetConicGradient(float x0, float y0,
+    virtual bool SetConicGradient(float x0, float y0,
                                   float astart = 0, float asweep = 2*PI,
                                   SPREAD_METHOD spread = SPREAD_REPEAT,
                                   int flags = FLAG_EXTEND_END) = 0;
-    virtual void SetPattern(const COLOR *pattern, float u0, float v0,
+    virtual bool SetPattern(const COLOR *pattern, float u0, float v0,
                             int w, int h, int stride, int flags) = 0;
-    virtual void SetPattern(ImageReader *imgrdr, float u0, float v0,
+    virtual bool SetPattern(ImageReader *imgrdr, float u0, float v0,
                             int w, int h, int flags) = 0;
     virtual void AddColorStop(float offset, COLOR color) = 0;
     virtual void ResetColorStops() = 0;

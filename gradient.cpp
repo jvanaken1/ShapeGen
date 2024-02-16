@@ -497,9 +497,9 @@ public:
 
 // Constructor: Defines a new radial-gradient fill pattern
 RadialGrad::RadialGrad(float x0, float y0, float r0, float x1, float y1, float r1,
-                       SPREAD_METHOD spread, int flags, const float xform[6])
-                       : _x0(x0), _y0(y0), _r0(r0), _x1(x1), _y1(y1), _r1(r1),
-                       _xscroll(0), _yscroll(0), _vx(0), _vy(0)
+                       SPREAD_METHOD spread, int flags, const float xform[6]) :
+                 _x0(x0), _y0(y0), _r0(r0), _x1(x1), _y1(y1), _r1(r1),
+                 _xscroll(0), _yscroll(0), _vx(0), _vy(0)
 {
     assert((r0 >= 0) && (r1 >= 0) && ((r0 != 0) || (r1 != 0)));
     _cstops = new ColorStops();
@@ -871,10 +871,10 @@ public:
 
 // Constructor: Defines a new conic-gradient fill pattern
 ConicGrad::ConicGrad(float x0, float y0, float astart, float asweep,
-                     SPREAD_METHOD spread, int flags, const float xform[6])
-                 : _x0(x0), _y0(y0), _astart(astart), _asweep(asweep),
-                   _xscroll(0), _yscroll(0), _vx(0), _vy(0), _extend(0),
-                   _spread(SPREAD_REPEAT), _bSpecial(false)
+                     SPREAD_METHOD spread, int flags, const float xform[6]) :
+             _x0(x0), _y0(y0), _astart(astart), _asweep(asweep),
+             _xscroll(0), _yscroll(0), _vx(0), _vy(0), _extend(0),
+             _spread(SPREAD_REPEAT), _bSpecial(false)
 {
     _cstops = new ColorStops();
     assert(_cstops);  // out of memory?

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2023 Jerry R. VanAken
+  Copyright (C) 2019-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -199,6 +199,8 @@ void POOL::AcquireBlock()
     count += blklen;
     blklen += blklen;  // new block is 2x size of old block
     block = new EDGE[blklen];
+
+    // TODO: Replace assert below with out-of-memory exception
     assert(block != 0);  // out of memory?
     watermark = 0;
 }
@@ -207,7 +209,6 @@ void POOL::AcquireBlock()
 // allocated EDGE structures
 void POOL::Reset()
 {
-    //
     if (index)
     {
         EDGE *swap = block;  block = inventory[0];  inventory[0] = swap;

@@ -244,6 +244,8 @@ protected:
     ~PathMgr();
 
 public:
+    bool GetStatus();  // for local use
+
     // Selects the renderer to use for filling and stroking shapes
     bool SetRenderer(Renderer *renderer);
 

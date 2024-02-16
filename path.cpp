@@ -39,9 +39,14 @@
 
 ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 {
-    ShapeGen *sg = new PathMgr(renderer, cliprect);
-    assert(sg != 0);  // out of memory?
-    return sg;
+    PathMgr *sg = new PathMgr(renderer, cliprect);
+    if (sg == 0 || sg->GetStatus() == false)
+    {
+        assert(sg != 0 && sg->GetStatus() == true);
+        delete sg;
+        return 0;  // constructor failed
+    }
+    return sg;  // success
 }
 
 //---------------------------------------------------------------------
@@ -50,20 +55,40 @@ ShapeGen* CreateShapeGen(Renderer *renderer, const SGRect& cliprect)
 //
 //---------------------------------------------------------------------
 
-PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect)
-            : _pathlength(INITIAL_PATH_LENGTH), _angle(0),
-              _fpoint(0), _cpoint(0), _figure(0), _figtmp(0),
-              _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true),
-              _devicecliprect(cliprect), _fixshift(16),
-              _flatness(FLATNESS_DEFAULT), _fillrule(FILLRULE_DEFAULT),
-              _linewidth(LINEWIDTH_DEFAULT), _lineend(LINEEND_DEFAULT),
-              _linejoin(LINEJOIN_DEFAULT), _miterlimit(MITERLIMIT_DEFAULT)
+PathMgr::PathMgr(Renderer *renderer, const SGRect& cliprect) :
+            _path(0), _edge(0), _pathlength(INITIAL_PATH_LENGTH),
+            _angle(0), _fpoint(0), _cpoint(0), _figure(0), _figtmp(0),
+            _dashoffset(0), _pdash(0), _dashlen(0), _dashon(true),
+            _devicecliprect(cliprect), _fixshift(16),
+            _flatness(FLATNESS_DEFAULT), _fillrule(FILLRULE_DEFAULT),
+            _linewidth(LINEWIDTH_DEFAULT), _lineend(LINEEND_DEFAULT),
+            _linejoin(LINEJOIN_DEFAULT), _miterlimit(MITERLIMIT_DEFAULT)
 {
     assert(sizeof(VERT16) == sizeof(FIGURE));  // for path stack
-    _path = new VERT16[_pathlength];
-    assert(_path != 0);  // out of memory?
+    if (renderer == 0)
+    {
+        assert(renderer != 0);
+        return;  // fail - invalid parameter value
+    }
+    if (cliprect.w < 1 || cliprect.h < 1)
+    {
+        assert(cliprect.w > 0 && cliprect.h > 0);
+        return;  // fail - invalid parameter value
+    }
     _edge = new EdgeMgr();
-    assert(_edge != 0);  // out of memory?
+    if (_edge == 0)
+    {
+        assert(_edge != 0);
+        return;  // fail - out of memory
+    }
+    _path = new VERT16[_pathlength];
+    if (_path == 0)
+    {
+        assert(_path != 0);
+        delete _edge;
+        _edge = 0;
+        return;  // fail - out of memory
+    }
     SetRenderer(renderer);
     InitClipRegion(cliprect.w, cliprect.h);
     SetFixedBits(0);
@@ -81,6 +106,11 @@ PathMgr::~PathMgr()
 {
     delete _edge;
     delete[] _path;
+}
+
+bool PathMgr::GetStatus()
+{
+    return (_path != 0);  // did constructor succeed?
 }
 
 //---------------------------------------------------------------------
@@ -132,12 +162,19 @@ void PathMgr::SetScrollPosition(int x, int y)
 
 void PathMgr::GrowPath()
 {
+    if (_path == 0)
+    {
+        assert(_path != 0);
+        return;  // fail - out of memory
+    }
     int offset, oldlen = _pathlength;
     VERT16 *oldpath = _path;
 
     _pathlength += _pathlength;
     _path = new VERT16[_pathlength];
-    assert(_path);  // out of memory?
+
+    // TODO: Replace assert below with out-of-memory exception
+    assert(_path != 0);
     memcpy(_path, oldpath, oldlen*sizeof(_path[0]));
     if (_cpoint != 0)
     {
@@ -607,7 +644,7 @@ void PathMgr::ResetClipRegion()
 
 bool PathMgr::InitClipRegion(int width, int height)
 {
-    if (width <= 0 || height <= 0)
+    if (width < 1 || height < 1)
     {
         assert(width > 0 && height > 0);
         return false;
@@ -789,7 +826,7 @@ int PathMgr::GetBoundingBox(SGRect *bbox, int flags)
             xmax = min(xmax0, xmax);
             ymax = min(ymax0, ymax);
 
-            if ((xmax - xmin) <= 0 || (ymax - ymin) <= 0)
+            if ((xmax - xmin) < 1 || (ymax - ymin) < 1)
                 return 0;  // clipped path is empty
         }
         if ((flags & FLAG_BBOX_ACCUM) && (bbox->w > 0) && (bbox->h > 0))

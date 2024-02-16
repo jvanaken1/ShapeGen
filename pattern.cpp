@@ -155,7 +155,7 @@ public:
     Pattern(ImageReader *imgrdr, float u0, float v0, int w, int h,
             int flags, const float xform[6]);
     ~Pattern();
-    bool GetStatus();
+    bool GetStatus();  // for local use only
     void FillSpan(int xs, int ys, int length, COLOR outBuf[], const COLOR inAlpha[]);
     bool SetScrollPosition(int x, int y);
 };
@@ -247,6 +247,7 @@ Pattern::Pattern(const COLOR *pattern, float u0, float v0, int w, int h,
     }
 
     // Copy pattern image into internal 2-D array
+    // TODO - memcpy() call below can cause access violation
     for (int i = 0; i < h; ++i)
     {
         memcpy(pdata, &pattern[0], w*sizeof(pattern[0]));
@@ -266,7 +267,10 @@ Pattern::Pattern(ImageReader *imgrdr, float u0, float v0,
            _w(0), _h(0), _xscroll(0), _yscroll(0)
 {
     if (imgrdr == 0 || w < 1 || h < 1)
+    {
+        assert(imgrdr != 0 && w > 0 && h > 0);
         return;  // fail - invalid input parameters
+    }
 
     // Allocate 2-D array in which to store pattern
     COLOR *pdata = new COLOR[w*h];
@@ -289,14 +293,14 @@ Pattern::Pattern(ImageReader *imgrdr, float u0, float v0,
         ptmp = &ptmp[w];
     }
 
-    // Copy pattern image into internal 2-D array
-    int count = imgrdr->ReadPixels(pdata, w*h);  // read entire image
+    // Read entire pattern image into internal 2-D array
+    int count = imgrdr->ReadPixels(pdata, w*h);
     if (count != w*h)
     {
         assert(count == w*h);
         delete[] pdata;
         delete[] _pattern;
-        return;  // fail - unexpectedly ran out of pixels
+        return;  // fail - unexpected end of image data
     }
     _w = w, _h = h;  // mark pattern as valid
     Init(u0, v0, flags, xform);  // finish initializing
@@ -308,8 +312,7 @@ Pattern::~Pattern()
     delete[] _pattern;
 }
 
-// Public function: Returns true if the constructor successfully
-// saved the image for the pattern; otherwise, returns false.
+// Returns true if the constructor succeeded; otherwise, returns false
 bool Pattern::GetStatus()
 {
     return (_w > 0);

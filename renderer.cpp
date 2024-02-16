@@ -52,7 +52,7 @@
 // pointer to the buffer.
 COLOR* AllocateRawPixels(int w, int h, COLOR fill)
 {
-    if (w <= 0 || h <= 0)
+    if (w < 1 || h < 1)
     {
         assert(w > 0 && h > 0);
         return 0;  // bad parameters
@@ -133,15 +133,14 @@ class BasicRenderer : public SimpleRenderer
     COLOR _color;
 
 protected:
-    // Interface to ShapeGen object
     void RenderShape(ShapeFeeder *feeder);
 
 public:
-    // Application interface
+    bool GetStatus();  // for local use only
+
+    // Simple renderer application interface
     BasicRenderer(const PIXEL_BUFFER *backbuf);
-    ~BasicRenderer()
-    {
-    }
+    ~BasicRenderer() {}
     void SetColor(COLOR color);
 };
 
@@ -150,6 +149,12 @@ BasicRenderer::BasicRenderer(const PIXEL_BUFFER *backbuf)
     _backbuf = *backbuf;
     _stride = _backbuf.pitch/sizeof(COLOR);
     SetColor(RGBX(0,0,0));
+}
+
+// Returns true if constructor succeeded; otherwise, returns false.
+bool BasicRenderer::GetStatus()
+{
+    return (_backbuf.pixels != 0);
 }
 
 // Fills a series of horizontal spans that comprise a shape
@@ -220,7 +225,7 @@ namespace {
     // length. Both source and destination pixels are in either BGRA
     // format (that is, 0xaarrggbb) or RGBA format (0xaabbggrr), and
     // have already been premultiplied by their alpha values.
-    void AlphaBlender(COLOR *src, COLOR *dst, int len)
+    void AlphaBlender(COLOR *dst, COLOR *src, int len)
     {
         while (len--)
         {
@@ -267,7 +272,7 @@ namespace {
     // black (all zeros). If small overlap errors occur, however, the
     // add-with-saturate operation mitigates any resulting overflows.
     // Source and destination pixels are in premultiplied-alpha format.
-    void AddWithSaturation(COLOR *src, COLOR *dst, int len)
+    void AddWithSaturation(COLOR *dst, COLOR *src, int len)
     {
         while (len--)
         {
@@ -285,7 +290,7 @@ namespace {
             {
                 *dst++ = dstpix + srcpix;
             }
-            else  // overflow
+            else  // need to saturate
             {
                 COLOR red = (srcpix >> 16) & 255;
                 COLOR grn = (srcpix >> 8) & 255;
@@ -308,7 +313,7 @@ namespace {
     // the corresponding destination pixel, while a source alpha of
     // zero leaves the destination unchanged. Source and destination
     // pixels are in premultiplied-alpha format.
-    void AlphaClear(COLOR *src, COLOR *dst, int len)
+    void AlphaClear(COLOR *dst, COLOR *src, int len)
     {
         while (len--)
         {
@@ -385,28 +390,29 @@ class AA4x8Renderer : public EnhancedRenderer
     void BlendConstantAlphaLUT();
 
 protected:
-    // Interface to ShapeGen object
     void RenderShape(ShapeFeeder *feeder);
     bool SetMaxWidth(int maxwidth);
     int QueryYResolution() { return 2; }
     bool SetScrollPosition(int x, int y);
 
 public:
-    // Application interface
+    bool GetStatus();  // for local use only
+
+    // Enhanced renderer application interface
     AA4x8Renderer(const PIXEL_BUFFER *pixbuf);
     ~AA4x8Renderer();
     bool GetPixelBuffer(PIXEL_BUFFER *pixbuf);
     void SetColor(COLOR color);
-    void SetPattern(const COLOR *pattern, float u0, float v0,
+    bool SetPattern(const COLOR *pattern, float u0, float v0,
                     int w, int h, int stride, int flags);
-    void SetPattern(ImageReader *imgrdr, float u0, float v0,
+    bool SetPattern(ImageReader *imgrdr, float u0, float v0,
                     int w, int h, int flags);
-    void SetLinearGradient(float x0, float y0, float x1, float y1,
+    bool SetLinearGradient(float x0, float y0, float x1, float y1,
                            SPREAD_METHOD spread, int flags);
-    void SetRadialGradient(float x0, float y0, float r0,
+    bool SetRadialGradient(float x0, float y0, float r0,
                            float x1, float y1, float r1,
                            SPREAD_METHOD spread, int flags);
-    void SetConicGradient(float x0, float y0,
+    bool SetConicGradient(float x0, float y0,
                           float astart, float asweep,
                           SPREAD_METHOD spread, int flags);
     void AddColorStop(float offset, COLOR color);
@@ -416,16 +422,18 @@ public:
     void SetBlendOperation(BLENDOP blendop);
 };
 
-AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf)
-                  : _maxwidth(0), _linebuf(0), _aabuf(0), _paintgen(0),
+AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf) :
+                    _maxwidth(0), _linebuf(0), _aabuf(0), _paintgen(0),
                     _stopCount(0), _pxform(0), _color(0), _alpha(255),
                     _xscroll(0), _yscroll(0), _pixalloc(false),
                     _blendop(BLENDOP_SRC_OVER_DST)
 {
-    if (pixbuf->width <= 0 || pixbuf->height <= 0 || pixbuf->depth != 32 ||
+    if (pixbuf->width < 1 || pixbuf->height < 1 || pixbuf->depth != 32 ||
         (pixbuf->pitch/sizeof(COLOR) < pixbuf->width && pixbuf->pixels))
     {
-        assert(0);
+        assert(pixbuf->width > 0 && pixbuf->height > 0);
+        assert(pixbuf->depth == 32);
+        assert(pixbuf->pitch/sizeof(COLOR) >= pixbuf->width && pixbuf->pixels);
         _pixbuf.pixels = 0;
         return;  // bad parameter
     }
@@ -436,8 +444,8 @@ AA4x8Renderer::AA4x8Renderer(const PIXEL_BUFFER *pixbuf)
         _pixbuf.pixels = AllocateRawPixels(_pixbuf.width, _pixbuf.height, RGBA(0,0,0,0));
         if (_pixbuf.pixels == 0)
         {
-            assert(_pixbuf.pixels);
-            return;  // out of memory
+            assert(_pixbuf.pixels != 0);
+            return;  // fail - out of memory
         }
         _pixalloc = true;  // don't forget we allocated pixel memory
         _pixbuf.pitch = _pixbuf.width*sizeof(COLOR);
@@ -458,6 +466,12 @@ AA4x8Renderer::~AA4x8Renderer()
         DeleteRawPixels(_pixbuf.pixels);
     if (_paintgen)
         _paintgen->~PaintGen();
+}
+
+// Returns true if constructor succeeded; otherwise, returns false.
+bool AA4x8Renderer::GetStatus()
+{
+    return (_pixbuf.pixels != 0);
 }
 
 // Public function: The caller wants a copy of our pixel-buffer info
@@ -645,11 +659,11 @@ void AA4x8Renderer::RenderAbuffer(int xmin, int xmax, int yscan)
     COLOR *dest = &_pixbuf.pixels[yscan*_stride + xleft];
 
     if (_blendop == BLENDOP_SRC_OVER_DST)
-        AlphaBlender(srcbuf, dest, len);
+        AlphaBlender(dest, srcbuf, len);
     else if (_blendop == BLENDOP_ADD_WITH_SAT)
-        AddWithSaturation(srcbuf, dest, len);
+        AddWithSaturation(dest, srcbuf, len);
     else
-        AlphaClear(srcbuf, dest, len);
+        AlphaClear(dest, srcbuf, len);
 }
 
 // Private function: Loads an RGB color component or alpha value into
@@ -731,7 +745,7 @@ bool AA4x8Renderer::SetScrollPosition(int x, int y)
 
 // Public function: Prepares the renderer to do tiled-pattern fills
 // from a pixel array containing a 2-D image
-void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
+bool AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
                                int w, int h, int stride, int flags)
 {
     if (_paintgen)
@@ -746,15 +760,21 @@ void AA4x8Renderer::SetPattern(const COLOR *pattern, float u0, float v0,
     }
     TiledPattern *pat;
     pat = CreateTiledPattern(pattern, u0, v0, w, h, stride, flags, _pxform);
-    assert(pat);  // out of memory?
+    if (pat == 0)
+    {
+        assert(pat != 0);
+        SetColor(RGBX(0,0,0));
+        return false;  // out of memory
+    }
     _paintgen = pat;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+    return true;
 }
 
 // Public function: Sets up the renderer to use the 2-D image from a
 // bitmap file or 2-D matrix to do tiled-pattern fills
-void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
+bool AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
                                int w, int h, int flags)
 {
     if (_paintgen)
@@ -769,14 +789,20 @@ void AA4x8Renderer::SetPattern(ImageReader *imgrdr, float u0, float v0,
     }
     TiledPattern *pat;
     pat = CreateTiledPattern(imgrdr, u0, v0, w, h, flags, _pxform);
-    assert(pat);  // out of memory?
+    if (pat == 0)
+    {
+        assert(pat != 0);
+        SetColor(RGBX(0,0,0));
+        return false;  // out of memory
+    }
     _paintgen = pat;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+    return true;
 }
 
 // Public function: Prepares the renderer to do linear gradient fills
-void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
+bool AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
                                       SPREAD_METHOD spread, int flags)
 {
     if (_paintgen)
@@ -786,17 +812,23 @@ void AA4x8Renderer::SetLinearGradient(float x0, float y0, float x1, float y1,
     }
     LinearGradient *grad;
     grad = CreateLinearGradient(x0, y0, x1, y1, spread, flags, _pxform);
-    assert(grad);  // out of memory?
+    if (grad == 0)
+    {
+        assert(grad != 0);
+        SetColor(RGBX(0,0,0));
+        return false;  // out of memory
+    }
     for (int i = 0; i < _stopCount; ++i)
         grad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
     _paintgen = grad;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+    return true;
 }
 
 // Public function: Prepares the renderer to do radial gradient fills
-void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
+bool AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
                                       float x1, float y1, float r1,
                                       SPREAD_METHOD spread, int flags)
 {
@@ -807,17 +839,23 @@ void AA4x8Renderer::SetRadialGradient(float x0, float y0, float r0,
     }
     RadialGradient *grad;
     grad = CreateRadialGradient(x0, y0, r0, x1, y1, r1, spread, flags, _pxform);
-    assert(grad);  // out of memory?
+    if (grad == 0)
+    {
+        assert(grad != 0);
+        SetColor(RGBX(0,0,0));
+        return false;  // out of memory
+    }
     for (int i = 0; i < _stopCount; ++i)
         grad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
     _paintgen = grad;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+    return true;
 }
 
 // Public function: Prepares the renderer to do conic gradient fills
-void AA4x8Renderer::SetConicGradient(float x0, float y0,
+bool AA4x8Renderer::SetConicGradient(float x0, float y0,
                                      float astart, float asweep,
                                      SPREAD_METHOD spread, int flags)
 {
@@ -828,13 +866,19 @@ void AA4x8Renderer::SetConicGradient(float x0, float y0,
     }
     ConicGradient *grad;
     grad = CreateConicGradient(x0, y0, astart, asweep, spread, flags, _pxform);
-    assert(grad);  // out of memory?
+    if (grad == 0)
+    {
+        assert(grad != 0);
+        SetColor(RGBX(0,0,0));
+        return false;  // out of memory
+    }
     for (int i = 0; i < _stopCount; ++i)
         grad->AddColorStop(_cstop[i].offset, _cstop[i].color);
 
     _paintgen = grad;
     _paintgen->SetScrollPosition(_xscroll, _yscroll);
     BlendConstantAlphaLUT();  // fill look-up table with 8-bit alphas
+    return true;
 }
 
 // Public function: Adds a gradient color stop. In the process, the
@@ -901,17 +945,25 @@ void AA4x8Renderer::SetBlendOperation(BLENDOP blendop)
 
 SimpleRenderer* CreateSimpleRenderer(const PIXEL_BUFFER *pixbuf)
 {
-    SimpleRenderer *rend = new BasicRenderer(pixbuf);
-    assert(rend != 0);  // out of memory?
-
-    return rend;
+    BasicRenderer *rend = new BasicRenderer(pixbuf);
+    if (rend == 0 || rend->GetStatus() == false)
+    {
+        assert(rend != 0 && rend->GetStatus() == true);
+        delete rend;
+        return 0;  // constructor failed
+    }
+    return rend;  // success
 }
 
 EnhancedRenderer* CreateEnhancedRenderer(const PIXEL_BUFFER *pixbuf)
 {
-    EnhancedRenderer *aarend = new AA4x8Renderer(pixbuf);
-    assert(aarend != 0);  // out of memory?
-
+    AA4x8Renderer *aarend = new AA4x8Renderer(pixbuf);
+    if (aarend == 0 || aarend->GetStatus() == false)
+    {
+        assert(aarend != 0 && aarend->GetStatus() == true);
+        delete aarend;
+        return 0;  // constructor failed
+    }
     return aarend;
 }
 
