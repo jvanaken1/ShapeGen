@@ -50,7 +50,7 @@ inline SGRect* IntToFixed(SGRect *box)
 }
 
 // Converts an array of integer x-y coordinates to 16.16 fixed point
-inline SGPoint* IntToFixed(int npts, SGPoint xy[])
+inline SGPoint* IntToFixed(SGPoint xy[], int npts)
 {
     for (int i = 0; i < npts; ++i)
     {
@@ -90,11 +90,11 @@ SGRect* GetBbox(SGRect *bbox, int npts, const SGPoint xy[])
 // Scales and translates points in the source bounding box, bbsrc,
 // to exactly fit the destination bounding box, bbdst. The function
 // calculates the transformation from bbsrc to bbdst, applies this
-// transform to the points in the xysrc array, and writes the
+// transformation to the points in the xysrc array, and writes the
 // transformed points to the xydst array. Parameter npts is the
 // length of the xysrc and xydst arrays. All source and destination
 // coordinates are assumed to be in 16.16 fixed-point format.
-void FitBbox(const SGRect *bbdst, int npts, SGPoint xydst[],
+void FitBbox(const SGRect *bbdst, SGPoint xydst[], int npts,
              SGRect *bbsrc, const SGPoint xysrc[])
 {
     SGPoint cin, cout;
@@ -235,28 +235,6 @@ bool BitSlinger::RewindData()
 
 //---------------------------------------------------------------------
 //
-// Zero-terminated arrays of dashed-line patterns
-//
-//----------------------------------------------------------------------
-
-char dashedLineDot[]           = { 3, 0 };
-char dashedLineShortDash[]     = { 6, 0 };
-char dashedLineDashDot[]       = { 9, 6, 3, 6, 0 };
-char dashedLineDoubleDot[]     = { 3, 3, 3, 15, 0 };
-char dashedLineLongDash[]      = { 18, 6, 0 };
-char dashedLineDashDoubleDot[] = { 9, 3, 3, 3, 3, 3, 0 };
-
-char *dasharray[] = {
-    dashedLineDot,
-    dashedLineShortDash,
-    dashedLineDashDot,
-    dashedLineDoubleDot,
-    dashedLineLongDash,
-    dashedLineDashDoubleDot,
-};
-
-//---------------------------------------------------------------------
-//
 // Demo functions and code examples
 //
 //----------------------------------------------------------------------
@@ -312,9 +290,10 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         SGPoint v1 = { v0.x + 3*rx, v0.y + 3*ry };
         SGPoint v2 = { v0.x + sx, v0.y - sy };
 
-        sg->Ellipse(v0, v1, v2);
+        sg->EllipticArc(v0, v1, v2, 3*PI/4, PI/2);
         t += dt;
     }
+    sg->CloseFigure();
     aarend->SetColor(RGBX(90,90,90));
     sg->StrokePath();
     aarend->SetConicGradient(xc,yc, astart,asweep, SPREAD_REFLECT);
@@ -530,8 +509,8 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     };
 
     // Fill star using even-odd (aka parity) fill rule
-    GetBbox(&bbsrc, len, star);
-    FitBbox(&bbdst[0], len, xy, &bbsrc, star);
+    GetBbox(&bbsrc, len, &star[0]);
+    FitBbox(&bbdst[0], &xy[0], len, &bbsrc, &star[0]);
     sg->SetFixedBits(16);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
@@ -544,7 +523,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->StrokePath();
 
     // Fill star using winding number fill rule
-    FitBbox(&bbdst[1], len, xy, &bbsrc, star);
+    FitBbox(&bbdst[1], &xy[0], len, &bbsrc, &star[0]);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(&xy[1], ARRAY_LEN(xy)-1);
@@ -556,7 +535,7 @@ void demo02(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->StrokePath();
 
     // Draw star using brush strokes
-    FitBbox(&bbdst[2], len, xy, &bbsrc, star);
+    FitBbox(&bbdst[2], &xy[0], len, &bbsrc, &star[0]);
     rend->SetColor(crFill);
     sg->SetLineJoin(LINEJOIN_MITER);
     sg->SetMiterLimit(2.0);
@@ -660,8 +639,8 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     SGPoint xy[len];
 
     // Mask off star-shaped region on right side
-    GetBbox(&bbsrc, len, star);
-    FitBbox(&bbdst[1], len, xy, &bbsrc, star);
+    GetBbox(&bbsrc, len, &star[0]);
+    FitBbox(&bbdst[1], &xy[0], len, &bbsrc, &star[0]);
     sg->BeginPath();
     sg->Move(xy[0].x, xy[0].y);
     sg->PolyLine(&xy[1], len-1);
@@ -669,7 +648,7 @@ void demo03(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->SetMaskRegion();
 
     // Set up star-shaped clipping region on left
-    FitBbox(&bbdst[0], len, xy, &bbsrc, star);
+    FitBbox(&bbdst[0], &xy[0], len, &bbsrc, &star[0]);
     sg->BeginPath();
     sg->Rectangle(rect[1]);
     sg->Move(xy[0].x, xy[0].y);
@@ -971,6 +950,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     txt.DisplayText(&(*sg), xystart, scale, str);
 
     // Draw windmill shape
+    char dashedLineShortDash[] = { 6, 0 };
     SGPoint blade[][7] = {
         {
             { 160-100, 120+95 }, { 250-100,  30+95 },
@@ -1006,6 +986,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->StrokePath();
 
     // Draw spikey shape
+    char dashedLineDot[] = { 3, 0 };
     SGPoint stretch[25] = { { 1040+200, 720+0 } };
     float angle = 0, cosa = 1.0, sina = 0;
     for (i = 1; i < ARRAY_LEN(stretch); i += 3)
@@ -1042,10 +1023,10 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         { 340, 260 },  { 340, 320 }, { 380, 400 },  { 420, 400 },
     };
     SGRect srcbbox, dstbbox = { 600-250, 370-250, 500, 500 };
-    IntToFixed(ARRAY_LEN(clubs), &clubs[0]);
+    IntToFixed(&clubs[0], ARRAY_LEN(clubs));
     IntToFixed(&dstbbox);
     GetBbox(&srcbbox, ARRAY_LEN(clubs), &clubs[0]);
-    FitBbox(&dstbbox, ARRAY_LEN(clubs), &clubs[0], &srcbbox, &clubs[0]);
+    FitBbox(&dstbbox, &clubs[0], ARRAY_LEN(clubs), &srcbbox, &clubs[0]);
     sg->SetFixedBits(16);
     sg->SetLineEnd(LINEEND_ROUND);
     sg->SetLineJoin(LINEJOIN_BEVEL);
@@ -1086,6 +1067,7 @@ void demo06(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->StrokePath();
 
     // Draw curly-cue shape
+    char dashedLineDashDoubleDot[] = { 9, 3, 3, 3, 3, 3, 0 };
     int xc = 210, yc = 735;
     int x = 24, y = 0;
     SGPoint xy[100];
@@ -1299,9 +1281,9 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     float width = 54.0;
 
     // Scale and translate control points for 'S' glyph
-    IntToFixed(ARRAY_LEN(glyph), glyph);
+    IntToFixed(&glyph[0], ARRAY_LEN(glyph));
     GetBbox(&bbsrc, ARRAY_LEN(glyph), glyph);
-    FitBbox(&bbdst, ARRAY_LEN(glyph), glyph, &bbsrc, glyph);
+    FitBbox(&bbdst, &glyph[0], ARRAY_LEN(glyph), &bbsrc, glyph);
 
     // Draw the 'S' glyph
     sg->SetFixedBits(16);
@@ -1359,10 +1341,9 @@ void demo08(const PIXEL_BUFFER& bkbuf, const SGRect& clip)  // Bezier 'S'
     SGRect bboxsrc, bboxdst = { 70<<16, 240<<16, 600<<16, 600<<16 };
 
     // Move and resize control points for club suit symbol
-    IntToFixed(ARRAY_LEN(clubs), &clubs[0]);
+    IntToFixed(&clubs[0], ARRAY_LEN(clubs));
     GetBbox(&bboxsrc, ARRAY_LEN(clubs), &clubs[0]);
-    FitBbox(&bboxdst, ARRAY_LEN(clubs), &point[0],
-            &bboxsrc, &clubs[0]);
+    FitBbox(&bboxdst, &point[0], ARRAY_LEN(clubs), &bboxsrc, &clubs[0]);
 
     // Switch to basic renderer for large area fill
     sg->SetRenderer(&(*rend));
@@ -2370,9 +2351,10 @@ void demo16(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
         SGPoint v1 = { v0.x + 3*rx, v0.y + 3*ry };
         SGPoint v2 = { v0.x + sx, v0.y - sy };
 
-        sg->Ellipse(v0, v1, v2);
+        sg->EllipticArc(v0, v1, v2, 3*PI/4, PI/2);
         t += dt;
     }
+    sg->CloseFigure();
     aarend->SetColor(RGBX(90,90,90));
     sg->StrokePath();
     aarend->SetConicGradient(xc,yc, astart,asweep, SPREAD_REFLECT);

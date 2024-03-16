@@ -164,7 +164,8 @@ namespace {
 POOL::POOL(int len) : blklen(len), watermark(0), index(0), count(0)
 {
     block = new EDGE[blklen];
-    assert(block);  // out of memory?
+    // TODO: Replace assert below with out-of-memory exception
+    assert(block);
     memset(inventory, 0, ARRAY_LEN(inventory)*sizeof(EDGE*));
 }
 
@@ -436,6 +437,7 @@ bool Feeder::GetNextSGSpan(SGSpan *span)
 
 EdgeMgr::EdgeMgr() : _renderer(0)
 {
+    // TODO: Replace assert below with out-of-memory exception
     _inpool = new POOL;
     _outpool = new POOL;
     _clippool = new POOL;
@@ -479,10 +481,10 @@ bool EdgeMgr::SetRenderer(Renderer *renderer)
 //---------------------------------------------------------------------
 //
 // Protected function: Sets the clipping region to the normalized edge
-// list in _outlist.head and discards the old clipping region. Returns true
-// if the new clipping region is not empty; otherwise, returns false.
-// (If the clipping region is empty, everything will get clipped, and
-// nothing can be drawn.)
+// list in _outlist.head and discards the old clipping region. Returns
+// true if the new clipping region is not empty; otherwise, returns
+// false. (If the clipping region is empty, everything will get
+// clipped, and nothing can be drawn.)
 //
 //---------------------------------------------------------------------
 

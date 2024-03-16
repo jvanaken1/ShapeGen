@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2019-2023 Jerry R. VanAken
+  Copyright (C) 2019-2024 Jerry R. VanAken
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -108,7 +108,6 @@ int RunTest(int testnum, const PIXEL_BUFFER& bkbuf, const SGRect& cliprect)
         assert(cliprect.w <= bkbuf.width || cliprect.h <= bkbuf.height);
         return -1;  // configuration error
     }
-    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), cliprect));
     NSVGimage* image;
