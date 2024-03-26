@@ -35,7 +35,7 @@
 
 #include <string.h>
 #include <assert.h>
-#include "demo.h"
+#include "renderer.h"
 
 //---------------------------------------------------------------------
 //
