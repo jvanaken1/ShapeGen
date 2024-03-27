@@ -1,34 +1,32 @@
-# Build ShapeGen demo program to run on the Win32 API in Windows
+# Build the ShapeGen demo program to run on the Win32 API in Windows
 # This makefile uses the Microsoft C/C++ compiler and linker
+# Open a Visual Studio C/C++ command prompt window
 # Run the Microsoft nmake utility from the command line in this directory
-# Remember to run vcvars32.bat first to set up your build environment
 
-LIBFILES = user32.lib gdi32.lib Winmm.lib Msimg32.lib
-OBJFILES = winmain.obj alfablur.obj textapp.obj bmpfile.obj pattern.obj gradient.obj\
+OBJFILES = winmain.obj alfablur.obj bmpfile.obj textapp.obj gradient.obj pattern.obj\
            renderer.obj arc.obj curve.obj edge.obj path.obj stroke.obj thinline.obj
-BMPFILES = bricks.bmp fleur.bmp honeycomb.bmp
+LIBFILES = user32.lib gdi32.lib Winmm.lib Msimg32.lib
 CC = cl.exe
 CDEBUG = -Zi
 LINK = link.exe
 LFLAGS =
 LDEBUG = /DEBUG
 
-all : svgview.exe $(BMPFILES) demo.exe
+all : demo.exe svgview.exe
 
-demo.exe : demo.obj $(OBJFILES)
-        $(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
+demo.exe : .PHONY demo.obj $(OBJFILES)
+        $(LINK) $(LDEBUG) $(LFLAGS) demo.obj $(OBJFILES) $(LIBFILES) /OUT:$@ /PDB:$*.pdb
 
-svgview.exe : svgview.obj $(OBJFILES)
-        $(LINK) $(LDEBUG) $(LFLAGS) $** $(LIBFILES) /OUT:$@ /PDB:$*.pdb
+svgview.exe : .PHONY svgview.obj $(OBJFILES)
+        $(LINK) $(LDEBUG) $(LFLAGS) svgview.obj $(OBJFILES) $(LIBFILES) /OUT:$@ /PDB:$*.pdb
+
+# Compile modules for demo program
 
 demo.obj : demo.cpp shapegen.h renderer.h demo.h
         $(CC) $(CDEBUG) -c demo.cpp
 
 svgview.obj : svgview.cpp shapegen.h renderer.h demo.h nanosvg.h
         $(CC) $(CDEBUG) -c svgview.cpp
-
-winmain.obj : winmain.cpp shapegen.h renderer.h demo.h
-        $(CC) $(CDEBUG) -c winmain.cpp
 
 alfablur.obj : alfablur.cpp shapegen.h renderer.h demo.h
         $(CC) $(CDEBUG) -c alfablur.cpp
@@ -39,14 +37,21 @@ bmpfile.obj : bmpfile.cpp shapegen.h renderer.h demo.h
 textapp.obj : textapp.cpp shapegen.h renderer.h demo.h
         $(CC) $(CDEBUG) -c textapp.cpp
 
-pattern.obj : pattern.cpp shapegen.h renderer.h
-        $(CC) $(CDEBUG) -c pattern.cpp
+winmain.obj : winmain.cpp shapegen.h renderer.h demo.h
+        $(CC) $(CDEBUG) -c winmain.cpp
+
+# Compile modules for Renderer class
 
 gradient.obj : gradient.cpp shapegen.h renderer.h
         $(CC) $(CDEBUG) -c gradient.cpp
 
+pattern.obj : pattern.cpp shapegen.h renderer.h
+        $(CC) $(CDEBUG) -c pattern.cpp
+
 renderer.obj : renderer.cpp shapegen.h renderer.h
         $(CC) $(CDEBUG) -c renderer.cpp
+
+# Compile modules for ShapeGen class
 
 arc.obj : arc.cpp shapegen.h shapepri.h
         $(CC) $(CDEBUG) -c arc.cpp
@@ -66,71 +71,10 @@ stroke.obj : stroke.cpp shapegen.h shapepri.h
 thinline.obj : thinline.cpp shapegen.h shapepri.h
         $(CC) $(CDEBUG) -c thinline.cpp
 
-demo.h : ..\demo.h
-        copy /y ..\demo.h
-
-svgview.cpp : ..\svgview.cpp
-        copy /y ..\svgview.cpp
-
-shapegen.h : ..\shapegen.h
-        copy /y ..\shapegen.h
-
-shapepri.h : ..\shapepri.h
-        copy /y ..\shapepri.h
-
-renderer.h : ..\renderer.h
-        copy /y ..\renderer.h
-
-nanosvg.h : ..\nanosvg.h
-        copy /y ..\nanosvg.h
-
-alfablur.cpp : ..\alfablur.cpp
-        copy /y ..\alfablur.cpp
-
-arc.cpp : ..\arc.cpp
-        copy /y ..\arc.cpp
-
-bmpfile.cpp : ..\bmpfile.cpp
-        copy /y ..\bmpfile.cpp
-
-curve.cpp : ..\curve.cpp
-        copy /y ..\curve.cpp
-
-demo.cpp : ..\demo.cpp
-        copy /y ..\demo.cpp
-
-edge.cpp : ..\edge.cpp
-        copy /y ..\edge.cpp
-
-gradient.cpp : ..\gradient.cpp
-        copy /y ..\gradient.cpp
-
-pattern.cpp : ..\pattern.cpp
-        copy /y ..\pattern.cpp
-
-path.cpp : ..\path.cpp
-        copy /y ..\path.cpp
-
-renderer.cpp : ..\renderer.cpp
-        copy /y ..\renderer.cpp
-
-stroke.cpp : ..\stroke.cpp
-        copy /y ..\stroke.cpp
-
-textapp.cpp : ..\textapp.cpp
-        copy /y ..\textapp.cpp
-
-thinline.cpp : ..\thinline.cpp
-        copy /y ..\thinline.cpp
-
-bricks.bmp : ..\bricks.bmp
-        copy /y ..\bricks.bmp
-
-fleur.bmp : ..\fleur.bmp
-        copy /y ..\fleur.bmp
-
-honeycomb.bmp : ..\honeycomb.bmp
-        copy /y ..\honeycomb.bmp
+.PHONY :
+	@xcopy /d ..\*.cpp
+	@xcopy /d ..\*.h
+	@xcopy /d ..\*.bmp
 
 clean:
         @del *.exe
