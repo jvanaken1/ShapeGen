@@ -74,7 +74,7 @@ thinline.obj : thinline.cpp shapegen.h shapepri.h
 .PHONY :
 	@xcopy /d ..\*.cpp
 	@xcopy /d ..\*.h
-	@xcopy /d ..\*.bmp
+	@xcopy /d ..\data\*.bmp
 
 clean:
         @del *.exe

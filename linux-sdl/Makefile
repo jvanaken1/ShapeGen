@@ -68,7 +68,7 @@ thinline.o : thinline.cpp shapegen.h shapepri.h
 .PHONY :
 	cp -u ../*.cpp .
 	cp -u ../*.h .
-	cp -u ../*.bmp .
+	cp -u ../data/*.bmp .
 
 clean :
 	rm *.o
