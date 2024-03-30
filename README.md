@@ -1,8 +1,9 @@
-ShapeGen Open-Source 2-D Vector Graphics Library
--------------
+# ShapeGen Open-Source 2-D Vector Graphics Library
 
 _Author:_ Jerry R. VanAken  
-_Date:_ 2/16/2024
+_Date:_ 3/30/2024
+
+![Conic gradient example](/data/logo.jpg?raw=true)
 
 ## Overview
 
