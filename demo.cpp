@@ -245,7 +245,18 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
     SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
 
-    // Set up color-stop array
+    // Fill background with radial gradient
+    float xform0[6] = { 1.0f, 0, 0, 45.0f/64.0f, 640.0f, 465.0f };
+    aarend->SetTransform(xform0);
+    aarend->ResetColorStops();
+    aarend->AddColorStop(0, RGBX(13,26,39));
+    aarend->AddColorStop(1, RGBX(120,176,187));
+    aarend->SetRadialGradient(0,0,800, 0,0,450, SPREAD_PAD, FLAG_EXTEND_START);
+    sg->BeginPath();
+    sg->Rectangle(clip);
+    sg->FillPath();
+
+    // Set up color-stop array for conic gradient
     const COLOR color[] = { RGBX(255,233,211), RGBX(0,100,100), };
     float offset = 0, delta = 1.0f/ARRAY_LEN(color);
 
@@ -261,7 +272,7 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     const int NREPS = 18;
     float t = 0, dt = 2*PI/NREPS;
     float astart = -PI/2, asweep = 2*PI/NREPS;
-    SGCoord r = 80, xc = 640, yc = 440;
+    SGCoord r = 80, xc = 640, yc = 465;
     float x0 = xc, y0 = yc;
 
     float xscale = 1.5f, yscale = 1.0f;
@@ -307,7 +318,7 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 
     txt.SetTextSpacing(1.05);
     xystart.x = (DEMO_WIDTH - txt.GetTextWidth(scale, str))/2;
-    xystart.y = 26 + DEMO_HEIGHT/2;
+    xystart.y = 41 + DEMO_HEIGHT/2;
     sg->SetLineWidth(34.0);
     xystart.x += 7, xystart.y += 5;
     aarend->SetColor(RGBA(0,0,0,40));
@@ -316,18 +327,19 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     aarend->SetColor(RGBX(0,88,88));
     txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(20.0);
-    aarend->SetColor(RGBX(255,176,155));
+    aarend->SetColor(RGBX(255,125,120));
     txt.DisplayText(&(*sg), xystart, scale, str);
 
-    xystart.x = 762, xystart.y = 916;
+    xystart.x = 780, xystart.y = 927;
+    SGCoord xarow = 1188, yarow = 900;
     SGPoint arrow[] = {
-        {  0+1170, 30+889 }, { 30+1170, 30+889 },
-        { 30+1170, 40+889 }, { 63+1170, 20+889 },
-        { 30+1170,  0+889 }, { 30+1170, 10+889 },
-        {  0+1170, 10+889 }
+        {  0+xarow, 30+yarow }, { 30+xarow, 30+yarow },
+        { 30+xarow, 40+yarow }, { 63+xarow, 20+yarow },
+        { 30+xarow,  0+yarow }, { 30+xarow, 10+yarow },
+        {  0+xarow, 10+yarow }
     };
-    aarend->SetColor(RGBX(0,88,88));
-    sg->SetLineWidth(3.5);
+    aarend->SetColor(RGBX(120,130,140));
+    sg->SetLineWidth(3.0);
     txt.DisplayText(&(*sg), xystart, 0.333, "Hit space bar to continue");
     sg->BeginPath();
     sg->Move(arrow[0].x, arrow[0].y);
@@ -338,47 +350,33 @@ void demo00(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 // Demo frame 1: ShapeGen intro
 void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
 {
-    SmartPtr<SimpleRenderer> rend(CreateSimpleRenderer(&bkbuf));
     SmartPtr<EnhancedRenderer> aarend(CreateEnhancedRenderer(&bkbuf));
-    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*rend), clip));
-    TextApp txt;
-    float xform[6] = { 2.0, -0.8, 0, 2.5, 175.0, 685.0 };
-    COLOR crBkgd = RGBX(222,222,255);
-    COLOR crText = RGBX(40, 70, 110);
-    COLOR color[] = {
-        RGBX(222,100, 50), RGBX(185,100,222),
-        RGBX( 90,206, 45), RGBX(220, 20, 60),
-        RGBX(  0,206,209)
-    };
-    SGPoint xystart;
+    SmartPtr<ShapeGen> sg(CreateShapeGen(&(*aarend), clip));
     SGPoint corner = { 40, 40 };
-    SGPoint elips[] = { { 640, 440 }, { 640+550, 435 }, { 640, 435+110 } };
-    float len = 110;
-    float angle = +PI/8.1;
-    char *str = 0;
-    float scale = 1.0;
-    float width;
-    int i;
+    COLOR color0 = RGBX(222,100, 50);
 
-    // Use the basic renderer to do a background color fill
+    // Fill background with radial gradient
+    aarend->ResetColorStops();
+    aarend->AddColorStop(0, RGBX(211,234,253));
+    aarend->AddColorStop(1, RGBX(255,250,245));
+    aarend->SetLinearGradient(0,0, 0,480, SPREAD_REFLECT);
     SGRect frame = { 10, 10, DEMO_WIDTH-20, DEMO_HEIGHT-20 };
     sg->BeginPath();
     sg->RoundedRectangle(frame, corner);
-    rend->SetColor(crBkgd);
     sg->FillPath();
-
-    // Now switch to the antialiasing renderer
-    sg->SetRenderer(&(*aarend));
 
     // Draw a frame around the window
     sg->SetLineWidth(8.0);
-    aarend->SetColor(color[0]);
+    aarend->SetColor(color0);
     sg->StrokePath();
 
     // Draw background pattern: rotated ellipses
-    aarend->SetColor(RGBX(233, 150, 122));
+    SGPoint elips[] = { { 640, 455 }, { 640+550, 450 }, { 640, 450+110 } };
+    float len = 110;
+    float angle = +PI/8.1;
+    aarend->SetColor(RGBX(238, 155, 127));
     sg->BeginPath();
-    for (i = 0; i < 26; ++i)
+    for (int i = 0; i < 26; ++i)
     {
         float cosa = cos(angle);
         float sina = sin(angle);
@@ -394,12 +392,18 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     sg->StrokePath();
 
     // Draw horizontal text
+    TextApp txt;
+    float width;
+    char *str = 0;
+    float scale = 1.0;
+    COLOR crText = RGBX(40, 70, 110);
+    SGPoint xystart;
     sg->SetLineWidth(6.0);
     str = "ShapeGen 2-D Graphics Library";
     scale = 0.75;
     width = txt.GetTextWidth(scale, str);
     xystart.x = (DEMO_WIDTH - width)/2;
-    xystart.y = 130;
+    xystart.y = 135;
     aarend->SetColor(crText);
     txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(4.0);
@@ -407,16 +411,17 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     scale = 0.54;
     width = txt.GetTextWidth(scale, str);
     xystart.x = (DEMO_WIDTH - width)/2;
-    xystart.y = 780;
+    xystart.y = 805;
     txt.DisplayText(&(*sg), xystart, scale, str);
     str = "A portable, lightweight C++ implementation";
     width = txt.GetTextWidth(scale, str);
     xystart.x = (DEMO_WIDTH - width)/2;
-    xystart.y += 64;
+    xystart.y += 70;
     txt.DisplayText(&(*sg), xystart, scale, str);
     sg->SetLineWidth(3.0);
 
     // Draw letters "ShapeGen" with slanted text and shadowing
+    float xform[6] = { 2.0, -0.8, 0, 2.5, 175.0, 700.0 };
     str = "ShapeGen";
     sg->SetFlatness(FLATNESS_DEFAULT);
     sg->SetLineWidth(32.0);
@@ -426,10 +431,10 @@ void demo01(const PIXEL_BUFFER& bkbuf, const SGRect& clip)
     xform[4] -= 8.0;  // set text offset from shadow
     xform[5] -= 8.0;
     sg->SetLineWidth(32.0);
-    aarend->SetColor(color[3]);
+    aarend->SetColor(RGBX(220, 20, 60));
     txt.DisplayText(&(*sg), xform, str);
     sg->SetLineWidth(24.0);
-    aarend->SetColor(color[0]);
+    aarend->SetColor(color0);
     txt.DisplayText(&(*sg), xform, str);
 }
 
