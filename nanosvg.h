@@ -1676,7 +1676,7 @@ static int nsvg__parseAttr(NSVGparser* p, const char* name, const char* value)
         // Don't reset ->visible on display:inline, one display:none hides the whole subtree
 
     } else if (strcmp(name, "fill") == 0) {
-        if (strcmp(value, "none") == 0) {
+        if (strcmp(value, "none") == 0 || strcmp(value, "transparent") == 0) {
             attr->hasFill = 0;
         } else if (strncmp(value, "url(", 4) == 0) {
             attr->hasFill = 2;
@@ -1690,7 +1690,7 @@ static int nsvg__parseAttr(NSVGparser* p, const char* name, const char* value)
     } else if (strcmp(name, "fill-opacity") == 0) {
         attr->fillOpacity = nsvg__parseOpacity(value);
     } else if (strcmp(name, "stroke") == 0) {
-        if (strcmp(value, "none") == 0) {
+        if (strcmp(value, "none") == 0 || strcmp(value, "transparent") == 0) {
             attr->hasStroke = 0;
         } else if (strncmp(value, "url(", 4) == 0) {
             attr->hasStroke = 2;
