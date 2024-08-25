@@ -33,26 +33,15 @@
 namespace {
     //-------------------------------------------------------------------
     //
-    // Returns the absolute value of signed integer x
-    //
-    //-------------------------------------------------------------------
-
-    inline int iabs(int x)
-    {
-        return (x < 0) ? -x : x;
-    }
-
-    //-------------------------------------------------------------------
-    //
     // Returns the approximate length of vector (x,y). The error in the
     // return value falls within the range -2.8 to +0.78 percent.
     //
     //-------------------------------------------------------------------
 
-    FIX16 VLen(FIX16 xx, FIX16 yy)
+    FIX16 VLen(FIX16 dx, FIX16 dy)
     {
-        unsigned int x = iabs(xx);
-        unsigned int y = iabs(yy);
+        unsigned int x = (dx < 0) ? -dx : dx;
+        unsigned int y = (dy < 0) ? -dy : dy;
 
         if (x > y)
             return x + max(y/8, y/2 - x/8);
@@ -64,16 +53,16 @@ namespace {
 //--------------------------------------------------------------------
 //
 // Private function: Returns a true/false value indicating whether
-// the quadratic Bezier curve specified by the 3-vertex control
-// polygon v0-v1-v2 is flat enough to be represented by a line
-// segment from v0 to v2.
+// the quadratic Bezier curve segment specified by the 3-vertex
+// control polygon (v0,v1,v2) is flat enough to be represented by a
+// line segment from v0 to v2.
 //
 //--------------------------------------------------------------------
 
 bool PathMgr::IsFlatQuadratic(const VERT16 v[3])
 {
-    FIX16 dx = iabs(v[0].x - 2*v[1].x + v[2].x);
-    FIX16 dy = iabs(v[0].y - 2*v[1].y + v[2].y);
+    FIX16 dx = v[0].x - 2*v[1].x + v[2].x;
+    FIX16 dy = v[0].y - 2*v[1].y + v[2].y;
     FIX16 error = VLen(dx, dy)/4;
 
     return (error <= _flatness);
@@ -81,15 +70,15 @@ bool PathMgr::IsFlatQuadratic(const VERT16 v[3])
 
 //---------------------------------------------------------------------
 //
-// Public function: Appends a quadratic Bezier spline (a parabola) to
+// Public function: Appends a quadratic Bezier curve (a parabola) to
 // the current figure (aka subpath). The current point serves as the
 // first point in the spline's 3-point control polygon. Parameters v1
 // and v2 supply the two remaining points. On return, the point
 // specified by v2 is the new current point. This function uses the
 // classic de Casteljau algorithm to subdivide the Bezier curve into
 // segments that meet the tolerance specified by the _flatness member.
-// On entry, the current figure must not be empty (i.e., the current
-// point must be defined) or the function faults.
+// On entry, the current figure must not be empty (that is, the
+// current point must be defined) or the function faults.
 //
 //----------------------------------------------------------------------
 
@@ -108,15 +97,15 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
         return false;
     }
 
-    // Get 3 vertices for Bezier control polygon ABC
+    // Get the three vertices for Bezier control polygon ABC
     v[0][0] = *_cpoint;             // A
     v[0][1].x = v1.x << _fixshift;  // B
     v[0][1].y = v1.y << _fixshift;
     v[0][2].x = v2.x << _fixshift;  // C
     v[0][2].y = v2.y << _fixshift;
 
-    // Continue to subdivide Bezier control polygon ABC until
-    // flatness of each curve segment is within specified tolerance
+    // Continue to subdivide Bezier control polygon ABC until the
+    // flatness of each curve segment is within the specified tolerance
     for (;;)
     {
         while (!IsFlatQuadratic(v[0]) && level < MAXLEVELS)
@@ -159,14 +148,15 @@ bool PathMgr::Bezier2(const SGPoint& v1, const SGPoint& v2)
 //---------------------------------------------------------------------
 //
 // Public function: Appends a series of connected quadratic Bezier
-// splines to the current figure (aka subpath). Array xy contains the
-// points in the control polygons for the splines. Parameter npts
-// specifies the number of elements in the xy array. The current point
-// is taken as the first point in the 3-point control polygon for the
-// first spline, and the two remaining points are specified by the
-// first two points in the xy array. Thereafter, two additional array
-// elements are needed to specify each subsequent spline. The last point
-// in the final spline then becomes the new current point.
+// curve segments to the current figure (aka subpath). Array 'xy'
+// contains the points in the control polygons for the curves.
+// Parameter 'npts' specifies the number of elements in the xy array.
+// The current point is taken as the first point in the 3-point
+// control polygon for the first curve, and the two remaining points
+// are specified by the first two points in the xy array. Thereafter,
+// two additional array elements are needed to specify each subsequent
+// curve. The last point in the final curve then becomes the new
+// current point.
 //
 //----------------------------------------------------------------------
 
@@ -190,38 +180,38 @@ bool PathMgr::PolyBezier2(const SGPoint xy[], int npts)
 //--------------------------------------------------------------------
 //
 // Private function: Returns a true/false value indicating whether
-// the cubic Bezier curve specified by the 4-vertex control polygon
-// v0-v1-v2-v3 is flat enough to be represented by a line segment
-// from v0 to v3. This function uses a modified version of the
-// flatness test described by Roger Willcocks (www.rops.org).
+// the cubic Bezier curve segment specified by the 4-vertex control
+// polygon (v0,v1,v2,v3) is flat enough to be represented by a line
+// segment from v0 to v3. This function is similar to the flatness
+// test described by Roger Willcocks (www.rops.org) but uses fixed-
+// point arithmetic instead of floating-point.
 //
 //--------------------------------------------------------------------
 
 bool PathMgr::IsFlatCubic(const VERT16 v[4])
 {
-
-    FIX16 ux = iabs(2*(v[1].x - v[0].x) + v[1].x - v[3].x);
-    FIX16 uy = iabs(2*(v[1].y - v[0].y) + v[1].y - v[3].y);
-    FIX16 vx = iabs(2*(v[2].x - v[3].x) + v[2].x - v[0].x);
-    FIX16 vy = iabs(2*(v[2].y - v[3].y) + v[2].y - v[0].y);
-    FIX16 xmax = max(ux, vx);
-    FIX16 ymax = max(uy, vy);
-    FIX16 error = VLen(xmax, ymax)/2;
+    FIX16 ux = 2*(v[1].x - v[0].x) + v[1].x - v[3].x;
+    FIX16 uy = 2*(v[1].y - v[0].y) + v[1].y - v[3].y;
+    FIX16 vx = 2*(v[2].x - v[3].x) + v[2].x - v[0].x;
+    FIX16 vy = 2*(v[2].y - v[3].y) + v[2].y - v[0].y;
+    FIX16 uerr = VLen(ux, uy);
+    FIX16 verr = VLen(vx, vy);
+    FIX16 error = max(uerr, verr)/4;
 
     return (error <= _flatness);
 }
 
 //---------------------------------------------------------------------
 //
-// Public function: Appends a cubic Bezier spline to the current figure
+// Public function: Appends a cubic Bezier curve to the current figure
 // (aka subpath). The current point serves as the first point in the
-// spline's 4-point control polygon. Parameters v1, v2, and v3 supply
+// curve's 4-point control polygon. Parameters v1, v2, and v3 supply
 // the three remaining points. On return, the point specified by v3 is
 // the new current point. This function uses the classic de Casteljau
 // algorithm to subdivide the Bezier curve into segments that meet the
 // tolerance specified by the _flatness member. On entry, the current
-// figure must not be empty (i.e., the current point must be defined) or
-// the function faults.
+// figure must not be empty (that is, the current point must be
+// defined) or the function faults.
 //
 //----------------------------------------------------------------------
 
@@ -240,7 +230,7 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
         return false;
     }
 
-    // Get 4 vertices for Bezier control polygon ABCD
+    // Get the four vertices for Bezier control polygon ABCD
     v[0][0] = *_cpoint;             // A
     v[0][1].x = v1.x << _fixshift;  // B
     v[0][1].y = v1.y << _fixshift;
@@ -249,8 +239,8 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
     v[0][3].x = v3.x << _fixshift;  // D
     v[0][3].y = v3.y << _fixshift;
 
-    // Continue to subdivide Bezier control polygon ABCD until
-    // flatness of each curve segment is within specified tolerance
+    // Continue to subdivide control polygon ABCD until the flatness
+    // of each curve segment falls within the specified tolerance
     for (;;)
     {
         while (!IsFlatCubic(v[0]) && level < MAXLEVELS)
@@ -295,15 +285,15 @@ bool PathMgr::Bezier3(const SGPoint& v1, const SGPoint& v2, const SGPoint& v3)
 
 //---------------------------------------------------------------------
 //
-// Public function: Appends a series of connected cubic Bezier splines
-// to the current figure (aka subpath). Array xy contains the points in
-// the control polygons for the splines. Parameter npts specifies the
-// number of elements in the xy array. The current point is taken as
-// the first point in the 4-point control polygon for the first spline,
-// and the three remaining points are specified by the first three
-// points in the xy array. Thereafter, three additional array elements
-// are needed to specify each subsequent spline. The last point in the
-// final spline then becomes the new current point.
+// Public function: Appends a series of connected cubic Bezier curve
+// segments to the current figure (aka subpath). Array 'xy' contains
+// the points in the control polygons for the curves. Parameter 'npts'
+// specifies the number of elements in the xy array. The current point
+// is taken as the first point in the 4-point control polygon for the
+// first curve, and the three remaining points are specified by the
+// first three points in the xy array. Thereafter, three additional
+// array elements are needed to specify each subsequent curve. The
+// last point in the final curve then becomes the new current point.
 //
 //----------------------------------------------------------------------
 
