@@ -190,9 +190,9 @@ public:
     // Basic path attributes
     virtual float SetFlatness(float tol = FLATNESS_DEFAULT) = 0;
     virtual int SetFixedBits(int nbits = FIXBITS_DEFAULT) = 0;
-    virtual void SetScrollPosition(int x, int y) = 0;
-    virtual bool GetCurrentPoint(SGPoint *cpoint) = 0;
-    virtual bool GetFirstPoint(SGPoint *fpoint) = 0;
+    virtual void SetScrollPosition(int x = 0, int y = 0) = 0;
+    virtual bool GetCurrentPoint(SGPoint *cpoint = 0) = 0;
+    virtual bool GetFirstPoint(SGPoint *fpoint = 0) = 0;
     virtual int GetBoundingBox(SGRect *bbox, int flags = 0) = 0;
 
     // Clipping and masking
