@@ -34,31 +34,19 @@
 namespace {
     //-------------------------------------------------------------------
     //
-    // Returns the absolute value of signed integer x.
-    //
-    //-------------------------------------------------------------------
-
-    inline int iabs(int x)
-    {
-        return (x < 0) ? -x : x;
-    }
-
-    //-------------------------------------------------------------------
-    //
     // Returns the approximate length of vector (x,y). The error in the
     // return value falls within the range -2.8 to +0.78 percent.
     //
     //-------------------------------------------------------------------
 
-    FIX16 VLen(FIX16 xx, FIX16 yy)
+    FIX16 VLen(FIX16 x, FIX16 y)
     {
-        unsigned int x = iabs(xx);
-        unsigned int y = iabs(yy);
-
+        if (x < 0) x = -x;
+        if (y < 0) y = -y;
         if (x > y)
-            return x + max(y/8, y/2 - x/8);
+            return max(x + y/8, x + y/2 - x/8);
 
-        return y + max(x/8, x/2 - y/8);
+        return max(y + x/8, y + x/2 - y/8);
     }
 
     //-------------------------------------------------------------------
