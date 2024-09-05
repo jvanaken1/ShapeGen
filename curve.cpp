@@ -43,9 +43,9 @@ namespace {
         if (x < 0) x = -x;
         if (y < 0) y = -y;
         if (x > y)
-            return max(x + y/8, x + y/2 - x/8);
+            return x + max(y/8, y/2 - x/8);
 
-        return max(y + x/8, y + x/2 - y/8);
+        return y + max(x/8, x/2 - y/8);
     }
 }
 

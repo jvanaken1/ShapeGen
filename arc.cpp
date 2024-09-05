@@ -27,7 +27,6 @@
 //
 //---------------------------------------------------------------------
 
-#include <stdlib.h>
 #include <math.h>
 #include "shapepri.h"
 
@@ -44,9 +43,9 @@ namespace {
         if (x < 0) x = -x;
         if (y < 0) y = -y;
         if (x > y)
-            return max(x + y/8, x + y/2 - x/8);
+            return x + max(y/8, y/2 - x/8);
 
-        return max(y + x/8, y + x/2 - y/8);
+        return y + max(x/8, x/2 - y/8);
     }
 
     //-------------------------------------------------------------------
@@ -55,7 +54,7 @@ namespace {
     // auxiliary circle for the origin-centered ellipse specified by
     // conjugate diameter end points (xP,yP) and (xQ,yQ). This radius
     // is half the length of the ellipse's major axis. The error in
-    // the return value falls within the range -4.2 to +7.1 percent.
+    // the return value falls within the range -1.3 to +8.4 percent.
     //
     //-------------------------------------------------------------------
 
